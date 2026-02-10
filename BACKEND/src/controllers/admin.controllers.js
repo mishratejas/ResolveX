@@ -104,18 +104,7 @@ export const adminLogin = async (req, res) => {
 export const getDashboardData = async (req, res) => {
     try {
         console.log("📊 Fetching dashboard data...");
-        console.log("✅ Dashboard stats:", {
-    totalComplaints,
-    pendingComplaints,
-    inProgressComplaints,
-    resolvedComplaints,
-    totalUsers,
-    totalStaff
-});
-
-console.log("✅ Recent complaints count:", recentComplaints.length);
-console.log("✅ Top staff count:", topStaff.length);
-console.log("✅ Trend data count:", trendData.length);
+        
         // Calculate date ranges
         const today = new Date();
         const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -271,6 +260,19 @@ console.log("✅ Trend data count:", trendData.length);
                 resolved: 0 
             };
         });
+
+        // Debug logs
+        console.log("✅ Dashboard stats:", {
+            totalComplaints,
+            pendingComplaints,
+            inProgressComplaints,
+            resolvedComplaints,
+            totalUsers,
+            totalStaff
+        });
+        console.log("✅ Recent complaints count:", recentComplaints.length);
+        console.log("✅ Top staff count:", topStaff.length);
+        console.log("✅ Trend data count:", trendData.length);
 
         // Generate notifications
         const notifications = [

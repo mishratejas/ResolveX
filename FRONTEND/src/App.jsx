@@ -5,6 +5,8 @@ import Home from './pages/user/Home';
 import AuthModal from './components/auth/AuthModal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminIssuesPage from './pages/admin/AdminIssuesPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminStaffPage from './pages/admin/AdminStaffPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffIssuesPage from './pages/staff/StaffIssuesPage';
@@ -237,6 +239,24 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AnalyticsPage authStatus={authStatus} />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminUsersPage authStatus={authStatus} onLogout={handleLogout} />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/staff" 
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminStaffPage authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
           } 
         />
