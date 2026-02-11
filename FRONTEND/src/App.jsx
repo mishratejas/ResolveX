@@ -10,6 +10,8 @@ import AdminStaffPage from './pages/admin/AdminStaffPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffIssuesPage from './pages/staff/StaffIssuesPage';
+import AuditLogsPage from './pages/admin/AuditLogsPage';
+
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
@@ -251,7 +253,14 @@ function App() {
             </ProtectedRoute>
           } 
         />
-
+        <Route 
+          path="/admin/audit" 
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AuditLogsPage />
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/admin/staff" 
           element={

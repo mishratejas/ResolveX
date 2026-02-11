@@ -107,7 +107,7 @@ export const handleUpdateIssue = async(req,res)=>{
         const adminId=req.admin?._id;
 
         const complaint=await UserComplaint.findById(id);
-        
+        const oldData = complaint.toObject();
         if(!complaint){
             return res.status(404).json({
                 success:false,
@@ -201,7 +201,26 @@ export const handleUpdateIssue = async(req,res)=>{
 
         complaint.updatedAt = new Date();
         await complaint.save();
-
+        await logAudit({
+        actor: req.admin._id,
+        actorModel: 'Admin',
+        actorName: req.admin.name,
+        actorEmail: req.admin.email,
+        action: 'ISSUE_UPDATED',
+        category: 'ISSUE_MANAGEMENT',
+        severity: 'MEDIUM',
+        targetModel: 'UserComplaint',
+        targetId: complaint._id,
+        targetName: complaint.title,
+        description: `${req.admin.name} updated issue: ${complaint.title}`,
+        changes: trackChanges(oldData, complaint.toObject()),
+        metadata: {
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent')
+        }
+    });
+    
+    res.json({ success: true, data: complaint });
         // Populate all fields for response
         await complaint.populate('user', 'name email phone');
         await complaint.populate('assignedTo', 'name staffId email');

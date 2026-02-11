@@ -90,12 +90,38 @@ export const adminLogin = async (req, res) => {
                 permissions: admin.permissions
             }
         });
+        await logAudit({
+            actor: admin._id,
+            actorModel: 'Admin',
+            actorName: admin.name,
+            actorEmail: admin.email,
+            actorRole: admin.role,
+            action: 'LOGIN',
+            category: 'AUTHENTICATION',
+            severity: 'LOW',
+            status: 'SUCCESS',
+            description: `${admin.name} logged in successfully`,
+            metadata: {
+                ipAddress: req.ip,
+                userAgent: req.get('user-agent'),
+                endpoint: req.originalUrl,
+                method: req.method
+            }
+        });
+        
+        res.json({ success: true, data: admin });
 
-    } catch (err) {
-        console.error("❌ Admin Login Error:", err);
-        res.status(500).json({ 
-            success: false, 
-            message: "Server error during admin login" 
+
+    }
+    catch (error) {
+        // Log failed login
+        await logAudit({
+            action: 'LOGIN_FAILED',
+            category: 'AUTHENTICATION',
+            severity: 'MEDIUM',
+            status: 'FAILURE',
+            description: `Failed login attempt for ${req.body.email}`,
+            error: { message: error.message }
         });
     }
 };

@@ -100,6 +100,7 @@ export const getAllStaff = async (req, res) => {
 };
 
 // Get staff statistics
+// ✅ ADD THIS FUNCTION - It was missing but referenced in routes
 export const getStaffStats = async (req, res) => {
     try {
         const totalStaff = await Staff.countDocuments();
@@ -128,7 +129,7 @@ export const getStaffStats = async (req, res) => {
         
         // Performance distribution
         const performanceStats = await UserComplaint.aggregate([
-            { $match: { assignedTo: { $exists: true } } },
+            { $match: { assignedTo: { $exists: true, $ne: null } } },
             {
                 $group: {
                     _id: '$assignedTo',
@@ -173,11 +174,15 @@ export const getStaffStats = async (req, res) => {
             }
         ]);
         
+        // Get department names list
+        const departments = await Department.find().select('name');
+        
         const stats = {
             total: totalStaff,
             active: activeStaff,
             inactive: inactiveStaff,
             departments: departmentStats,
+            departmentList: departments,
             performance: performanceStats[0] || {
                 avgResolutionRate: 0,
                 highPerformers: 0,
@@ -196,7 +201,78 @@ export const getStaffStats = async (req, res) => {
         console.error('Error fetching staff stats:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching staff statistics'
+            message: 'Error fetching staff statistics',
+            error: error.message
+        });
+    }
+};
+
+// ✅ NEW: Get single staff member details
+export const getStaffDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const staff = await Staff.findById(id)
+            .populate('department', 'name category')
+            .select('-password');
+        
+        if (!staff) {
+            return res.status(404).json({
+                success: false,
+                message: 'Staff member not found'
+            });
+        }
+        
+        // Get staff's complaint history
+        const complaints = await UserComplaint.find({ assignedTo: id })
+            .populate('user', 'name email')
+            .populate('department', 'name')
+            .sort({ createdAt: -1 })
+            .limit(20);
+        
+        // Calculate detailed stats
+        const totalAssigned = complaints.length;
+        const resolved = complaints.filter(c => c.status === 'resolved').length;
+        const pending = complaints.filter(c => c.status === 'pending').length;
+        const inProgress = complaints.filter(c => c.status === 'in-progress').length;
+        
+        // Calculate average resolution time
+        const resolvedComplaints = complaints.filter(c => c.status === 'resolved');
+        let avgResolutionTime = 0;
+        if (resolvedComplaints.length > 0) {
+            const totalTime = resolvedComplaints.reduce((sum, complaint) => {
+                const created = new Date(complaint.createdAt);
+                const resolved = new Date(complaint.updatedAt);
+                return sum + (resolved - created);
+            }, 0);
+            avgResolutionTime = Math.round((totalTime / resolvedComplaints.length) / (1000 * 60 * 60 * 24) * 10) / 10;
+        }
+        
+        const staffDetails = {
+            ...staff.toObject(),
+            recentComplaints: complaints.slice(0, 10),
+            stats: {
+                totalAssigned,
+                resolved,
+                pending,
+                inProgress,
+                resolutionRate: totalAssigned > 0 ? Math.round((resolved / totalAssigned) * 100) : 0,
+                avgResolutionTime,
+                performanceScore: totalAssigned > 0 ? Math.round(((resolved / totalAssigned) * 70) + ((avgResolutionTime < 7 ? 30 : 15))) : 0
+            }
+        };
+        
+        res.status(200).json({
+            success: true,
+            message: 'Staff details retrieved successfully',
+            data: staffDetails
+        });
+        
+    } catch (error) {
+        console.error('Error fetching staff details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching staff details'
         });
     }
 };

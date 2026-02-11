@@ -11,7 +11,7 @@ import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-// ✅ CRITICAL: Stats route MUST be BEFORE /:id to avoid route collision
+// ✅ CRITICAL FIX: Stats route MUST be BEFORE /:id to avoid route collision
 router.get("/stats", adminAuth, getIssueStats);
 
 // Get all complaints with filters
