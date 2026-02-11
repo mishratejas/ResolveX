@@ -21,7 +21,7 @@ const userComplaintSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ["low", "medium", "high"],
+        enum: ["low", "medium", "high", "critical"],
         default: "medium"
     },
     location: {

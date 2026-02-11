@@ -27,27 +27,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching chart data:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: {
-                    dailyComplaints: [
-                        { day: 'Mon', complaints: 12, resolved: 8 },
-                        { day: 'Tue', complaints: 15, resolved: 10 },
-                        { day: 'Wed', complaints: 18, resolved: 12 },
-                        { day: 'Thu', complaints: 14, resolved: 11 },
-                        { day: 'Fri', complaints: 20, resolved: 15 },
-                        { day: 'Sat', complaints: 10, resolved: 7 },
-                        { day: 'Sun', complaints: 8, resolved: 6 }
-                    ],
-                    departments: [
-                        { name: 'Water Supply', value: 45, resolved: 38 },
-                        { name: 'Electricity', value: 62, resolved: 51 },
-                        { name: 'Road Maintenance', value: 38, resolved: 29 },
-                        { name: 'Sanitation', value: 29, resolved: 24 }
-                    ]
-                }
-            };
+            throw error;
         }
     },
 
@@ -75,27 +55,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching staff stats:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: {
-                    total: 24,
-                    active: 22,
-                    inactive: 2,
-                    departments: [
-                        { _id: 'Water Supply', count: 8 },
-                        { _id: 'Electricity', count: 6 },
-                        { _id: 'Road Maintenance', count: 5 },
-                        { _id: 'Sanitation', count: 5 }
-                    ],
-                    performance: {
-                        avgResolutionRate: 76.5,
-                        highPerformers: 8,
-                        mediumPerformers: 10,
-                        lowPerformers: 4
-                    }
-                }
-            };
+            throw error;
         }
     },
 
@@ -108,15 +68,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching staff performance:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: [
-                    { name: 'Rajesh Kumar', department: 'Electricity', assigned: 50, resolved: 47, rate: 94 },
-                    { name: 'Anita Sharma', department: 'Water Supply', assigned: 40, resolved: 35, rate: 88 },
-                    { name: 'Priya Patel', department: 'Road Maintenance', assigned: 35, resolved: 28, rate: 80 }
-                ]
-            };
+            throw error;
         }
     },
 
@@ -144,24 +96,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching user stats:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: {
-                    total: 156,
-                    active: 142,
-                    verified: 98,
-                    growth: {
-                        last30Days: 23,
-                        last90Days: 67
-                    },
-                    complaints: {
-                        totalUsersWithComplaints: 87,
-                        avgComplaintsPerUser: 2.4,
-                        avgResolutionRate: 72
-                    }
-                }
-            };
+            throw error;
         }
     },
 
@@ -189,24 +124,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching issue stats:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: {
-                    total: 342,
-                    pending: 89,
-                    inProgress: 124,
-                    resolved: 129,
-                    highPriority: 42,
-                    assigned: 253,
-                    unassigned: 89,
-                    overdue: 18,
-                    today: 12,
-                    thisWeek: 58,
-                    thisMonth: 102,
-                    resolutionRate: 37.7
-                }
-            };
+            throw error;
         }
     },
 
@@ -235,19 +153,7 @@ const adminService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching departments:', error);
-            // Return mock data for development
-            return {
-                success: true,
-                data: [
-                    { _id: '1', name: 'Water Supply', category: 'Infrastructure' },
-                    { _id: '2', name: 'Electricity', category: 'Infrastructure' },
-                    { _id: '3', name: 'Road Maintenance', category: 'Infrastructure' },
-                    { _id: '4', name: 'Sanitation', category: 'Health' },
-                    { _id: '5', name: 'Police', category: 'Safety' },
-                    { _id: '6', name: 'Healthcare', category: 'Health' },
-                    { _id: '7', name: 'Education', category: 'Education' }
-                ]
-            };
+            throw error;
         }
     },
 
@@ -375,5 +281,7 @@ export const bulkActivateStaff = adminService.bulkActivateStaff;
 export const bulkDeactivateStaff = adminService.bulkDeactivateStaff;
 export const exportData = adminService.exportData;
 export const adminLogout = adminService.adminLogout;
+export const getComplaintMessages = adminService.getComplaintMessages;
+export const sendComplaintMessage = adminService.sendComplaintMessage;
 
 export default adminService;

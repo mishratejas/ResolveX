@@ -139,6 +139,11 @@ io.on('connection', (socket) => {
         socket.join(userId.toString());
         console.log(`User ${userId} joined room`);
     });
+
+    socket.on('join_complaint', (complaintId) => {
+        socket.join(`complaint_${complaintId}`);
+        console.log(`User ${socket.id} joined complaint room: complaint_${complaintId}`);
+    });
     
     socket.on('disconnect', () => {
         console.log('❌ User disconnected:', socket.id);

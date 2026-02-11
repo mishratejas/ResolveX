@@ -188,6 +188,7 @@ import {
   Treemap,
 } from "recharts";
 import chatService from "../../services/chatService";
+import ComplaintChat from "../../components/admin/ComplaintChat";
 
 const SOCKET_URL = import.meta.env.VITE_WS_URL || "ws://localhost:5000";
 let socket;
@@ -1792,15 +1793,29 @@ const AdminIssuesPage = () => {
                   <label className="block text-sm font-medium mb-2">
                     Select Staff
                   </label>
-                  <select
+                    <select
                     value={selectedStaff}
                     onChange={(e) => setSelectedStaff(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Unassigned</option>
-                    {staffList.map((staff) => (
+                    {staffList
+                      .filter((staff) => {
+                        // Find departments of selected complaints
+                        const selectedComplaintsData = complaints.filter(c => selectedRows.includes(c._id));
+                        const selectedDepartments = [...new Set(selectedComplaintsData.map(c => c.department))];
+                        
+                        // If all selected complaints are from the same department, filter staff
+                        if (selectedDepartments.length === 1) {
+                           // staff.department is likely an object due to populate, or string if flat
+                           const staffDeptName = staff.department?.name || staff.department;
+                           return staffDeptName === selectedDepartments[0];
+                        }
+                        return true; // Show all if mixed departments or no match
+                      })
+                      .map((staff) => (
                       <option key={staff._id} value={staff._id}>
-                        {staff.name} ({staff.department})
+                        {staff.name} ({staff.department?.name || staff.department})
                       </option>
                     ))}
                   </select>

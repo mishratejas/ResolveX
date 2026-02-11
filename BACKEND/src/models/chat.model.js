@@ -14,17 +14,17 @@ const chatMessageSchema = new mongoose.Schema({
     senderModel: {
         type: String,
         required: true,
-        enum: ['Admin', 'Staff']
+        enum: ['Admin', 'Staff', 'User']
     },
     receiverId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false, // Made optional for group chat
         refPath: 'receiverModel'
     },
     receiverModel: {
         type: String,
-        required: true,
-        enum: ['Admin', 'Staff']
+        required: false, // Made optional for group chat
+        enum: ['Admin', 'Staff', 'User']
     },
     complaintId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,7 +57,7 @@ const chatMessageSchema = new mongoose.Schema({
 
      deletedByModel: {
       type: String,
-      enum: ["Admin", "Staff"],
+      enum: ["Admin", "Staff", "User"],
     },
 }, { timestamps: true });
 

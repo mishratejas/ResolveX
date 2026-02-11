@@ -40,4 +40,15 @@ router.get("/search", searchMessages);
 // Get unread message count
 router.get("/unread-count", getUnreadCount);
 
+import {
+    getComplaintMessages,
+    sendComplaintMessage
+} from "../controllers/complaint_chat.controllers.js";
+
+// ... existing imports ...
+
+// Complaint Chat Routes
+router.get("/complaint/:complaintId", getComplaintMessages);
+router.post("/complaint/:complaintId", sendComplaintMessage);
+
 export default router;

@@ -9,7 +9,7 @@ export const handleFetchAllUserIssues = async (req, res) => {
         let filter = {};
 
         // 2. Map frontend tabs to backend model status values
-        if (status) {
+        if (status && status !== 'all') {
             let dbStatus = '';
             switch (status) {
                 case 'New (Triage)': dbStatus = 'pending'; break;
@@ -22,15 +22,16 @@ export const handleFetchAllUserIssues = async (req, res) => {
             }
             // Filter by the mapped database status
             filter.status = dbStatus;
-            if(priority && priority !== 'all') filter.priority=priority;
-            if(category && category !== 'all') filter.category = category;
-            if(assignedTo && assignedTo!=='all'){
-                if(assignedTo === 'unassigned'){
-                    filter.assignedTo = {$exists: false};
-                }
-                else{
-                    filter.assignedTo = assignedTo;
-                }
+        }
+
+        if(priority && priority !== 'all') filter.priority=priority;
+        if(category && category !== 'all') filter.category = category;
+        if(assignedTo && assignedTo!=='all'){
+            if(assignedTo === 'unassigned'){
+                filter.assignedTo = {$exists: false};
+            }
+            else{
+                filter.assignedTo = assignedTo;
             }
         }
 
@@ -60,23 +61,22 @@ export const handleFetchAllUserIssues = async (req, res) => {
 // --- 2. NEW: Fetch Staff List for Assignment Dropdowns ---
 export const handleFetchStaffList = async (req, res) => {
     try {
-        const staffList = await Staff.find()
-        .select('name _id staffId email department')
-        .populate('department','name');
+        const { departmentId } = req.query;
+        let query = {};
         
-        if (staffList.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No staff members found.'
-            });
+        if (departmentId) {
+            query.department = departmentId;
         }
 
+        const staff = await Staff.find(query)
+            .select('name email department role status avatar')
+            .populate('department', 'name');
+        
         res.status(200).json({
             success: true,
-            message: 'Staff list fetched successfully.',
-            data: staffList
+            count: staff.length,
+            staff
         });
-
     } catch (error) {
         console.error('Error fetching staff list:', error);
         res.status(500).json({
