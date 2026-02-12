@@ -706,7 +706,7 @@ const AdminDashboard = ({ onLogout }) => {
                   </div>
                 </div>
               </div>
-              <div className="h-72">
+              <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsLine data={dashboardData.performanceTrends.length ? dashboardData.performanceTrends : [
                     { date: 'Mon', total: 12, resolved: 8 },

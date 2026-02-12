@@ -1,5 +1,6 @@
 import UserComplaint from "../models/UserComplaint.models.js";
-import Staff from "../models/Staff.models.js"; // Added import
+import Staff from "../models/Staff.models.js"; 
+import { logAudit, trackChanges } from "../middleware/auditLogger.js";
 
 // --- 1. NEW: Fetch ALL Complaints for Admin Dashboard ---
 export const handleFetchAllUserIssues = async (req, res) => {

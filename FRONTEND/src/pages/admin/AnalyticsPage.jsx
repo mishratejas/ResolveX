@@ -360,7 +360,7 @@ const AnalyticsPage = () => {
           {/* Sample Chart */}
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg font-semibold mb-4">Monthly Complaint Trends</h3>
-            <div className="h-80">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={[

@@ -11,6 +11,7 @@ import AnalyticsPage from './pages/admin/AnalyticsPage';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffIssuesPage from './pages/staff/StaffIssuesPage';
 import AuditLogsPage from './pages/admin/AuditLogsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
@@ -266,6 +267,15 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminStaffPage authStatus={authStatus} onLogout={handleLogout} />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin/settings" 
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminSettingsPage authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
           } 
         />

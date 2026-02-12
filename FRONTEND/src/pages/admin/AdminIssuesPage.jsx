@@ -356,7 +356,8 @@ const AdminIssuesPage = () => {
       }
 
       if (staffRes.data.success) {
-        setStaffList(staffRes.data.data || []);
+        // Fix: Backend returns data: { staff: [], pagination: {} }
+        setStaffList(staffRes.data.data.staff || []);
       }
 
       if (statsRes.data.success) {
