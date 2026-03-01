@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import Admin from "../models/Admin.models.js";
+import User from "../models/User.models.js";
 import Staff from "../models/Staff.models.js";
+import Admin from "../models/Admin.models.js";
 
 export const chatAuth = async (req, res, next) => {
     try {
@@ -16,29 +17,30 @@ export const chatAuth = async (req, res, next) => {
         const token = authHeader.replace("Bearer ", "");
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-        // Try to find user in Admin collection
-        let user = await Admin.findById(decoded.id).select("-password");
-        let userType = "admin";
-
-        // If not found in Admin, try Staff collection
-        if (!user) {
-            user = await Staff.findById(decoded.id).select("-password");
-            userType = "staff";
+        // Try to find user in User, Staff, or Admin collections
+        let user = await User.findById(decoded.id).select("-password");
+        if (user) {
+            req.user = user;
+            return next();
         }
 
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid token. User not found."
-            });
+        let staff = await Staff.findById(decoded.id).select("-password");
+        if (staff) {
+            req.staff = staff;
+            return next();
         }
 
-        // Add user and type to request
-        req.user = user;
-        req.userType = userType;
+        let admin = await Admin.findById(decoded.id).select("-password");
+        if (admin) {
+            req.admin = admin;
+            return next();
+        }
 
-        console.log(`Chat Auth - ${userType.toUpperCase()} authenticated:`, user.name);
-        next();
+        return res.status(401).json({
+            success: false,
+            message: "Invalid token. User not found."
+        });
+
     } catch (error) {
         console.error("Chat auth error:", error);
         
@@ -52,7 +54,7 @@ export const chatAuth = async (req, res, next) => {
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({
                 success: false,
-                message: "Token expired. Please refresh your token."
+                message: "Token expired."
             });
         }
 

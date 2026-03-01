@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   MapPin,
@@ -11,9 +11,11 @@ import {
   ExternalLink,
   Image as ImageIcon,
   Share2,
-  Flag
-} from 'lucide-react';
-import axios from 'axios';
+  Flag,
+  X,
+} from "lucide-react";
+import axios from "axios";
+import ComplaintChat from "../../components/chat/ComplaintChat";
 
 const ComplaintDetailPage = () => {
   const { id } = useParams();
@@ -21,7 +23,8 @@ const ComplaintDetailPage = () => {
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
-  
+  const [showChat, setShowChat] = useState(false);
+  const currentUser = JSON.parse(localStorage.getItem("user"));
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
@@ -32,14 +35,14 @@ const ComplaintDetailPage = () => {
     try {
       setLoading(true);
       const response = await axios.get(`${BASE_URL}/api/user_issues/${id}`);
-      
+
       if (response.data.success) {
         setComplaint(response.data.data);
       }
     } catch (error) {
-      console.error('Error loading complaint:', error);
-      alert('Failed to load complaint details');
-      navigate('/home');
+      console.error("Error loading complaint:", error);
+      alert("Failed to load complaint details");
+      navigate("/home");
     } finally {
       setLoading(false);
     }
@@ -48,32 +51,32 @@ const ComplaintDetailPage = () => {
   const handleVote = async () => {
     try {
       setVoting(true);
-      const token = localStorage.getItem('accessToken');
-      const user = JSON.parse(localStorage.getItem('user'));
-      
+      const token = localStorage.getItem("accessToken");
+      const user = JSON.parse(localStorage.getItem("user"));
+
       if (!token || !user) {
-        alert('Please login to vote');
+        alert("Please login to vote");
         return;
       }
-      
+
       // Check if already voted
       if (complaint?.voters?.includes(user._id)) {
-        alert('You have already voted for this issue!');
+        alert("You have already voted for this issue!");
         return;
       }
-      
+
       const response = await axios.put(
         `${BASE_URL}/api/user_issues/${id}/vote`,
         { userId: user._id },
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       if (response.data.success) {
         setComplaint(response.data.data);
       }
     } catch (error) {
-      console.error('Error voting:', error);
-      alert(error.response?.data?.message || 'Failed to vote');
+      console.error("Error voting:", error);
+      alert(error.response?.data?.message || "Failed to vote");
     } finally {
       setVoting(false);
     }
@@ -81,11 +84,23 @@ const ComplaintDetailPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return 'bg-blue-100 text-blue-800';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "pending":
+        return "bg-blue-100 text-blue-800";
+      case "in-progress":
+        return "bg-yellow-100 text-yellow-800";
+      case "resolved":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleOpenChat = () => {
+    if (!currentUser) {
+      alert("Please login to access chat");
+      return;
+    }
+    setShowChat(true);
   };
 
   if (loading) {
@@ -100,9 +115,11 @@ const ComplaintDetailPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Complaint Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Complaint Not Found
+          </h2>
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate("/home")}
             className="text-blue-600 hover:text-blue-800"
           >
             Go Back
@@ -129,10 +146,14 @@ const ComplaintDetailPage = () => {
           <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 text-white">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(complaint.status)}`}>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(complaint.status)}`}
+                >
                   {complaint.status?.toUpperCase()}
                 </span>
-                <h1 className="text-3xl font-bold mt-4 mb-2">{complaint.title}</h1>
+                <h1 className="text-3xl font-bold mt-4 mb-2">
+                  {complaint.title}
+                </h1>
                 <div className="flex items-center gap-4 text-sm opacity-90">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
@@ -140,7 +161,7 @@ const ComplaintDetailPage = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <User className="w-4 h-4" />
-                    {complaint.user?.name || 'Anonymous'}
+                    {complaint.user?.name || "Anonymous"}
                   </div>
                 </div>
               </div>
@@ -151,17 +172,24 @@ const ComplaintDetailPage = () => {
           <div className="p-6">
             {/* Description */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{complaint.description}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Description
+              </h3>
+              <p className="text-gray-700 whitespace-pre-wrap">
+                {complaint.description}
+              </p>
             </div>
 
             {/* Location */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Location</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Location
+              </h3>
               <div className="flex items-start gap-2">
                 <MapPin className="w-5 h-5 text-blue-600 mt-1" />
                 <div>
                   <p className="text-gray-700">{complaint.location}</p>
+
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(complaint.location)}`}
                     target="_blank"
@@ -177,7 +205,9 @@ const ComplaintDetailPage = () => {
             {/* Images */}
             {complaint.images && complaint.images.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Images</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Images
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {complaint.images.map((image, index) => (
                     <div key={index} className="relative group">
@@ -186,6 +216,7 @@ const ComplaintDetailPage = () => {
                         alt={`Complaint ${index + 1}`}
                         className="w-full h-48 object-cover rounded-lg"
                       />
+
                       <a
                         href={image}
                         target="_blank"
@@ -203,12 +234,18 @@ const ComplaintDetailPage = () => {
             {/* Category & Priority */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-1">Category</h3>
-                <p className="text-gray-900">{complaint.category}</p>
+                <h3 className="text-sm font-semibold text-gray-600 mb-1">
+                  Category
+                </h3>
+                <p className="text-gray-900 capitalize">{complaint.category}</p>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-1">Priority</h3>
-                <p className="text-gray-900 capitalize">{complaint.priority || 'Medium'}</p>
+                <h3 className="text-sm font-semibold text-gray-600 mb-1">
+                  Priority
+                </h3>
+                <p className="text-gray-900 capitalize">
+                  {complaint.priority || "Medium"}
+                </p>
               </div>
             </div>
 
@@ -220,29 +257,119 @@ const ComplaintDetailPage = () => {
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-50"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="font-semibold">{complaint.voteCount || 0}</span>
+                <span className="font-semibold">
+                  {complaint.voteCount || 0}
+                </span>
                 <span className="text-sm">Votes</span>
               </button>
               <div className="flex items-center gap-2 text-gray-600">
                 <MessageCircle className="w-5 h-5" />
-                <span className="font-semibold">{complaint.comments?.length || 0}</span>
+                <span className="font-semibold">
+                  {complaint.comments?.length || 0}
+                </span>
                 <span className="text-sm">Comments</span>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex gap-4">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="mt-6 flex flex-wrap gap-4">
+              {/* Chat Button - Primary Action */}
+              <motion.button
+                onClick={handleOpenChat}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md font-medium"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Open Chat
+              </motion.button>
+
+              <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <Share2 className="w-4 h-4" />
                 Share
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-red-600">
+              <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-red-600">
                 <Flag className="w-4 h-4" />
                 Report Issue
               </button>
             </div>
           </div>
         </div>
+
+        {/* Chat Modal */}
+        {showChat && currentUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowChat(false);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-4xl h-[600px] bg-white rounded-xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-cyan-500">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-6 h-6 text-white" />
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      Complaint Discussion
+                    </h3>
+                    <p className="text-sm text-white/80 truncate max-w-md">
+                      {complaint.title}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Chat Component */}
+              <div className="h-[calc(100%-73px)]">
+                <ComplaintChat
+                  complaintId={complaint._id}
+                  currentUser={{
+                    id: currentUser._id || currentUser.id,
+                    name: currentUser.name,
+                    role: currentUser.role || "user",
+                  }}
+                  onClose={() => setShowChat(false)}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Floating Chat Button (Alternative) */}
+        {!showChat && currentUser && (
+          <motion.button
+            onClick={handleOpenChat}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors z-40"
+          >
+            <MessageCircle className="w-6 h-6" />
+            {/* Unread badge - you can add this later when you implement unread count */}
+            {/* <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+              3
+            </span> */}
+          </motion.button>
+        )}
       </div>
     </div>
   );

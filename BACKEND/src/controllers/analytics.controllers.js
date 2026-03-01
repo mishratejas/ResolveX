@@ -1,413 +1,947 @@
-import UserComplaint from '../models/UserComplaint.models.js';
-import Staff from '../models/Staff.models.js';
-import {ApiResponse} from '../utils/ApiResponse.js';
-import {ApiError} from '../utils/ApiError.js';
-import {asyncHandler} from '../utils/asyncHandler.js';
-import { generateCSVData, generatePDFReport } from '../utils/exportGenerator.js';
+// src/controllers/analytics.controllers.js
+import UserComplaint from "../models/UserComplaint.models.js";
+import User from "../models/User.models.js";
+import Staff from "../models/Staff.models.js";
+import Department from "../models/Department.model.js";
+import AuditLog from "../models/AuditLog.models.js";
+import ChatMessage from "../models/chat.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
-// Generate comprehensive analytics
-export const generateAnalytics = asyncHandler(async (req, res) => {
-    const { period = '30', department = 'all', startDate, endDate } = req.query;
+// ==================== COMPREHENSIVE ANALYTICS DASHBOARD ====================
+
+export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
+    const { timeRange = '30d', department, category } = req.query;
+
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
     
-    const dateFilter = calculateDateRange(period, startDate, endDate);
-    
-    let query = { createdAt: dateFilter };
-    if (department !== 'all') {
-        query.category = department;
+    switch (timeRange) {
+        case '7d':
+            startDate.setDate(endDate.getDate() - 7);
+            break;
+        case '30d':
+            startDate.setDate(endDate.getDate() - 30);
+            break;
+        case '90d':
+            startDate.setDate(endDate.getDate() - 90);
+            break;
+        case '1y':
+            startDate.setFullYear(endDate.getFullYear() - 1);
+            break;
+        default:
+            startDate.setDate(endDate.getDate() - 30);
     }
-    
-    const complaints = await UserComplaint.find(query)
-        .populate('user', 'name email')
-        .populate('assignedTo', 'name department')
-        .sort({ createdAt: -1 });
-    
-    const analytics = await generateComprehensiveAnalytics(complaints, period);
-    
-    return res.status(200).json(
-        new ApiResponse(200, analytics, "Analytics data fetched successfully")
-    );
-});
 
-// Get heatmap data with coordinates
-export const getHeatmapData = asyncHandler(async (req, res) => {
-    const { department = 'all', period = '30' } = req.query;
-    const dateFilter = calculateDateRange(period);
-    
-    let query = { 
-        createdAt: dateFilter,
-        latitude: { $exists: true, $ne: null },
-        longitude: { $exists: true, $ne: null }
+    // Build match query
+    const matchQuery = {
+        createdAt: { $gte: startDate, $lte: endDate }
     };
-    
-    if (department !== 'all') {
-        query.category = department;
-    }
-    
-    const complaints = await UserComplaint.find(query)
-        .select('latitude longitude priority category status title description createdAt votes')
-        .lean();
-    
-    const heatmapData = generateHeatmapClusters(complaints);
-    
-    return res.status(200).json(
+    if (department) matchQuery.department = department;
+    if (category) matchQuery.category = category;
+
+    // Parallel data fetching for performance
+    const [
+        overviewMetrics,
+        trendData,
+        categoryBreakdown,
+        departmentPerformance,
+        staffPerformance,
+        userEngagement,
+        resolutionMetrics,
+        priorityDistribution,
+        locationAnalysis,
+        timeAnalysis,
+        comparisonMetrics
+    ] = await Promise.all([
+        getOverviewMetrics(matchQuery),
+        getTrendData(startDate, endDate, matchQuery),
+        getCategoryBreakdown(matchQuery),
+        getDepartmentPerformance(matchQuery),
+        getStaffPerformance(matchQuery),
+        getUserEngagement(matchQuery),
+        getResolutionMetrics(matchQuery),
+        getPriorityDistribution(matchQuery),
+        getLocationAnalysis(matchQuery),
+        getTimeAnalysis(matchQuery),
+        getComparisonMetrics(startDate, endDate, matchQuery)
+    ]);
+
+    res.status(200).json(
         new ApiResponse(200, {
-            heatmapData,
-            totalPoints: complaints.length,
-            bounds: calculateMapBounds(complaints)
-        }, "Heatmap data fetched successfully")
+            timeRange,
+            dateRange: { start: startDate, end: endDate },
+            overview: overviewMetrics,
+            trends: trendData,
+            categories: categoryBreakdown,
+            departments: departmentPerformance,
+            staff: staffPerformance,
+            users: userEngagement,
+            resolution: resolutionMetrics,
+            priority: priorityDistribution,
+            location: locationAnalysis,
+            timePatterns: timeAnalysis,
+            comparison: comparisonMetrics
+        }, "Analytics data fetched successfully")
     );
 });
 
-// Export analytics data
-export const exportAnalytics = asyncHandler(async (req, res) => {
-    const { format = 'csv', period = '30', department = 'all' } = req.query;
-    
-    const dateFilter = calculateDateRange(period);
-    let query = { createdAt: dateFilter };
-    if (department !== 'all') {
-        query.category = department;
-    }
-    
-    const complaints = await UserComplaint.find(query)
-        .populate('user', 'name email')
-        .populate('assignedTo', 'name department')
-        .sort({ createdAt: -1 });
-    
-    if (format === 'csv') {
-        const csvData = generateCSVData(complaints);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename=analytics-${Date.now()}.csv`);
-        return res.send(csvData);
-    } else if (format === 'pdf') {
-        const pdfBuffer = await generatePDFReport(complaints);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=analytics-${Date.now()}.pdf`);
-        return res.send(pdfBuffer);
-    } else {
-        throw new ApiError(400, "Unsupported export format");
-    }
-});
+// ==================== OVERVIEW METRICS ====================
 
-// Staff performance analytics
-export const getStaffPerformance = asyncHandler(async (req, res) => {
-    const staffMembers = await Staff.find({})
-        .select('name email department position isActive createdAt');
-    
-    const performanceData = await Promise.all(
-        staffMembers.map(async (staff) => {
-const assignedComplaints = await UserComplaint.find({ assignedTo: staff._id });            const resolvedComplaints = assignedComplaints.filter(c => c.status === 'resolved');
-            const avgResolutionTime = calculateAverageResolutionTime(resolvedComplaints);
-            
-            return {
-                staffId: staff._id,
-                name: staff.name,
-                department: staff.department,
-                totalAssigned: assignedComplaints.length,
-                resolved: resolvedComplaints.length,
-                resolutionRate: assignedComplaints.length > 0 ? 
-                    (resolvedComplaints.length / assignedComplaints.length * 100).toFixed(1) : 0,
-                avgResolutionTime: avgResolutionTime,
-                performanceScore: calculatePerformanceScore(assignedComplaints, resolvedComplaints)
-            };
-        })
-    );
-    
-    return res.status(200).json(
-        new ApiResponse(200, performanceData, "Staff performance data fetched successfully")
-    );
-});
+async function getOverviewMetrics(matchQuery) {
+    const [
+        totalComplaints,
+        activeComplaints,
+        resolvedComplaints,
+        averageResolutionTime,
+        totalUsers,
+        activeUsers,
+        totalStaff,
+        activeStaff,
+        satisfactionScore
+    ] = await Promise.all([
+        UserComplaint.countDocuments(matchQuery),
+        UserComplaint.countDocuments({ ...matchQuery, status: { $in: ['pending', 'in-progress'] } }),
+        UserComplaint.countDocuments({ ...matchQuery, status: 'resolved' }),
+        calculateAverageResolutionTime(matchQuery),
+        User.countDocuments(),
+        User.countDocuments({ 
+            _id: { 
+                $in: await UserComplaint.distinct('user', matchQuery) 
+            } 
+        }),
+        Staff.countDocuments(),
+        Staff.countDocuments({ isActive: true }),
+        calculateSatisfactionScore(matchQuery)
+    ]);
 
-// Helper functions
-const calculateDateRange = (period, startDate, endDate) => {
-    if (startDate && endDate) {
-        return {
-            $gte: new Date(startDate),
-            $lte: new Date(endDate)
-        };
-    }
-    
-    const days = parseInt(period);
-    if (period === 'all') return {};
-    
-    const start = new Date();
-    start.setDate(start.getDate() - days);
-    return { $gte: start };
-};
+    const resolutionRate = totalComplaints > 0 
+        ? ((resolvedComplaints / totalComplaints) * 100).toFixed(2) 
+        : 0;
 
-const generateComprehensiveAnalytics = async (complaints, period) => {
-    const totalComplaints = complaints.length;
-    const resolvedComplaints = complaints.filter(c => c.status === 'resolved').length;
-    const pendingComplaints = complaints.filter(c => c.status === 'pending').length;
-    const inProgressComplaints = complaints.filter(c => c.status === 'in-progress').length;
-    
-    // Department distribution
-    const departmentStats = complaints.reduce((acc, complaint) => {
-        const dept = complaint.category || 'other';
-        if (!acc[dept]) acc[dept] = 0;
-        acc[dept]++;
-        return acc;
-    }, {});
-    
-    // Priority distribution
-    const priorityStats = complaints.reduce((acc, complaint) => {
-        const priority = complaint.priority || 'medium';
-        if (!acc[priority]) acc[priority] = 0;
-        acc[priority]++;
-        return acc;
-    }, {});
-    
-    // Status distribution
-    const statusStats = complaints.reduce((acc, complaint) => {
-        const status = complaint.status || 'pending';
-        if (!acc[status]) acc[status] = 0;
-        acc[status]++;
-        return acc;
-    }, {});
-    
-    // Time-based trends
-    const dailyTrends = calculateDailyTrends(complaints, period);
-    const monthlyTrends = calculateMonthlyTrends(complaints);
-    
-    // Resolution metrics
-    const resolutionMetrics = calculateResolutionMetrics(complaints);
-    
-    // Geographic distribution
-    const geographicStats = calculateGeographicStats(complaints);
-    
+    const avgResponseTime = await calculateAverageResponseTime(matchQuery);
+
     return {
-        summary: {
-            totalComplaints,
-            resolvedComplaints,
-            pendingComplaints,
-            inProgressComplaints,
-            resolutionRate: totalComplaints > 0 ? (resolvedComplaints / totalComplaints * 100).toFixed(1) : 0,
-            avgResolutionTime: resolutionMetrics.avgResolutionTime,
-            satisfactionScore: calculateSatisfactionScore(complaints)
+        complaints: {
+            total: totalComplaints,
+            active: activeComplaints,
+            resolved: resolvedComplaints,
+            resolutionRate: parseFloat(resolutionRate)
         },
-        distributions: {
-            departments: departmentStats,
-            priorities: priorityStats,
-            status: statusStats
+        users: {
+            total: totalUsers,
+            active: activeUsers,
+            engagementRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(2) : 0
         },
-        trends: {
-            daily: dailyTrends,
-            monthly: monthlyTrends
+        staff: {
+            total: totalStaff,
+            active: activeStaff,
+            utilization: totalStaff > 0 ? ((activeStaff / totalStaff) * 100).toFixed(2) : 0
         },
-        geographic: geographicStats,
-        timestamps: {
-            period: period,
-            generatedAt: new Date().toISOString()
+        performance: {
+            averageResolutionTime: averageResolutionTime,
+            averageResponseTime: avgResponseTime,
+            satisfactionScore: satisfactionScore
         }
     };
-};
+}
 
-const generateHeatmapClusters = (complaints) => {
-    if (complaints.length === 0) return [];
-    
-    const clusters = [];
-    const clusterRadius = 0.01;
-    
-    complaints.forEach(complaint => {
-        if (!complaint.latitude || !complaint.longitude) return;
-        
-        let addedToCluster = false;
-        
-        for (let cluster of clusters) {
-            const distance = calculateDistance(
-                cluster.center.lat, cluster.center.lng,
-                complaint.latitude, complaint.longitude
-            );
-            
-            if (distance <= clusterRadius) {
-                cluster.complaints.push(complaint);
-                cluster.count++;
-                cluster.weight += getPriorityWeight(complaint.priority);
-                cluster.center.lat = (cluster.center.lat * (cluster.count - 1) + complaint.latitude) / cluster.count;
-                cluster.center.lng = (cluster.center.lng * (cluster.count - 1) + complaint.longitude) / cluster.count;
-                addedToCluster = true;
-                break;
+// ==================== TREND ANALYSIS ====================
+
+async function getTrendData(startDate, endDate, matchQuery) {
+    const dailyTrends = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: {
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    status: "$status"
+                },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $group: {
+                _id: "$_id.date",
+                created: { $sum: "$count" },
+                pending: {
+                    $sum: {
+                        $cond: [{ $eq: ["$_id.status", "pending"] }, "$count", 0]
+                    }
+                },
+                inProgress: {
+                    $sum: {
+                        $cond: [{ $eq: ["$_id.status", "in-progress"] }, "$count", 0]
+                    }
+                },
+                resolved: {
+                    $sum: {
+                        $cond: [{ $eq: ["$_id.status", "resolved"] }, "$count", 0]
+                    }
+                },
+                rejected: {
+                    $sum: {
+                        $cond: [{ $eq: ["$_id.status", "rejected"] }, "$count", 0]
+                    }
+                }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    // Fill in missing dates with zero values
+    const filledTrends = fillMissingDates(dailyTrends, startDate, endDate);
+
+    return filledTrends;
+}
+
+// ==================== CATEGORY BREAKDOWN ====================
+
+async function getCategoryBreakdown(matchQuery) {
+    const categoryStats = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: "$category",
+                total: { $sum: 1 },
+                pending: {
+                    $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+                },
+                inProgress: {
+                    $sum: { $cond: [{ $eq: ["$status", "in-progress"] }, 1, 0] }
+                },
+                resolved: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                },
+                rejected: {
+                    $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] }
+                },
+                averageVotes: { $avg: "$voteCount" },
+                totalVotes: { $sum: "$voteCount" }
+            }
+        },
+        {
+            $addFields: {
+                resolutionRate: {
+                    $multiply: [
+                        { $divide: ["$resolved", "$total"] },
+                        100
+                    ]
+                }
+            }
+        },
+        {
+            $sort: { total: -1 }
+        }
+    ]);
+
+    return categoryStats.map(cat => ({
+        category: cat._id,
+        total: cat.total,
+        pending: cat.pending,
+        inProgress: cat.inProgress,
+        resolved: cat.resolved,
+        rejected: cat.rejected,
+        resolutionRate: cat.resolutionRate.toFixed(2),
+        averageVotes: cat.averageVotes.toFixed(1),
+        totalVotes: cat.totalVotes
+    }));
+}
+
+// ==================== DEPARTMENT PERFORMANCE ====================
+
+async function getDepartmentPerformance(matchQuery) {
+    const departmentStats = await UserComplaint.aggregate([
+        {
+            $match: { ...matchQuery, department: { $ne: null } }
+        },
+        {
+            $lookup: {
+                from: 'departments',
+                localField: 'department',
+                foreignField: '_id',
+                as: 'deptInfo'
+            }
+        },
+        {
+            $unwind: { path: '$deptInfo', preserveNullAndEmptyArrays: true }
+        },
+        {
+            $group: {
+                _id: "$department",
+                departmentName: { $first: "$deptInfo.name" },
+                totalAssigned: { $sum: 1 },
+                resolved: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                },
+                pending: {
+                    $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+                },
+                inProgress: {
+                    $sum: { $cond: [{ $eq: ["$status", "in-progress"] }, 1, 0] }
+                },
+                avgResolutionTime: {
+                    $avg: {
+                        $cond: [
+                            { $eq: ["$status", "resolved"] },
+                            { $subtract: ["$updatedAt", "$createdAt"] },
+                            null
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            $addFields: {
+                resolutionRate: {
+                    $multiply: [
+                        { $divide: ["$resolved", "$totalAssigned"] },
+                        100
+                    ]
+                },
+                avgResolutionHours: {
+                    $divide: ["$avgResolutionTime", 3600000]
+                }
+            }
+        },
+        {
+            $sort: { resolutionRate: -1 }
+        }
+    ]);
+
+    return departmentStats.map(dept => ({
+        departmentId: dept._id,
+        departmentName: dept.departmentName || 'Unknown',
+        totalAssigned: dept.totalAssigned,
+        resolved: dept.resolved,
+        pending: dept.pending,
+        inProgress: dept.inProgress,
+        resolutionRate: dept.resolutionRate.toFixed(2),
+        avgResolutionHours: dept.avgResolutionHours ? dept.avgResolutionHours.toFixed(1) : null
+    }));
+}
+
+// ==================== STAFF PERFORMANCE ====================
+
+async function getStaffPerformance(matchQuery) {
+    const staffStats = await UserComplaint.aggregate([
+        {
+            $match: { ...matchQuery, assignedTo: { $ne: null } }
+        },
+        {
+            $lookup: {
+                from: 'staff',
+                localField: 'assignedTo',
+                foreignField: '_id',
+                as: 'staffInfo'
+            }
+        },
+        {
+            $unwind: '$staffInfo'
+        },
+        {
+            $group: {
+                _id: "$assignedTo",
+                staffName: { $first: "$staffInfo.name" },
+                staffEmail: { $first: "$staffInfo.email" },
+                department: { $first: "$staffInfo.department" },
+                totalAssigned: { $sum: 1 },
+                resolved: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                },
+                inProgress: {
+                    $sum: { $cond: [{ $eq: ["$status", "in-progress"] }, 1, 0] }
+                },
+                pending: {
+                    $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+                },
+                avgResolutionTime: {
+                    $avg: {
+                        $cond: [
+                            { $eq: ["$status", "resolved"] },
+                            { $subtract: ["$updatedAt", "$createdAt"] },
+                            null
+                        ]
+                    }
+                },
+                criticalIssues: {
+                    $sum: { $cond: [{ $eq: ["$priority", "critical"] }, 1, 0] }
+                }
+            }
+        },
+        {
+            $addFields: {
+                resolutionRate: {
+                    $multiply: [
+                        { $divide: ["$resolved", "$totalAssigned"] },
+                        100
+                    ]
+                },
+                avgResolutionHours: {
+                    $divide: ["$avgResolutionTime", 3600000]
+                },
+                performanceScore: {
+                    $add: [
+                        { $multiply: [{ $divide: ["$resolved", "$totalAssigned"] }, 50] },
+                        { $multiply: [{ $divide: ["$criticalIssues", { $add: ["$totalAssigned", 1] }] }, 25] },
+                        { 
+                            $cond: [
+                                { $lt: [{ $divide: ["$avgResolutionTime", 3600000] }, 48] },
+                                25,
+                                { 
+                                    $cond: [
+                                        { $lt: [{ $divide: ["$avgResolutionTime", 3600000] }, 72] },
+                                        15,
+                                        5
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            $sort: { performanceScore: -1 }
+        },
+        {
+            $limit: 20
+        }
+    ]);
+
+    return staffStats.map(staff => ({
+        staffId: staff._id,
+        name: staff.staffName,
+        email: staff.staffEmail,
+        department: staff.department,
+        totalAssigned: staff.totalAssigned,
+        resolved: staff.resolved,
+        inProgress: staff.inProgress,
+        pending: staff.pending,
+        resolutionRate: staff.resolutionRate.toFixed(2),
+        avgResolutionHours: staff.avgResolutionHours ? staff.avgResolutionHours.toFixed(1) : null,
+        criticalIssues: staff.criticalIssues,
+        performanceScore: staff.performanceScore.toFixed(2)
+    }));
+}
+
+// ==================== USER ENGAGEMENT ====================
+
+async function getUserEngagement(matchQuery) {
+    const userStats = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: "$user",
+                complaintsCreated: { $sum: 1 },
+                totalVotesReceived: { $sum: "$voteCount" },
+                resolvedComplaints: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'userInfo'
+            }
+        },
+        {
+            $unwind: '$userInfo'
+        },
+        {
+            $addFields: {
+                engagementScore: {
+                    $add: [
+                        { $multiply: ["$complaintsCreated", 10] },
+                        { $multiply: ["$totalVotesReceived", 2] },
+                        { $multiply: ["$resolvedComplaints", 5] }
+                    ]
+                }
+            }
+        },
+        {
+            $sort: { engagementScore: -1 }
+        },
+        {
+            $limit: 10
+        }
+    ]);
+
+    const totalActiveUsers = await UserComplaint.distinct('user', matchQuery);
+    const repeatUsers = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: "$user",
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $match: { count: { $gt: 1 } }
+        },
+        {
+            $count: "repeatCount"
+        }
+    ]);
+
+    return {
+        totalActiveUsers: totalActiveUsers.length,
+        repeatUsers: repeatUsers[0]?.repeatCount || 0,
+        repeatRate: totalActiveUsers.length > 0 
+            ? ((repeatUsers[0]?.repeatCount || 0) / totalActiveUsers.length * 100).toFixed(2)
+            : 0,
+        topUsers: userStats.map(user => ({
+            userId: user._id,
+            name: user.userInfo.name,
+            email: user.userInfo.email,
+            complaintsCreated: user.complaintsCreated,
+            totalVotesReceived: user.totalVotesReceived,
+            resolvedComplaints: user.resolvedComplaints,
+            engagementScore: user.engagementScore
+        }))
+    };
+}
+
+// ==================== RESOLUTION METRICS ====================
+
+async function getResolutionMetrics(matchQuery) {
+    const resolutionData = await UserComplaint.aggregate([
+        {
+            $match: { ...matchQuery, status: 'resolved' }
+        },
+        {
+            $addFields: {
+                resolutionTime: { $subtract: ["$updatedAt", "$createdAt"] },
+                resolutionHours: {
+                    $divide: [
+                        { $subtract: ["$updatedAt", "$createdAt"] },
+                        3600000
+                    ]
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                avgResolutionTime: { $avg: "$resolutionTime" },
+                minResolutionTime: { $min: "$resolutionTime" },
+                maxResolutionTime: { $max: "$resolutionTime" },
+                totalResolved: { $sum: 1 },
+                under24Hours: {
+                    $sum: { $cond: [{ $lt: ["$resolutionHours", 24] }, 1, 0] }
+                },
+                under48Hours: {
+                    $sum: { $cond: [{ $lt: ["$resolutionHours", 48] }, 1, 0] }
+                },
+                under72Hours: {
+                    $sum: { $cond: [{ $lt: ["$resolutionHours", 72] }, 1, 0] }
+                },
+                overAWeek: {
+                    $sum: { $cond: [{ $gt: ["$resolutionHours", 168] }, 1, 0] }
+                }
             }
         }
-        
-        if (!addedToCluster) {
-            clusters.push({
-                center: {
-                    lat: complaint.latitude,
-                    lng: complaint.longitude
-                },
-                complaints: [complaint],
-                count: 1,
-                weight: getPriorityWeight(complaint.priority),
-                radius: clusterRadius
-            });
-        }
-    });
-    
-    return clusters.map(cluster => ({
-        ...cluster,
-        intensity: calculateClusterIntensity(cluster),
-        color: getHeatmapColor(cluster.weight / cluster.count)
-    }));
-};
+    ]);
 
-const calculateClusterIntensity = (cluster) => {
-    const baseIntensity = Math.min(cluster.count / 10, 1);
-    const priorityIntensity = cluster.weight / cluster.count;
-    return (baseIntensity + priorityIntensity) / 2;
-};
+    if (resolutionData.length === 0) {
+        return {
+            averageResolutionTime: null,
+            medianResolutionTime: null,
+            fastestResolution: null,
+            slowestResolution: null,
+            distribution: {
+                under24Hours: 0,
+                under48Hours: 0,
+                under72Hours: 0,
+                overAWeek: 0
+            }
+        };
+    }
 
-const getPriorityWeight = (priority) => {
-    const weights = { high: 3, medium: 2, low: 1 };
-    return weights[priority] || 1;
-};
+    const data = resolutionData[0];
 
-const getHeatmapColor = (intensity) => {
-    if (intensity < 0.25) return '#4ade80';
-    if (intensity < 0.5) return '#fbbf24';
-    if (intensity < 0.75) return '#f97316';
-    return '#ef4444';
-};
-
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-};
-
-const calculateMapBounds = (complaints) => {
-    if (complaints.length === 0) return null;
-    
-    const lats = complaints.map(c => c.latitude).filter(lat => lat != null);
-    const lngs = complaints.map(c => c.longitude).filter(lng => lng != null);
-    
-    if (lats.length === 0 || lngs.length === 0) return null;
-    
     return {
-        north: Math.max(...lats),
-        south: Math.min(...lats),
-        east: Math.max(...lngs),
-        west: Math.min(...lngs)
+        averageResolutionTime: msToHours(data.avgResolutionTime),
+        fastestResolution: msToHours(data.minResolutionTime),
+        slowestResolution: msToHours(data.maxResolutionTime),
+        distribution: {
+            under24Hours: data.under24Hours,
+            under48Hours: data.under48Hours,
+            under72Hours: data.under72Hours,
+            overAWeek: data.overAWeek,
+            percentages: {
+                under24Hours: ((data.under24Hours / data.totalResolved) * 100).toFixed(2),
+                under48Hours: ((data.under48Hours / data.totalResolved) * 100).toFixed(2),
+                under72Hours: ((data.under72Hours / data.totalResolved) * 100).toFixed(2),
+                overAWeek: ((data.overAWeek / data.totalResolved) * 100).toFixed(2)
+            }
+        }
     };
-};
+}
 
-const calculateDailyTrends = (complaints, period) => {
-    const days = parseInt(period) || 30;
-    const trends = [];
+// ==================== PRIORITY DISTRIBUTION ====================
+
+async function getPriorityDistribution(matchQuery) {
+    const priorityStats = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: "$priority",
+                count: { $sum: 1 },
+                resolved: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                },
+                avgResolutionTime: {
+                    $avg: {
+                        $cond: [
+                            { $eq: ["$status", "resolved"] },
+                            { $subtract: ["$updatedAt", "$createdAt"] },
+                            null
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            $sort: {
+                _id: 1
+            }
+        }
+    ]);
+
+    return priorityStats.map(priority => ({
+        priority: priority._id,
+        count: priority.count,
+        resolved: priority.resolved,
+        resolutionRate: ((priority.resolved / priority.count) * 100).toFixed(2),
+        avgResolutionHours: priority.avgResolutionTime 
+            ? msToHours(priority.avgResolutionTime)
+            : null
+    }));
+}
+
+// ==================== LOCATION ANALYSIS ====================
+
+async function getLocationAnalysis(matchQuery) {
+    const locationStats = await UserComplaint.aggregate([
+        {
+            $match: {
+                ...matchQuery,
+                'location.address': { $exists: true, $ne: null }
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    city: { 
+                        $arrayElemAt: [
+                            { $split: ["$location.address", ","] }, 
+                            -2
+                        ] 
+                    }
+                },
+                count: { $sum: 1 },
+                resolved: {
+                    $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] }
+                },
+                avgVotes: { $avg: "$voteCount" }
+            }
+        },
+        {
+            $addFields: {
+                city: { $trim: { input: "$_id.city" } }
+            }
+        },
+        {
+            $sort: { count: -1 }
+        },
+        {
+            $limit: 10
+        }
+    ]);
+
+    // Get hot spot coordinates
+    const hotspots = await UserComplaint.find({
+        ...matchQuery,
+        'location.latitude': { $exists: true },
+        'location.longitude': { $exists: true }
+    })
+    .select('location.latitude location.longitude category status voteCount')
+    .limit(100)
+    .lean();
+
+    return {
+        topCities: locationStats.map(loc => ({
+            city: loc.city,
+            count: loc.count,
+            resolved: loc.resolved,
+            resolutionRate: ((loc.resolved / loc.count) * 100).toFixed(2),
+            avgVotes: loc.avgVotes.toFixed(1)
+        })),
+        hotspots: hotspots.map(spot => ({
+            lat: spot.location.latitude,
+            lng: spot.location.longitude,
+            category: spot.category,
+            status: spot.status,
+            votes: spot.voteCount
+        }))
+    };
+}
+
+// ==================== TIME PATTERN ANALYSIS ====================
+
+async function getTimeAnalysis(matchQuery) {
+    // Hour of day analysis
+    const hourlyPattern = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: { $hour: "$createdAt" },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    // Day of week analysis
+    const weekdayPattern = await UserComplaint.aggregate([
+        {
+            $match: matchQuery
+        },
+        {
+            $group: {
+                _id: { $dayOfWeek: "$createdAt" },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    return {
+        hourlyPattern: hourlyPattern.map(h => ({
+            hour: h._id,
+            count: h.count
+        })),
+        weekdayPattern: weekdayPattern.map(d => ({
+            day: dayNames[d._id - 1],
+            count: d.count
+        })),
+        peakHour: hourlyPattern.reduce((max, h) => h.count > max.count ? h : max, hourlyPattern[0]),
+        peakDay: weekdayPattern.reduce((max, d) => d.count > max.count ? d : max, weekdayPattern[0])
+    };
+}
+
+// ==================== COMPARISON METRICS ====================
+
+async function getComparisonMetrics(startDate, endDate, matchQuery) {
+    // Calculate previous period
+    const periodLength = endDate - startDate;
+    const prevEndDate = new Date(startDate);
+    const prevStartDate = new Date(startDate - periodLength);
+
+    const [currentPeriod, previousPeriod] = await Promise.all([
+        UserComplaint.countDocuments(matchQuery),
+        UserComplaint.countDocuments({
+            ...matchQuery,
+            createdAt: { $gte: prevStartDate, $lt: prevEndDate }
+        })
+    ]);
+
+    const [currentResolved, previousResolved] = await Promise.all([
+        UserComplaint.countDocuments({ ...matchQuery, status: 'resolved' }),
+        UserComplaint.countDocuments({
+            ...matchQuery,
+            createdAt: { $gte: prevStartDate, $lt: prevEndDate },
+            status: 'resolved'
+        })
+    ]);
+
+    const growth = previousPeriod > 0 
+        ? (((currentPeriod - previousPeriod) / previousPeriod) * 100).toFixed(2)
+        : 100;
+
+    const resolutionGrowth = previousResolved > 0
+        ? (((currentResolved - previousResolved) / previousResolved) * 100).toFixed(2)
+        : 100;
+
+    return {
+        currentPeriod: {
+            complaints: currentPeriod,
+            resolved: currentResolved
+        },
+        previousPeriod: {
+            complaints: previousPeriod,
+            resolved: previousResolved
+        },
+        growth: {
+            complaints: parseFloat(growth),
+            resolved: parseFloat(resolutionGrowth)
+        }
+    };
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+async function calculateAverageResolutionTime(matchQuery) {
+    const result = await UserComplaint.aggregate([
+        {
+            $match: { ...matchQuery, status: 'resolved' }
+        },
+        {
+            $group: {
+                _id: null,
+                avgTime: {
+                    $avg: { $subtract: ["$updatedAt", "$createdAt"] }
+                }
+            }
+        }
+    ]);
+
+    return result.length > 0 ? msToHours(result[0].avgTime) : null;
+}
+
+async function calculateAverageResponseTime(matchQuery) {
+    const result = await ChatMessage.aggregate([
+        {
+            $match: {
+                createdAt: matchQuery.createdAt,
+                senderModel: { $in: ['Staff', 'Admin'] }
+            }
+        },
+        {
+            $lookup: {
+                from: 'usercomplaints',
+                localField: 'complaintId',
+                foreignField: '_id',
+                as: 'complaint'
+            }
+        },
+        {
+            $unwind: '$complaint'
+        },
+        {
+            $group: {
+                _id: "$complaintId",
+                firstResponse: { $min: "$createdAt" },
+                complaintCreated: { $first: "$complaint.createdAt" }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                avgResponseTime: {
+                    $avg: { $subtract: ["$firstResponse", "$complaintCreated"] }
+                }
+            }
+        }
+    ]);
+
+    return result.length > 0 ? msToHours(result[0].avgResponseTime) : null;
+}
+
+async function calculateSatisfactionScore(matchQuery) {
+    // This would need a rating/feedback system in your UserComplaint model
+    // For now, using resolution rate as a proxy
+    const [total, resolved] = await Promise.all([
+        UserComplaint.countDocuments(matchQuery),
+        UserComplaint.countDocuments({ ...matchQuery, status: 'resolved' })
+    ]);
+
+    return total > 0 ? ((resolved / total) * 100).toFixed(2) : 0;
+}
+
+function fillMissingDates(data, startDate, endDate) {
+    const filled = [];
+    const dataMap = new Map(data.map(d => [d._id, d]));
     
-    for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const existing = dataMap.get(dateStr);
         
-        const dayComplaints = complaints.filter(complaint => {
-            const complaintDate = new Date(complaint.createdAt).toISOString().split('T')[0];
-            return complaintDate === dateStr;
-        });
-        
-        trends.push({
+        filled.push({
             date: dateStr,
-            complaints: dayComplaints.length,
-            resolved: dayComplaints.filter(c => c.status === 'resolved').length
+            created: existing?.created || 0,
+            pending: existing?.pending || 0,
+            inProgress: existing?.inProgress || 0,
+            resolved: existing?.resolved || 0,
+            rejected: existing?.rejected || 0
         });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    return trends;
-};
+    return filled;
+}
 
-const calculateMonthlyTrends = (complaints) => {
-    const monthlyData = {};
-    
-    complaints.forEach(complaint => {
-        const date = new Date(complaint.createdAt);
-        const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-        
-        if (!monthlyData[monthYear]) {
-            monthlyData[monthYear] = 0;
-        }
-        monthlyData[monthYear]++;
-    });
-    
-    return monthlyData;
-};
+function msToHours(ms) {
+    if (!ms) return null;
+    return (ms / (1000 * 60 * 60)).toFixed(2);
+}
 
-const calculateResolutionMetrics = (complaints) => {
-    const resolvedComplaints = complaints.filter(c => c.status === 'resolved');
-    const resolutionTimes = resolvedComplaints.map(complaint => {
-        const created = new Date(complaint.createdAt);
-        const resolved = new Date(complaint.updatedAt);
-        return (resolved - created) / (1000 * 60 * 60 * 24);
-    });
-    
-    const avgResolutionTime = resolutionTimes.length > 0 ? 
-        resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length : 0;
-    
-    return {
-        avgResolutionTime: Math.round(avgResolutionTime * 100) / 100,
-        totalResolved: resolvedComplaints.length
-    };
-};
+// ==================== EXPORT DATA ====================
 
-const calculateAverageResolutionTime = (resolvedComplaints) => {
-    if (resolvedComplaints.length === 0) return 0;
+export const exportAnalyticsData = asyncHandler(async (req, res) => {
+    const { format = 'json', timeRange = '30d' } = req.query;
     
-    const totalTime = resolvedComplaints.reduce((total, complaint) => {
-        const created = new Date(complaint.createdAt);
-        const resolved = new Date(complaint.updatedAt);
-        return total + (resolved - created);
-    }, 0);
+    // Get comprehensive analytics
+    const analytics = await getComprehensiveAnalytics(req, res);
     
-    return Math.round((totalTime / resolvedComplaints.length) / (1000 * 60 * 60 * 24) * 100) / 100;
-};
+    if (format === 'csv') {
+        // Convert to CSV format
+        const csv = convertToCSV(analytics.data);
+        res.header('Content-Type', 'text/csv');
+        res.attachment(`analytics-${Date.now()}.csv`);
+        return res.send(csv);
+    }
+    
+    // Default JSON format
+    res.header('Content-Type', 'application/json');
+    res.attachment(`analytics-${Date.now()}.json`);
+    res.send(JSON.stringify(analytics, null, 2));
+});
 
-const calculatePerformanceScore = (assignedComplaints, resolvedComplaints) => {
-    if (assignedComplaints.length === 0) return 0;
+function convertToCSV(data) {
+    // Implement CSV conversion logic
+    // This is a simplified version
+    let csv = '';
     
-    const resolutionRate = (resolvedComplaints.length / assignedComplaints.length) * 100;
-    const avgResolutionTime = calculateAverageResolutionTime(resolvedComplaints);
+    // Add overview metrics
+    csv += 'Metric,Value\n';
+    csv += `Total Complaints,${data.overview.complaints.total}\n`;
+    csv += `Active Complaints,${data.overview.complaints.active}\n`;
+    csv += `Resolved Complaints,${data.overview.complaints.resolved}\n`;
+    csv += `Resolution Rate,${data.overview.complaints.resolutionRate}%\n`;
     
-    const resolutionScore = Math.min(resolutionRate, 100);
-    const speedScore = Math.max(0, 100 - (avgResolutionTime * 10));
-    
-    return Math.round((resolutionScore * 0.7) + (speedScore * 0.3));
-};
+    return csv;
+}
 
-const calculateSatisfactionScore = (complaints) => {
-    const resolved = complaints.filter(c => c.status === 'resolved').length;
-    const total = complaints.length;
-    
-    if (total === 0) return 0;
-    
-    const resolutionRate = (resolved / total) * 100;
-    const resolutionMetrics = calculateResolutionMetrics(complaints);
-    
-    let score = resolutionRate;
-    if (resolutionMetrics.avgResolutionTime < 7) score += 10;
-    if (resolutionMetrics.avgResolutionTime > 30) score -= 15;
-    
-    return Math.min(Math.max(score, 0), 100).toFixed(1);
-};
-
-const calculateGeographicStats = (complaints) => {
-    const withLocation = complaints.filter(c => c.latitude && c.longitude);
-    const byArea = {};
-    
-    withLocation.forEach(complaint => {
-        const areaKey = `${Math.round(complaint.latitude * 100) / 100},${Math.round(complaint.longitude * 100) / 100}`;
-        if (!byArea[areaKey]) {
-            byArea[areaKey] = 0;
-        }
-        byArea[areaKey]++;
-    });
-    
-    return {
-        totalWithLocation: withLocation.length,
-        areas: byArea,
-        coverage: ((withLocation.length / complaints.length) * 100).toFixed(1)
-    };
+export default {
+    getComprehensiveAnalytics,
+    exportAnalyticsData
 };
