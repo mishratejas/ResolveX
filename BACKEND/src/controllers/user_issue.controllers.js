@@ -1,4 +1,5 @@
 import UserComplaint from "../models/UserComplaint.models.js";
+import priorityService from '../services/priority.service.js';
 
 // GET all issues - PUBLIC
 export const handleAllIssueFetch = async (req, res) => {
@@ -41,7 +42,6 @@ export const handleAllIssueFetch = async (req, res) => {
 
 export const handleSingleUserIssueFetch = async (req, res)=>{
     try {
-        // Find all issues where the 'user' field matches the logged-in user's ID
         const userIssues = await UserComplaint.find({ user: req.user._id }).sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -56,48 +56,212 @@ export const handleSingleUserIssueFetch = async (req, res)=>{
     }
 }
 
-// POST create issue - PROTECTED (uses your JWT auth)
+// 🔧 FIXED: POST create issue - PROTECTED (with proper location handling + AI priority)
 export const handleIssueGeneration = async (req, res) => {
     try {
-        const { title, description, location, category, images } = req.body;
-        const userId = req.user._id; // From your auth middleware
+        const { title, description, location, category, images, userId } = req.body;
+        
+        // Use userId from body OR from auth middleware
+        const complaintUserId = userId || req.user?._id;
 
-        // Validation
-        if (!title || !description || !location) {
+        // 🔧 FIX #1: Validation with proper error messages
+        if (!title || !description) {
             return res.status(400).json({
                 success: false,
-                message: "Title, description, and location are required"
+                message: "Title and description are required"
             });
         }
 
+        // 🔧 FIX #2: Handle location properly - support both object and string
+        let locationData = {
+            address: '',
+            latitude: null,
+            longitude: null
+        };
+
+        if (typeof location === 'string') {
+            // Legacy format: just a string address
+            locationData.address = location;
+        } else if (typeof location === 'object' && location !== null) {
+            // New format: object with address, lat, lon
+            locationData = {
+                address: location.address || '',
+                latitude: location.latitude || null,
+                longitude: location.longitude || null
+            };
+        }
+
+        if (!locationData.address || locationData.address.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: "Location is required"
+            });
+        }
+
+        // 🔧 FIX #3: Auto-assign priority using AI with better error handling
+        let priority = 'medium'; // Default fallback
+        let prioritySource = 'fallback';
+        
+        try {
+            console.log('🤖 Calling AI priority service...');
+            priority = await priorityService.analyzePriority({
+                title,
+                description,
+                category: category || 'other',
+                department: null
+            });
+            prioritySource = 'ai';
+            console.log(`✅ AI assigned priority: ${priority} for complaint: ${title}`);
+        } catch (aiError) {
+            console.error('⚠️ AI priority assignment failed:', aiError.message);
+            // Fallback to rule-based priority
+            priority = calculatePriorityFallback(title, description, category);
+            prioritySource = 'rule-based';
+            console.log(`🔄 Using rule-based priority: ${priority}`);
+        }
+
+        // 🔧 FIX #4: Create complaint with proper structure
         const complaint = new UserComplaint({
-            title,
-            description,
-            location: {
-                address: location.address,
-                latitude: location.latitude,
-                longitude: location.longitude,
-            },
-            images,
-            category: mapCategoryToBackend(category),
-            user: userId, // Link to logged-in user from your JWT
+            title: title.trim(),
+            description: description.trim(),
+            location: locationData,
+            images: images || [],
+            category: category || 'other',
+            user: complaintUserId,
             status: 'pending',
-            priority: calculatePriority(category)
+            priority: priority,
+            autoPriorityAssigned: prioritySource === 'ai',
+            manualPriorityOverridden: false
         });
         
         await complaint.save();
         await complaint.populate('user', 'name email');
         
+        console.log(`✅ Complaint created successfully:`, {
+            id: complaint._id,
+            title: complaint.title,
+            priority: complaint.priority,
+            prioritySource: prioritySource,
+            location: complaint.location
+        });
+
         res.status(201).json({ 
             success: true,
-            message: 'Complaint submitted successfully', 
+            message: `Complaint submitted successfully with ${prioritySource === 'ai' ? 'AI-assigned' : 'rule-based'} priority`, 
+            data: complaint,
+            priorityAssignedBy: prioritySource
+        });
+    } catch (error) {
+        console.error('❌ Error submitting complaint:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error submitting complaint: ' + error.message
+        });
+    }
+};
+
+// 🔧 NEW: Fallback priority calculation
+function calculatePriorityFallback(title, description, category) {
+    const text = `${title} ${description}`.toLowerCase();
+
+    // Critical priority keywords
+    const criticalKeywords = [
+        'emergency', 'urgent', 'critical', 'accident', 'fire', 'flood',
+        'leak', 'collapse', 'injury', 'danger', 'hazard', 'life threatening',
+        'explosion', 'gas leak', 'chemical', 'electrocution', 'building collapse',
+        'medical', 'death', 'dying', 'trapped'
+    ];
+
+    // High priority keywords
+    const highKeywords = [
+        'broken', 'stuck', 'power cut', 'water outage', 'no electricity',
+        'no water', 'sewage', 'blocked', 'major', 'severe', 'damage',
+        'theft', 'robbery', 'fight', 'crime', 'violence', 'overflow'
+    ];
+
+    // Medium priority keywords
+    const mediumKeywords = [
+        'issue', 'problem', 'not working', 'repair', 'fix',
+        'slow', 'delay', 'quality', 'service', 'complaint', 'maintenance',
+        'broken', 'cracked'
+    ];
+
+    // Check for critical priority
+    if (criticalKeywords.some(keyword => text.includes(keyword))) {
+        return 'critical';
+    }
+
+    // Check for high priority
+    if (highKeywords.some(keyword => text.includes(keyword))) {
+        return 'high';
+    }
+
+    // Check for medium priority
+    if (mediumKeywords.some(keyword => text.includes(keyword))) {
+        return 'medium';
+    }
+
+    // Category-based fallback
+    const categoryPriorityMap = {
+        'water': 'high',
+        'electricity': 'high', 
+        'road': 'medium',
+        'sanitation': 'medium',
+        'security': 'high',
+        'transport': 'medium',
+        'other': 'low'
+    };
+
+    return categoryPriorityMap[category] || 'low';
+}
+
+// Admin override priority
+export const adminOverridePriority = async (req, res) => {
+    try {
+        const { complaintId } = req.params;
+        const { priority } = req.body;
+        const adminId = req.admin._id;
+
+        if (!['low', 'medium', 'high', 'critical'].includes(priority)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid priority value. Must be low, medium, high, or critical'
+            });
+        }
+
+        const complaint = await UserComplaint.findById(complaintId);
+        
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found'
+            });
+        }
+
+        const originalPriority = complaint.priority;
+
+        complaint.priority = priority;
+        complaint.manualPriorityOverridden = true;
+        complaint.priorityOverriddenBy = 'admin';
+        complaint.priorityOverriddenAt = new Date();
+        complaint.priorityOverriddenById = adminId;
+        complaint.priorityOverriddenByModel = 'Admin';
+
+        await complaint.save();
+
+        console.log(`🔧 Priority overridden for complaint ${complaintId} by admin ${adminId}`);
+        console.log(`   Original: ${originalPriority} → New: ${priority}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Priority updated successfully',
             data: complaint
         });
     } catch (error) {
-        console.error('Error submitting complaint:', error);
-        res.status(500).json({ 
+        console.error('Error overriding priority:', error);
+        res.status(500).json({
             success: false,
-            message: 'Error submitting complaint'
+            message: 'Error overriding priority'
         });
     }
 };
@@ -105,7 +269,7 @@ export const handleIssueGeneration = async (req, res) => {
 // Get current user's complaints
 export const handleGetMyIssues = async (req, res) => {
     try {
-        const userId = req.user.id; // From auth middleware
+        const userId = req.user.id || req.user._id;
         
         const myIssues = await UserComplaint.find({ 
             user: userId 
@@ -129,8 +293,13 @@ export const handleGetStats = async (req, res) => {
     try {
         const total = await UserComplaint.countDocuments();
         const resolved = await UserComplaint.countDocuments({ status: 'resolved' });
-        const pending = await UserComplaint.countDocuments({ status: 'pending' }); // Changed from 'open' to 'pending'
+        const pending = await UserComplaint.countDocuments({ status: 'pending' });
         const inProgress = await UserComplaint.countDocuments({ status: 'in-progress' });
+        
+        const critical = await UserComplaint.countDocuments({ priority: 'critical' });
+        const high = await UserComplaint.countDocuments({ priority: 'high' });
+        const medium = await UserComplaint.countDocuments({ priority: 'medium' });
+        const low = await UserComplaint.countDocuments({ priority: 'low' });
         
         return res.status(200).json({
             success: true,
@@ -138,7 +307,13 @@ export const handleGetStats = async (req, res) => {
                 total,
                 resolved,
                 pending,
-                inProgress
+                inProgress,
+                priority: {
+                    critical,
+                    high,
+                    medium,
+                    low
+                }
             }
         });
     } catch (error) {
@@ -150,7 +325,7 @@ export const handleGetStats = async (req, res) => {
     }
 };
 
-// GET single issue - PUBLIC
+// 🔧 FIXED: GET single issue - PUBLIC (with proper location handling)
 export const handleSingleIssueFetch = async (req, res) => {
     try {
         const complaint = await UserComplaint.findById(req.params.id)
@@ -161,6 +336,15 @@ export const handleSingleIssueFetch = async (req, res) => {
                 success: false,
                 message: 'Complaint not found'
             });
+        }
+
+        // 🔧 FIX: Ensure location is always in proper format for frontend
+        if (typeof complaint.location === 'string') {
+            complaint.location = {
+                address: complaint.location,
+                latitude: null,
+                longitude: null
+            };
         }
 
         res.json({
@@ -191,7 +375,9 @@ export const handleComplaintLocations = async (req, res) => {
                 "location.latitude": 1,
                 "location.longitude": 1,
                 "location.address": 1,
-                createdAt: 1
+                createdAt: 1,
+                autoPriorityAssigned: 1,
+                manualPriorityOverridden: 1
             }
         );
 
@@ -203,7 +389,8 @@ export const handleComplaintLocations = async (req, res) => {
             latitude: c.location?.latitude,
             longitude: c.location?.longitude,
             address: c.location?.address || "N/A",
-            date: c.createdAt
+            date: c.createdAt,
+            prioritySource: c.manualPriorityOverridden ? 'manual' : (c.autoPriorityAssigned ? 'ai' : 'rule-based')
         }));
 
         res.json({
@@ -219,8 +406,6 @@ export const handleComplaintLocations = async (req, res) => {
         });
     }
 };
-
-
 
 // PUT vote on issue - PUBLIC
 export const handleVoteCount = async (req, res) => {
@@ -250,24 +435,32 @@ export const handleVoteCount = async (req, res) => {
     }
 };
 
-// Helper functions
-function mapCategoryToBackend(frontendCategory) {
-    const categoryMap = {
-        'infrastructure': 'road',
-        'safety': 'other',
-        'environment': 'sanitation',
-        'other': 'other'
-    };
-    return categoryMap[frontendCategory] || 'other';
-}
+// Get complaints filtered by priority
+export const getComplaintsByPriority = async (req, res) => {
+    try {
+        const { priority } = req.params;
+        
+        if (!['low', 'medium', 'high', 'critical'].includes(priority)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid priority value'
+            });
+        }
 
-function calculatePriority(category) {
-    const priorityMap = {
-        'road': 'high',
-        'water': 'high', 
-        'electricity': 'high',
-        'sanitation': 'medium',
-        'other': 'low'
-    };
-    return priorityMap[category] || 'medium';
-}
+        const complaints = await UserComplaint.find({ priority })
+            .populate('user', 'name email')
+            .sort('-createdAt');
+
+        res.json({
+            success: true,
+            count: complaints.length,
+            data: complaints
+        });
+    } catch (error) {
+        console.error('Error fetching complaints by priority:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching complaints'
+        });
+    }
+};

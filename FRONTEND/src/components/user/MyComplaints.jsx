@@ -53,7 +53,6 @@ const MyComplaints = ({ currentUser }) => {
         const complaintsData = response.data.data || [];
         setComplaints(complaintsData);
         
-        // Calculate stats
         const total = complaintsData.length;
         const resolved = complaintsData.filter(c => c.status === 'resolved').length;
         const pending = complaintsData.filter(c => c.status === 'pending').length;
@@ -78,7 +77,6 @@ const MyComplaints = ({ currentUser }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      // Remove from local state
       setComplaints(prev => prev.filter(c => c._id !== complaintId));
     } catch (error) {
       console.error('Error deleting complaint:', error);
@@ -93,6 +91,34 @@ const MyComplaints = ({ currentUser }) => {
       case 'resolved': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // 🔧 FIXED: Helper to get priority color
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'critical': return 'bg-red-100 text-red-800 border-red-300';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'low': return 'bg-green-100 text-green-800 border-green-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  // 🔧 FIXED: Helper to format location properly
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    
+    // Handle object format
+    if (typeof location === 'object') {
+      return location.address || 'Location not specified';
+    }
+    
+    // Handle string format (legacy)
+    if (typeof location === 'string') {
+      return location;
+    }
+    
+    return 'Location not specified';
   };
 
   const formatDate = (dateString) => {
@@ -215,6 +241,9 @@ const MyComplaints = ({ currentUser }) => {
                     Issue
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -237,12 +266,20 @@ const MyComplaints = ({ currentUser }) => {
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            {complaint.location || 'Location not specified'}
+                            {formatLocation(complaint.location)}
                           </span>
                           <span className="text-xs text-gray-500">•</span>
                           <span className="text-xs text-gray-500">{complaint.category}</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(complaint.priority)}`}>
+                        {complaint.priority?.toUpperCase() || 'MEDIUM'}
+                      </span>
+                      {complaint.autoPriorityAssigned && (
+                        <span className="ml-1 text-xs text-purple-600">🤖</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(complaint.status)}`}>
@@ -270,17 +307,11 @@ const MyComplaints = ({ currentUser }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/complaints/${complaint._id}`)}
+                          onClick={() => navigate(`/home/complaints/${complaint._id}`)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
                           <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Update Status"
-                        >
-                          <CheckCircle className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(complaint._id)}
@@ -302,7 +333,7 @@ const MyComplaints = ({ currentUser }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No complaints yet</h3>
             <p className="text-gray-600 mb-4">Start by reporting your first community issue</p>
             <button
-              onClick={() => navigate('/raise-complaint')}
+              onClick={() => navigate('/home/raise-complaint')}
               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
             >
               Report New Issue

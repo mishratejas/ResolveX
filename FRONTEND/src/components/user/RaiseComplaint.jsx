@@ -7,10 +7,11 @@ import {
   Camera,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../api/axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
@@ -23,10 +24,14 @@ const RaiseComplaint = ({ currentUser }) => {
     title: '',
     category: 'road',
     description: '',
-    location: '',
-    priority: 'medium',
+    location: {
+      address: '',
+      latitude: null,
+      longitude: null
+    },
     image: null
   });
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const categories = [
     { id: 'road', label: 'Road & Infrastructure' },
@@ -38,54 +43,81 @@ const RaiseComplaint = ({ currentUser }) => {
     { id: 'other', label: 'Other' }
   ];
 
-  const priorities = [
-    { id: 'low', label: 'Low', color: 'bg-green-100 text-green-800' },
-    { id: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'high', label: 'High', color: 'bg-red-100 text-red-800' }
-  ];
-  const [locationLoading, setLocationLoading] = useState(false);
-
-const getCurrentLocation = () => {
-  setLocationLoading(true);
-  
-  if (!navigator.geolocation) {
-    alert('Geolocation is not supported by your browser');
-    setLocationLoading(false);
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      const { latitude, longitude } = position.coords;
-      
-      try {
-        // Reverse geocode to get address
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const data = await response.json();
-        
-        setFormData(prev => ({
-          ...prev,
-          location: data.display_name || `${latitude}, ${longitude}`
-        }));
-      } catch (error) {
-        console.error('Error getting address:', error);
-        setFormData(prev => ({
-          ...prev,
-          location: `${latitude}, ${longitude}`
-        }));
-      } finally {
-        setLocationLoading(false);
-      }
-    },
-    (error) => {
-      console.error('Error getting location:', error);
-      alert('Could not get your location. Please enter manually.');
+  // 🔧 FIX #1: Proper geolocation with fallback to coordinates-only
+  const getCurrentLocation = () => {
+    setLocationLoading(true);
+    setError('');
+    
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
       setLocationLoading(false);
+      return;
     }
-  );
-};
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Try reverse geocoding using a CORS-friendly service
+          // Option 1: BigDataCloud (free, no API key, CORS-enabled)
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const address = data.locality 
+              ? `${data.locality}, ${data.principalSubdivision}, ${data.countryName}`
+              : `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            
+            setFormData(prev => ({
+              ...prev,
+              location: {
+                address: address,
+                latitude: latitude,
+                longitude: longitude
+              }
+            }));
+          } else {
+            // Fallback: just use coordinates
+            setFormData(prev => ({
+              ...prev,
+              location: {
+                address: `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}`,
+                latitude: latitude,
+                longitude: longitude
+              }
+            }));
+          }
+        } catch (error) {
+          console.error('Geocoding error:', error);
+          // Even if geocoding fails, still save the coordinates
+          setFormData(prev => ({
+            ...prev,
+            location: {
+              address: `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}`,
+              latitude: latitude,
+              longitude: longitude
+            }
+          }));
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setError('Could not get your location. Please enter address manually.');
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -94,76 +126,108 @@ const getCurrentLocation = () => {
     }));
   };
 
+  // 🔧 FIX #2: Handle location address input
+  const handleLocationChange = (e) => {
+    const address = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      location: {
+        address: address,
+        latitude: prev.location.latitude,
+        longitude: prev.location.longitude
+      }
+    }));
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('Image size should be less than 5MB');
+        setError('Image size should be less than 5MB');
         return;
       }
       setFormData(prev => ({ ...prev, image: file }));
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  
-  try {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setError('Please login to submit complaint');
-      return;
-    }
+  // 🔧 FIX #3: Proper payload structure matching backend expectations
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
     
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) {
-      setError('User data not found. Please login again.');
-      return;
-    }
-    
-    // Create JSON payload instead of FormData
-    const payload = {
-      title: formData.title,
-      category: formData.category,
-      description: formData.description,
-      location: formData.location,
-      priority: formData.priority,
-      userId: user._id
-    };
-    
-    const response = await axios.post(`${BASE_URL}/api/user_issues`, payload, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('Please login to submit complaint');
+        setLoading(false);
+        return;
       }
-    });
-    
-    if (response.data.success) {
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/home/my-complaints');
-      }, 2000);
-    } else {
-      setError(response.data.message || 'Failed to submit complaint');
+      
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        setError('User data not found. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      // Validate location has address
+      if (!formData.location.address || formData.location.address.trim() === '') {
+        setError('Please provide a location for the complaint');
+        setLoading(false);
+        return;
+      }
+      
+      // 🔧 CRITICAL FIX: Proper payload structure
+      const payload = {
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+        location: {
+          address: formData.location.address,
+          latitude: formData.location.latitude,
+          longitude: formData.location.longitude
+        },
+        userId: user._id,
+        images: [] // Add later if implementing image upload
+      };
+
+      console.log('📤 Submitting payload:', payload);
+      
+      const response = await axios.post(`${BASE_URL}/api/user_issues`, payload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Response:', response.data);
+      
+      if (response.data.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/home/my-complaints');
+        }, 2000);
+      } else {
+        setError(response.data.message || 'Failed to submit complaint');
+      }
+    } catch (error) {
+      console.error('❌ Error submitting complaint:', error);
+      if (error.response?.status === 401) {
+        setError('Session expired. Please login again.');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        setError(error.response?.data?.message || 'Failed to submit complaint. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error submitting complaint:', error);
-    if (error.response?.status === 401) {
-      setError('Session expired. Please login again.');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-    } else {
-      setError(error.response?.data?.message || 'Failed to submit complaint. Please try again.');
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   if (success) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -176,7 +240,8 @@ const handleSubmit = async (e) => {
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Complaint Submitted Successfully!</h2>
-          <p className="text-gray-600 mb-6">Your issue has been registered and will be reviewed soon.</p>
+          <p className="text-gray-600 mb-2">Your issue has been registered with AI-assigned priority.</p>
+          <p className="text-sm text-gray-500 mb-6">Authorities will be notified shortly.</p>
           <div className="flex gap-4 justify-center">
             <button
               onClick={() => navigate('/home/my-complaints')}
@@ -280,68 +345,65 @@ const handleSubmit = async (e) => {
                   placeholder="Please provide detailed information about the issue, including when you noticed it and any specific concerns..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors resize-none"
                 />
-                <p className="text-sm text-gray-500 mt-1">Provide as much detail as possible</p>
+                <p className="text-sm text-gray-500 mt-1">Provide as much detail as possible for better AI priority assignment</p>
               </div>
 
-              {/* Location */}
-              <div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Location *
-  </label>
-  <div className="flex gap-2">
-    <div className="relative flex-1">
-      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-      <input
-        type="text"
-        name="location"
-        value={formData.location}
-        onChange={handleChange}
-        required
-        placeholder="e.g., Main Street near City Park, Sector 15"
-        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
-      />
-    </div>
-    <button
-      type="button"
-      onClick={getCurrentLocation}
-      disabled={locationLoading}
-      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-    >
-      {locationLoading ? (
-        <>
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          Getting...
-        </>
-      ) : (
-        <>
-          <MapPin className="w-4 h-4" />
-          Use My Location
-        </>
-      )}
-    </button>
-  </div>
-</div>
-
-              {/* Priority */}
+              {/* Location - FIXED */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority Level
+                  Location *
                 </label>
-                <div className="flex gap-3">
-                  {priorities.map(priority => (
-                    <button
-                      key={priority.id}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, priority: priority.id }))}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                        formData.priority === priority.id
-                          ? `${priority.color} border-transparent`
-                          : 'border-gray-300 hover:border-gray-400 text-gray-700'
-                      }`}
-                    >
-                      {priority.label}
-                    </button>
-                  ))}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={formData.location.address}
+                      onChange={handleLocationChange}
+                      required
+                      placeholder="e.g., Main Street near City Park, Sector 15"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    disabled={locationLoading}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {locationLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Getting...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        Use My Location
+                      </>
+                    )}
+                  </button>
+                </div>
+                {formData.location.latitude && formData.location.longitude && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ GPS coordinates captured: {formData.location.latitude.toFixed(6)}, {formData.location.longitude.toFixed(6)}
+                  </p>
+                )}
+              </div>
+
+              {/* Priority Info - READ ONLY (AI will assign) */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">🤖 AI-Powered Priority Assignment</h4>
+                    <p className="text-sm text-gray-700">
+                      Our AI will automatically analyze your complaint and assign an appropriate priority level 
+                      (Low, Medium, High, or Critical) based on urgency, impact, and severity. No manual selection needed!
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -405,7 +467,11 @@ const handleSubmit = async (e) => {
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Your report will be visible to community members</span>
+                  <span>AI will analyze and prioritize your complaint</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Your report will be visible to community</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
@@ -425,8 +491,8 @@ const handleSubmit = async (e) => {
                 >
                   {loading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Submitting...
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting & Analyzing...
                     </>
                   ) : (
                     <>

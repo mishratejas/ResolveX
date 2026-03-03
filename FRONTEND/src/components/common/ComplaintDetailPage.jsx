@@ -13,6 +13,8 @@ import {
   Share2,
   Flag,
   X,
+  AlertTriangle,
+  Clock
 } from "lucide-react";
 import axios from "axios";
 import ComplaintChat from "../../components/chat/ComplaintChat";
@@ -59,7 +61,6 @@ const ComplaintDetailPage = () => {
         return;
       }
 
-      // Check if already voted
       if (complaint?.voters?.includes(user._id)) {
         alert("You have already voted for this issue!");
         return;
@@ -93,6 +94,53 @@ const ComplaintDetailPage = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  // 🔧 FIXED: Get priority color with badge
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'critical':
+        return 'bg-red-500 text-white';
+      case 'high':
+        return 'bg-orange-500 text-white';
+      case 'medium':
+        return 'bg-yellow-500 text-white';
+      case 'low':
+        return 'bg-green-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
+  // 🔧 FIXED: Format location for display
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    
+    // Handle object format
+    if (typeof location === 'object') {
+      return location.address || 'Location not specified';
+    }
+    
+    // Handle string format (legacy)
+    if (typeof location === 'string') {
+      return location;
+    }
+    
+    return 'Location not specified';
+  };
+
+  // 🔧 FIXED: Get location for Google Maps
+  const getLocationForMaps = (location) => {
+    if (!location) return '';
+    
+    if (typeof location === 'object') {
+      if (location.latitude && location.longitude) {
+        return `${location.latitude},${location.longitude}`;
+      }
+      return location.address || '';
+    }
+    
+    return location;
   };
 
   const handleOpenChat = () => {
@@ -146,12 +194,18 @@ const ComplaintDetailPage = () => {
           <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 text-white">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(complaint.status)}`}
-                >
-                  {complaint.status?.toUpperCase()}
-                </span>
-                <h1 className="text-3xl font-bold mt-4 mb-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(complaint.status)}`}
+                  >
+                    {complaint.status?.toUpperCase()}
+                  </span>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(complaint.priority)}`}>
+                    {complaint.priority?.toUpperCase() || 'MEDIUM'}
+                    {complaint.autoPriorityAssigned && ' 🤖'}
+                  </span>
+                </div>
+                <h1 className="text-3xl font-bold mb-2">
                   {complaint.title}
                 </h1>
                 <div className="flex items-center gap-4 text-sm opacity-90">
@@ -170,6 +224,24 @@ const ComplaintDetailPage = () => {
 
           {/* Content */}
           <div className="p-6">
+            {/* Priority Information Banner */}
+            {complaint.autoPriorityAssigned && (
+              <div className="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">🤖 AI Priority Assignment</h4>
+                    <p className="text-sm text-gray-700">
+                      This complaint's priority level was automatically analyzed and assigned by our AI system 
+                      based on urgency, impact, and severity factors.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -180,7 +252,7 @@ const ComplaintDetailPage = () => {
               </p>
             </div>
 
-            {/* Location */}
+            {/* Location - FIXED */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Location
@@ -188,10 +260,19 @@ const ComplaintDetailPage = () => {
               <div className="flex items-start gap-2">
                 <MapPin className="w-5 h-5 text-blue-600 mt-1" />
                 <div>
-                  <p className="text-gray-700">{complaint.location}</p>
+                  <p className="text-gray-700">{formatLocation(complaint.location)}</p>
+                  
+                  {/* Show GPS coordinates if available */}
+                  {typeof complaint.location === 'object' && 
+                   complaint.location.latitude && 
+                   complaint.location.longitude && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      GPS: {complaint.location.latitude.toFixed(6)}, {complaint.location.longitude.toFixed(6)}
+                    </p>
+                  )}
 
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(complaint.location)}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getLocationForMaps(complaint.location))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 mt-1"
@@ -231,7 +312,7 @@ const ComplaintDetailPage = () => {
               </div>
             )}
 
-            {/* Category & Priority */}
+            {/* Category & Priority Details */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-1">
@@ -241,11 +322,23 @@ const ComplaintDetailPage = () => {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-1">
-                  Priority
+                  Priority Level
                 </h3>
-                <p className="text-gray-900 capitalize">
-                  {complaint.priority || "Medium"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-900 capitalize font-medium">
+                    {complaint.priority || "Medium"}
+                  </p>
+                  {complaint.autoPriorityAssigned && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                      AI-Assigned
+                    </span>
+                  )}
+                  {complaint.manualPriorityOverridden && (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                      Admin Override
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -273,7 +366,6 @@ const ComplaintDetailPage = () => {
 
             {/* Actions */}
             <div className="mt-6 flex flex-wrap gap-4">
-              {/* Chat Button - Primary Action */}
               <motion.button
                 onClick={handleOpenChat}
                 whileHover={{ scale: 1.02 }}
@@ -316,7 +408,6 @@ const ComplaintDetailPage = () => {
               className="w-full max-w-4xl h-[600px] bg-white rounded-xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Header */}
               <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-cyan-500">
                 <div className="flex items-center gap-3">
                   <MessageCircle className="w-6 h-6 text-white" />
@@ -337,7 +428,6 @@ const ComplaintDetailPage = () => {
                 </button>
               </div>
 
-              {/* Chat Component */}
               <div className="h-[calc(100%-73px)]">
                 <ComplaintChat
                   complaintId={complaint._id}
@@ -353,7 +443,7 @@ const ComplaintDetailPage = () => {
           </motion.div>
         )}
 
-        {/* Floating Chat Button (Alternative) */}
+        {/* Floating Chat Button */}
         {!showChat && currentUser && (
           <motion.button
             onClick={handleOpenChat}
@@ -364,10 +454,6 @@ const ComplaintDetailPage = () => {
             className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors z-40"
           >
             <MessageCircle className="w-6 h-6" />
-            {/* Unread badge - you can add this later when you implement unread count */}
-            {/* <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-              3
-            </span> */}
           </motion.button>
         )}
       </div>

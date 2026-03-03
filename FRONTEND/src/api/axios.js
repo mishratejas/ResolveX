@@ -12,39 +12,49 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('adminToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        // Check for user token first, then admin token (if you want both roles)
+        const userToken = localStorage.getItem('accessToken');
+        if (userToken) {
+            config.headers.Authorization = `Bearer ${userToken}`;
+        } else {
+            // fallback to admin token (if you want admin requests to also work)
+            const adminToken = localStorage.getItem('adminToken');
+            if (adminToken) {
+                config.headers.Authorization = `Bearer ${adminToken}`;
+            }
         }
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh
+// Response interceptor for user token refresh
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
         
+        // If 401 and not already retried, try to refresh user token
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            
+
             try {
+                // Call your user refresh token endpoint
                 const refreshResponse = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/api/admin/refresh-token`,
+                    `${import.meta.env.VITE_API_URL}/api/user/refresh-token`,
                     {},
                     { withCredentials: true }
                 );
-                
+
                 if (refreshResponse.data.accessToken) {
-                    localStorage.setItem('adminToken', refreshResponse.data.accessToken);
+                    localStorage.setItem('accessToken', refreshResponse.data.accessToken);
                     originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.accessToken}`;
                     return axiosInstance(originalRequest);
                 }
             } catch (refreshError) {
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminData');
+                // Refresh failed – clear storage and redirect to login
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('user');
                 window.location.href = '/';
                 return Promise.reject(refreshError);
             }
