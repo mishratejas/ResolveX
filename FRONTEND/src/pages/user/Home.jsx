@@ -23,7 +23,7 @@ import RaiseComplaint from "../../components/user/RaiseComplaint";
 import Reports from "../../components/user/Reports";
 import Leaderboard from "../../components/user/Leaderboard";
 import Profile from "../../components/user/Profile";
-
+import ComplaintDetailPage from '../../components/common/ComplaintDetailPage'
 const Home = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
