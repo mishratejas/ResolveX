@@ -278,9 +278,72 @@ export const getStaffDetails = async (req, res) => {
 };
 
 // Create new staff (admin only)
+// export const createStaff = async (req, res) => {
+//     try {
+//         const { name, email, password, phone, staffId, department, role = 'staff' } = req.body;
+        
+//         // Check if staff already exists
+//         const existingStaff = await Staff.findOne({
+//             $or: [{ email }, { staffId }]
+//         });
+        
+//         if (existingStaff) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Staff member with this email or ID already exists'
+//             });
+//         }
+        
+//         // Validate department
+//         let departmentId = null;
+//         if (department) {
+//             const dept = await Department.findOne({ name: department });
+//             if (!dept) {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: 'Invalid department specified'
+//                 });
+//             }
+//             departmentId = dept._id;
+//         }
+        
+//         const newStaff = new Staff({
+//             name,
+//             email,
+//             password, // Note: Password should be hashed in the model's pre-save hook
+//             phone,
+//             staffId,
+//             department: departmentId,
+//             role,
+//             isActive: true
+//         });
+        
+//         await newStaff.save();
+        
+//         const populatedStaff = await Staff.findById(newStaff._id)
+//             .populate('department', 'name category');
+        
+//         res.status(201).json({
+//             success: true,
+//             message: 'Staff member created successfully',
+//             data: populatedStaff
+//         });
+        
+//     } catch (error) {
+//         console.error('Error creating staff:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error creating staff member'
+//         });
+//     }
+// };
+
 export const createStaff = async (req, res) => {
     try {
-        const { name, email, password, phone, staffId, department, role = 'staff' } = req.body;
+        // 🚀 Grab the admin's ID from the auth token
+        const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
+
+        const { name, email, password, phone, staffId, department, role = 'staff', isActive } = req.body;
         
         // Check if staff already exists
         const existingStaff = await Staff.findOne({
@@ -297,7 +360,8 @@ export const createStaff = async (req, res) => {
         // Validate department
         let departmentId = null;
         if (department) {
-            const dept = await Department.findOne({ name: department });
+            // 🚀 FIX: Use findById because your frontend sends the department ID, not the name
+            const dept = await Department.findById(department);
             if (!dept) {
                 return res.status(400).json({
                     success: false,
@@ -315,7 +379,9 @@ export const createStaff = async (req, res) => {
             staffId,
             department: departmentId,
             role,
-            isActive: true
+            isActive: isActive !== undefined ? isActive : true,
+            adminId: currentAdminId, // 🚀 ADDED: Required to prevent database crash
+            isApproved: true         // 🚀 ADDED: Bypasses the "Pending" tab!
         });
         
         await newStaff.save();
@@ -325,7 +391,7 @@ export const createStaff = async (req, res) => {
         
         res.status(201).json({
             success: true,
-            message: 'Staff member created successfully',
+            message: 'Staff member created and approved successfully',
             data: populatedStaff
         });
         
@@ -339,62 +405,115 @@ export const createStaff = async (req, res) => {
 };
 
 // Update staff
+// export const updateStaff = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const updates = req.body;
+        
+//         const staff = await Staff.findById(id);
+        
+//         if (!staff) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'Staff member not found'
+//             });
+//         }
+        
+//         // Handle department update
+//         if (updates.department) {
+//             const dept = await Department.findOne({ name: updates.department });
+//             if (dept) {
+//                 updates.department = dept._id;
+//             } else {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: 'Invalid department specified'
+//                 });
+//             }
+//         }
+        
+//         // Update staff
+//         Object.keys(updates).forEach(key => {
+//             if (key !== 'password') {
+//                 staff[key] = updates[key];
+//             }
+//         });
+        
+//         // Handle password update separately
+//         if (updates.password) {
+//             staff.password = updates.password;
+//         }
+        
+//         await staff.save();
+        
+//         const updatedStaff = await Staff.findById(id)
+//             .populate('department', 'name category')
+//             .select('-password');
+        
+//         res.status(200).json({
+//             success: true,
+//             message: 'Staff member updated successfully',
+//             data: updatedStaff
+//         });
+        
+//     } catch (error) {
+//         console.error('Error updating staff:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error updating staff member'
+//         });
+//     }
+// };
+
 export const updateStaff = async (req, res) => {
     try {
-        const { id } = req.params;
-        const updates = req.body;
-        
-        const staff = await Staff.findById(id);
-        
-        if (!staff) {
-            return res.status(404).json({
-                success: false,
-                message: 'Staff member not found'
-            });
+        const { id } = req.params; // The staff member's ID from the URL
+        const { name, email, phone, department, password, isActive } = req.body;
+
+        // 1. Find the existing staff member
+        const staffMember = await Staff.findById(id);
+        if (!staffMember) {
+            return res.status(404).json({ success: false, message: 'Staff member not found' });
         }
-        
-        // Handle department update
-        if (updates.department) {
-            const dept = await Department.findOne({ name: updates.department });
-            if (dept) {
-                updates.department = dept._id;
-            } else {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid department specified'
-                });
+
+        // 2. Validate and update Department
+        if (department) {
+            // 🚀 THE FIX: Use findById because the frontend sends the ObjectId
+            const dept = await Department.findById(department);
+            if (!dept) {
+                return res.status(400).json({ success: false, message: 'Invalid department specified' });
             }
+            staffMember.department = dept._id;
         }
+
+        // 3. Update the rest of the fields
+        if (name) staffMember.name = name;
+        if (email) staffMember.email = email;
+        if (phone !== undefined) staffMember.phone = phone;
+        if (isActive !== undefined) staffMember.isActive = isActive;
         
-        // Update staff
-        Object.keys(updates).forEach(key => {
-            if (key !== 'password') {
-                staff[key] = updates[key];
-            }
-        });
-        
-        // Handle password update separately
-        if (updates.password) {
-            staff.password = updates.password;
+        // 4. Update password ONLY if the admin typed a new one
+        if (password && password.trim() !== '') {
+            staffMember.password = password; // Your Mongoose pre-save hook will hash this automatically!
         }
-        
-        await staff.save();
-        
-        const updatedStaff = await Staff.findById(id)
-            .populate('department', 'name category')
-            .select('-password');
-        
+
+        // Save the updates
+        await staffMember.save();
+
+        // Fetch the updated staff member with populated department data to return
+        const updatedStaff = await Staff.findById(id).populate('department', 'name category');
+
         res.status(200).json({
             success: true,
             message: 'Staff member updated successfully',
             data: updatedStaff
         });
-        
+
     } catch (error) {
         console.error('Error updating staff:', error);
         res.status(500).json({
             success: false,
-            message: 'Error updating staff member'
+            message: 'Server error while updating staff member'
         });
     }
 };

@@ -46,6 +46,20 @@ const adminService = {
         }
     },
 
+    // 🚀 NEW: Get Pending Staff
+    getPendingStaff: async () => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await axios.get(`${API_URL}/api/admin/staff/pending`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching pending staff:', error);
+            throw error;
+        }
+    },
+
     getStaffStats: async () => {
         try {
             const token = localStorage.getItem('adminToken');
@@ -184,6 +198,34 @@ const adminService = {
         }
     },
 
+    // 🚀 NEW: Approve Staff
+    approveStaff: async (staffId) => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await axios.patch(`${API_URL}/api/admin/staff/${staffId}/approve`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error approving staff:', error);
+            throw error;
+        }
+    },
+
+    // 🚀 NEW: Reject Staff
+    rejectStaff: async (staffId) => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await axios.delete(`${API_URL}/api/admin/staff/${staffId}/reject`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error rejecting staff:', error);
+            throw error;
+        }
+    },
+
     deleteStaff: async (staffId) => {
         try {
             const token = localStorage.getItem('adminToken');
@@ -266,6 +308,7 @@ const adminService = {
 export const getDashboardData = adminService.getDashboardData;
 export const getChartData = adminService.getChartData;
 export const getStaff = adminService.getStaff;
+export const getPendingStaff = adminService.getPendingStaff; // 🚀 ADDED
 export const getStaffStats = adminService.getStaffStats;
 export const getStaffPerformance = adminService.getStaffPerformance;
 export const getUsers = adminService.getUsers;
@@ -276,6 +319,8 @@ export const getAnalytics = adminService.getAnalytics;
 export const getDepartments = adminService.getDepartments;
 export const createStaff = adminService.createStaff;
 export const updateStaff = adminService.updateStaff;
+export const approveStaff = adminService.approveStaff; // 🚀 ADDED
+export const rejectStaff = adminService.rejectStaff; // 🚀 ADDED
 export const deleteStaff = adminService.deleteStaff;
 export const bulkActivateStaff = adminService.bulkActivateStaff;
 export const bulkDeactivateStaff = adminService.bulkDeactivateStaff;
