@@ -1,0 +1,78 @@
+📦FRONTEND
+ ┣ 📂src
+ ┃ ┣ 📂api
+ ┃ ┃ ┗ 📜axios.js
+ ┃ ┣ 📂components
+ ┃ ┃ ┣ 📂admin
+ ┃ ┃ ┃ ┣ 📜AdminStaffManagement.jsx
+ ┃ ┃ ┃ ┣ 📜ComplaintChat.jsx
+ ┃ ┃ ┃ ┣ 📜Sidebar.jsx
+ ┃ ┃ ┃ ┗ 📜UserProfileEditor.jsx
+ ┃ ┃ ┣ 📂auth
+ ┃ ┃ ┃ ┣ 📜AdminAuthForm.jsx
+ ┃ ┃ ┃ ┣ 📜AuthModal.jsx
+ ┃ ┃ ┃ ┣ 📜StaffAuthForm.jsx
+ ┃ ┃ ┃ ┗ 📜UserAuthForm.jsx
+ ┃ ┃ ┣ 📂chat
+ ┃ ┃ ┃ ┗ 📜ComplaintChat.jsx
+ ┃ ┃ ┣ 📂common
+ ┃ ┃ ┃ ┣ 📜ComplaintCard.jsx
+ ┃ ┃ ┃ ┣ 📜ComplaintDetailPage.jsx
+ ┃ ┃ ┃ ┣ 📜DetailModal.jsx
+ ┃ ┃ ┃ ┣ 📜Footer.jsx
+ ┃ ┃ ┃ ┣ 📜MyReportsModal.jsx
+ ┃ ┃ ┃ ┣ 📜Navbar.jsx
+ ┃ ┃ ┃ ┗ 📜ReportModal.jsx
+ ┃ ┃ ┗ 📂user
+ ┃ ┃ ┃ ┣ 📜AllComplaints.jsx
+ ┃ ┃ ┃ ┣ 📜Dashboard.jsx
+ ┃ ┃ ┃ ┣ 📜Leaderboard.jsx
+ ┃ ┃ ┃ ┣ 📜MyComplaints.jsx
+ ┃ ┃ ┃ ┣ 📜Profile.jsx
+ ┃ ┃ ┃ ┣ 📜RaiseComplaint.jsx
+ ┃ ┃ ┃ ┗ 📜Reports.jsx
+ ┃ ┣ 📂constants
+ ┃ ┃ ┗ 📜index.js
+ ┃ ┣ 📂hooks
+ ┃ ┃ ┗ 📜useAuth.js
+ ┃ ┣ 📂layouts
+ ┃ ┃ ┗ 📜DashboardLayout.jsx
+ ┃ ┣ 📂pages
+ ┃ ┃ ┣ 📂admin
+ ┃ ┃ ┃ ┣ 📜AdminDashboard.jsx
+ ┃ ┃ ┃ ┣ 📜AdminIssuesPage.jsx
+ ┃ ┃ ┃ ┣ 📜AdminSettingsPage.jsx
+ ┃ ┃ ┃ ┣ 📜AdminStaffPage.jsx
+ ┃ ┃ ┃ ┣ 📜AdminUsersPage.jsx
+ ┃ ┃ ┃ ┣ 📜AnalyticsPage.jsx
+ ┃ ┃ ┃ ┗ 📜AuditLogsPage.jsx
+ ┃ ┃ ┣ 📂public
+ ┃ ┃ ┃ ┗ 📜LandingPage.jsx
+ ┃ ┃ ┣ 📂staff
+ ┃ ┃ ┃ ┣ 📜StaffDashboard.jsx
+ ┃ ┃ ┃ ┗ 📜StaffIssuesPage.jsx
+ ┃ ┃ ┗ 📂user
+ ┃ ┃ ┃ ┣ 📜Home.jsx
+ ┃ ┃ ┃ ┗ 📜UserComplaintsPage.jsx
+ ┃ ┣ 📂services
+ ┃ ┃ ┣ 📜adminService.js
+ ┃ ┃ ┣ 📜authService.js
+ ┃ ┃ ┣ 📜chatService.js
+ ┃ ┃ ┣ 📜complaintService.js
+ ┃ ┃ ┣ 📜staffService.js
+ ┃ ┃ ┗ 📜uploadService.js
+ ┃ ┣ 📂utils
+ ┃ ┃ ┣ 📜formatUtils.js
+ ┃ ┃ ┣ 📜storageUtils.js
+ ┃ ┃ ┗ 📜validationUtils.js
+ ┃ ┣ 📜App.jsx
+ ┃ ┣ 📜index.css
+ ┃ ┗ 📜main.jsx
+ ┣ 📜.env
+ ┣ 📜.gitignore
+ ┣ 📜eslint.config.js
+ ┣ 📜index.html
+ ┣ 📜package-lock.json
+ ┣ 📜package.json
+ ┣ 📜README.md
+ ┗ 📜vite.config.js

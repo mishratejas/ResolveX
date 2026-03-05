@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  Copy,
   LogOut, Users, FileText, CheckCircle, Clock, AlertTriangle,
   TrendingUp, Download, Eye, UserCog, Settings, Bell,
   Shield, Home, BarChart3, MessageSquare,
@@ -77,8 +78,43 @@ const AdminDashboard = ({ onLogout }) => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
+const [lastUpdated, setLastUpdated] = useState(null);
   const [socket, setSocket] = useState(null);
+
+  // 🚀 NEW: State for Admin Workspace Info
+  const [adminInfo, setAdminInfo] = useState({
+    organizationName: 'ResolveX Admin',
+    workspaceCode: '------',
+    name: 'Administrator',
+    email: ''
+  });
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // 🚀 NEW: Load Admin Info on Mount
+  useEffect(() => {
+    const storedData = localStorage.getItem('adminData') || localStorage.getItem('admin');
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        setAdminInfo({
+          organizationName: parsedData.organizationName || 'ResolveX Admin',
+          workspaceCode: parsedData.workspaceCode || '------',
+          name: parsedData.name || 'Administrator',
+          email: parsedData.email || ''
+        });
+      } catch (e) {
+        console.error('Error parsing admin data:', e);
+      }
+    }
+  }, []);
+
+  const copyWorkspaceCode = () => {
+    if (adminInfo.workspaceCode && adminInfo.workspaceCode !== '------') {
+      navigator.clipboard.writeText(adminInfo.workspaceCode);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
 
   // Initialize WebSocket
   useEffect(() => {
@@ -410,11 +446,11 @@ const AdminDashboard = ({ onLogout }) => {
                   <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                    RESOLVEX ADMIN
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent uppercase tracking-wide">
+                    {adminInfo.organizationName}
                   </h1>
                   <p className="text-sm text-gray-600 flex items-center gap-2">
-                    <span className="font-medium">Administrator</span>
+                    <span className="font-medium text-orange-700">{adminInfo.name}</span>
                     <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
                     <span className={`font-semibold ${isOnline ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {isOnline ? '● LIVE' : '○ OFFLINE'}
@@ -597,17 +633,41 @@ const AdminDashboard = ({ onLogout }) => {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 relative overflow-hidden rounded-xl"
+            className="mb-8 relative overflow-hidden rounded-xl shadow-lg"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 to-amber-400"></div>
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920')] bg-cover bg-center opacity-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-400"></div>
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920')] bg-cover bg-center opacity-15 mix-blend-overlay"></div>
             <div className="relative p-8">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-white mb-2">ADMIN DASHBOARD</h2>
-                  <p className="text-white/90 text-lg">
-                    Real-time monitoring of {dashboardData.stats.totalComplaints.toLocaleString()} complaints
+                  <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                    Dashboard Overview
+                  </h2>
+                  <p className="text-white/90 text-lg mb-4">
+                    Managing operations for <span className="font-semibold text-white">{adminInfo.organizationName}</span>
                   </p>
+                  
+                  {/* 🚀 NEW: Workspace Code Badge */}
+                  <div className="inline-flex items-center bg-white/10 backdrop-blur-md border border-white/30 rounded-lg p-1 pr-3 shadow-sm">
+                    <div className="bg-white text-orange-600 px-3 py-1.5 rounded-md font-bold font-mono tracking-wider shadow-inner flex items-center gap-2">
+                      <Building className="w-4 h-4 text-orange-500" />
+                      {adminInfo.workspaceCode}
+                    </div>
+                    <div className="ml-3 flex flex-col justify-center">
+                      <span className="text-xs text-white/80 font-medium uppercase tracking-wider mb-0.5">Workspace Code</span>
+                      <button 
+                        onClick={copyWorkspaceCode}
+                        className="text-xs flex items-center gap-1 text-white hover:text-amber-200 transition-colors font-medium"
+                      >
+                        {copiedCode ? (
+                          <><CheckCircle className="w-3 h-3 text-emerald-300" /> <span className="text-emerald-100">Copied!</span></>
+                        ) : (
+                          <><Copy className="w-3 h-3" /> Copy to share with Staff</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
                 <div className="flex flex-col items-end gap-3">
                   <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">

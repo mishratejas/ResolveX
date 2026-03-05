@@ -204,13 +204,112 @@ export const verifyOTP = asyncHandler(async (req, res) => {
 });
 
 // User Signup with OTP
-export const userSignupWithOTP = asyncHandler(async (req, res) => {
-    const { name, email, password, phone, street, city, state, pincode, otp } = req.body;
+// export const userSignupWithOTP = asyncHandler(async (req, res) => {
+//     const { name, email, password, phone, street, city, state, pincode, otp } = req.body;
 
-    console.log('👤 User Signup called:', { name, email, phone });
+//     console.log('👤 User Signup called:', { name, email, phone });
+
+//     if (!name || !email || !password || !phone || !otp) {
+//         throw new ApiError(400, "All required fields must be filled including OTP");
+//     }
+
+//     // Verify OTP
+//     const otpRecord = await OTP.findOne({
+//         identifier: email,
+//         purpose: 'signup',
+//         expiresAt: { $gt: new Date() }
+//     });
+
+//     if (!otpRecord) {
+//         throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
+//     }
+
+//     // Check attempt limit
+//     if (otpRecord.attempts >= 5) {
+//         await OTP.deleteOne({ _id: otpRecord._id });
+//         throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+//     }
+
+//     // Verify OTP
+//     const isValid = await bcrypt.compare(otp, otpRecord.otp);
+//     if (!isValid) {
+//         otpRecord.attempts += 1;
+//         await otpRecord.save();
+//         throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+//     }
+
+//     // Mark as verified
+//     otpRecord.verified = true;
+//     await otpRecord.save();
+
+//     // Check if user already exists
+//     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+//     if (existingUser) {
+//         throw new ApiError(400, "Email or phone already registered");
+//     }
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create user
+//     const newUser = await User.create({
+//         name,
+//         email,
+//         password: hashedPassword,
+//         phone,
+//         address: { street, city, state, pincode },
+//         isVerified: true
+//     });
+
+//     // Delete OTP record
+//     await OTP.deleteOne({ _id: otpRecord._id });
+
+//     // Generate tokens
+//     const payload = { id: newUser._id, role: newUser.role };
+//     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+//     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+//     res.cookie("refreshToken", refreshToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         maxAge: 7 * 24 * 60 * 60 * 1000
+//     });
+
+//     res.status(201).json(
+//         new ApiResponse(201, {
+//             accessToken,
+//             user: {
+//                 id: newUser._id,
+//                 name: newUser.name,
+//                 email: newUser.email,
+//                 phone: newUser.phone,
+//                 role: newUser.role
+//             }
+//         }, "User registered successfully")
+//     );
+// });
+
+// User Signup with OTP
+export const userSignupWithOTP = asyncHandler(async (req, res) => {
+    // 🚀 NEW: Added workspaceCode to the destructured body
+    const { name, email, password, phone, street, city, state, pincode, otp, workspaceCode } = req.body;
+
+    console.log('👤 User Signup called:', { name, email, phone, workspaceCode });
 
     if (!name || !email || !password || !phone || !otp) {
         throw new ApiError(400, "All required fields must be filled including OTP");
+    }
+
+    // 🚀 NEW: Verify Workspace Code if the user provided one (since it's optional for users)
+    let joinedWorkspaces = [];
+    if (workspaceCode) {
+        const admin = await Admin.findOne({ workspaceCode: workspaceCode.toUpperCase() });
+        if (admin) {
+            joinedWorkspaces.push(admin._id);
+        } else {
+            throw new ApiError(404, "Invalid Workspace Code provided. Please check the code or leave it blank.");
+        }
     }
 
     // Verify OTP
@@ -258,7 +357,8 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
         password: hashedPassword,
         phone,
         address: { street, city, state, pincode },
-        isVerified: true
+        isVerified: true,
+        joinedWorkspaces // 🚀 NEW: Assign the workspace array to the user!
     });
 
     // Delete OTP record
@@ -284,7 +384,8 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
                 name: newUser.name,
                 email: newUser.email,
                 phone: newUser.phone,
-                role: newUser.role
+                role: newUser.role,
+                joinedWorkspaces: newUser.joinedWorkspaces // Send this back so the frontend knows what they joined
             }
         }, "User registered successfully")
     );
@@ -365,13 +466,102 @@ export const userLoginWithOTP = asyncHandler(async (req, res) => {
 });
 
 // Staff Signup with OTP
+// export const staffSignupWithOTP = asyncHandler(async (req, res) => {
+//     const { name, email, password, phone, staffId, department, otp } = req.body;
+
+//     console.log('👔 Staff Signup called:', { name, email, staffId });
+
+//     if (!name || !email || !password || !phone || !staffId || !otp) {
+//         throw new ApiError(400, "All required fields must be filled including OTP");
+//     }
+
+//     // Verify OTP
+//     const otpRecord = await OTP.findOne({
+//         identifier: email,
+//         purpose: 'signup',
+//         userType: 'staff',
+//         expiresAt: { $gt: new Date() }
+//     });
+
+//     if (!otpRecord) {
+//         throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
+//     }
+
+//     const isValid = await bcrypt.compare(otp, otpRecord.otp);
+//     if (!isValid) {
+//         otpRecord.attempts += 1;
+//         await otpRecord.save();
+//         throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+//     }
+
+//     otpRecord.verified = true;
+//     await otpRecord.save();
+
+//     // Check if staff already exists
+//     const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
+//     if (existingStaff) {
+//         throw new ApiError(400, "Email or Staff ID already registered");
+//     }
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create staff
+//     const newStaff = await Staff.create({
+//         name,
+//         email,
+//         password: hashedPassword,
+//         phone,
+//         staffId,
+//         department,
+//         isVerified: true
+//     });
+
+//     // Delete OTP record
+//     await OTP.deleteOne({ _id: otpRecord._id });
+
+//     // Generate tokens
+//     const payload = { id: newStaff._id, role: 'staff' };
+//     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+//     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+//     res.cookie("refreshToken", refreshToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         maxAge: 7 * 24 * 60 * 60 * 1000
+//     });
+
+//     res.status(201).json(
+//         new ApiResponse(201, {
+//             accessToken,
+//             staff: {
+//                 id: newStaff._id,
+//                 name: newStaff.name,
+//                 email: newStaff.email,
+//                 staffId: newStaff.staffId,
+//                 department: newStaff.department,
+//                 role: 'staff'
+//             }
+//         }, "Staff registered successfully")
+//     );
+// });
+
+// Staff Signup with OTP
 export const staffSignupWithOTP = asyncHandler(async (req, res) => {
-    const { name, email, password, phone, staffId, department, otp } = req.body;
+    // 🚀 NEW: Added workspaceCode to the destructured body
+    const { name, email, password, phone, staffId, department, otp, workspaceCode } = req.body;
 
-    console.log('👔 Staff Signup called:', { name, email, staffId });
+    console.log('👔 Staff Signup called:', { name, email, staffId, workspaceCode });
 
-    if (!name || !email || !password || !phone || !staffId || !otp) {
-        throw new ApiError(400, "All required fields must be filled including OTP");
+    if (!name || !email || !password || !phone || !staffId || !otp || !workspaceCode) {
+        throw new ApiError(400, "All required fields must be filled, including OTP and Workspace Code");
+    }
+
+    // 🚀 NEW: Validate the Workspace Code before doing anything else
+    const admin = await Admin.findOne({ workspaceCode: workspaceCode.toUpperCase() });
+    if (!admin) {
+        throw new ApiError(404, "Invalid Workspace Code. Please check with your administrator.");
     }
 
     // Verify OTP
@@ -413,6 +603,8 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
         phone,
         staffId,
         department,
+        adminId: admin._id, // 🚀 NEW: Lock them to this specific Admin's workspace
+        isApproved: false,  // 🚀 NEW: Admin must approve them before they can log in
         isVerified: true
     });
 
@@ -440,20 +632,101 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
                 email: newStaff.email,
                 staffId: newStaff.staffId,
                 department: newStaff.department,
+                adminId: newStaff.adminId,
+                isApproved: newStaff.isApproved,
                 role: 'staff'
             }
-        }, "Staff registered successfully")
+        }, "Staff registered successfully. Account is pending Admin approval.") // Updated message
     );
 });
 
 // Staff Login with OTP
+// export const staffLoginWithOTP = asyncHandler(async (req, res) => {
+//     const { identifier, otp } = req.body;
+
+//     console.log('👔 Staff Login called:', { identifier });
+
+//     if (!identifier || !otp) {
+//         throw new ApiError(400, "Identifier and OTP are required");
+//     }
+
+//     const otpRecord = await OTP.findOne({
+//         identifier,
+//         purpose: 'login',
+//         userType: 'staff',
+//         expiresAt: { $gt: new Date() }
+//     });
+
+//     if (!otpRecord) {
+//         throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
+//     }
+
+//     if (otpRecord.attempts >= 5) {
+//         await OTP.deleteOne({ _id: otpRecord._id });
+//         throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+//     }
+
+//     const isValid = await bcrypt.compare(otp, otpRecord.otp);
+//     if (!isValid) {
+//         otpRecord.attempts += 1;
+//         await otpRecord.save();
+//         throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+//     }
+
+//     otpRecord.verified = true;
+//     await otpRecord.save();
+
+//     const staff = await Staff.findOne({
+//         $or: [{ email: identifier }, { phone: identifier }, { staffId: identifier }]
+//     });
+
+//     if (!staff) {
+//         throw new ApiError(404, "Staff not found");
+//     }
+
+//     await OTP.deleteOne({ _id: otpRecord._id });
+
+//     const payload = { id: staff._id, role: 'staff' };
+//     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+//     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+//     res.cookie("refreshToken", refreshToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         maxAge: 7 * 24 * 60 * 60 * 1000
+//     });
+
+//     res.status(200).json(
+//         new ApiResponse(200, {
+//             accessToken,
+//             staff: {
+//                 id: staff._id,
+//                 name: staff.name,
+//                 email: staff.email,
+//                 staffId: staff.staffId,
+//                 department: staff.department,
+//                 role: 'staff'
+//             }
+//         }, "Staff login successful")
+//     );
+// });
+
+// Staff Login with OTP
 export const staffLoginWithOTP = asyncHandler(async (req, res) => {
-    const { identifier, otp } = req.body;
+    // 🚀 NEW: Added workspaceCode requirement
+    const { identifier, otp, workspaceCode } = req.body;
 
-    console.log('👔 Staff Login called:', { identifier });
+    console.log('👔 Staff Login called:', { identifier, workspaceCode });
 
-    if (!identifier || !otp) {
-        throw new ApiError(400, "Identifier and OTP are required");
+    if (!identifier || !otp || !workspaceCode) {
+        throw new ApiError(400, "Identifier, OTP, and Workspace Code are required");
+    }
+
+    // 🚀 NEW: Verify the workspace exists first
+    const admin = await Admin.findOne({ workspaceCode: workspaceCode.toUpperCase() });
+    if (!admin) {
+        throw new ApiError(404, "Invalid Workspace Code");
     }
 
     const otpRecord = await OTP.findOne({
@@ -482,17 +755,24 @@ export const staffLoginWithOTP = asyncHandler(async (req, res) => {
     otpRecord.verified = true;
     await otpRecord.save();
 
+    // 🚀 NEW: Find staff BUT ensure they belong to the provided workspace
     const staff = await Staff.findOne({
-        $or: [{ email: identifier }, { phone: identifier }, { staffId: identifier }]
+        $or: [{ email: identifier }, { phone: identifier }, { staffId: identifier }],
+        adminId: admin._id // Security check
     });
 
     if (!staff) {
-        throw new ApiError(404, "Staff not found");
+        throw new ApiError(404, "Staff member not found in this workspace");
+    }
+
+    // 🚀 NEW: Block login if Admin hasn't approved them yet
+    if (!staff.isApproved) {
+        throw new ApiError(403, "Login Denied: Your account is still pending Admin approval.");
     }
 
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    const payload = { id: staff._id, role: 'staff' };
+    const payload = { id: staff._id, role: 'staff', workspaceCode: admin.workspaceCode };
     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
@@ -512,6 +792,7 @@ export const staffLoginWithOTP = asyncHandler(async (req, res) => {
                 email: staff.email,
                 staffId: staff.staffId,
                 department: staff.department,
+                workspaceCode: admin.workspaceCode,
                 role: 'staff'
             }
         }, "Staff login successful")

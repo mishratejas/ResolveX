@@ -53,6 +53,10 @@ const AuthModal = ({
   const [loginMethod, setLoginMethod] = useState('staffId');
   const formRef = useRef(null);
 
+  // 🚀 NEW: Workspace Code State
+  const [workspaceCodeValue, setWorkspaceCodeValue] = useState('');
+  const [workspaceValid, setWorkspaceValid] = useState(false);
+
   // Update parent components
   useEffect(() => {
     if (setUserType) setUserType(userType);
@@ -63,39 +67,80 @@ const AuthModal = ({
   }, [activeForm, setFormType]);
 
   // Fetch departments when staff registration is shown
-  useEffect(() => {
-    if (userType === 'staff' && activeForm === 'signup' && isOpen) {
-      fetchDepartments();
-    }
-  }, [userType, activeForm, isOpen]);
+  // useEffect(() => {
+  //   if (userType === 'staff' && activeForm === 'signup' && isOpen) {
+  //     fetchDepartments();
+  //   }
+  // }, [userType, activeForm, isOpen]);
 
-  const fetchDepartments = async () => {
+  // const fetchDepartments = async () => {
+  //   try {
+  //     setLoadingDepartments(true);
+  //     console.log('🌐 Fetching departments...');
+      
+  //     const response = await fetch(`${baseUrl}/api/staff/departments`, {
+  //       method: 'GET',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //     });
+      
+  //     const result = await response.json();
+  //     console.log('📋 Departments API response:', result);
+      
+  //     if (response.ok && result.success) {
+  //       setDepartments(result.data || result.departments || []);
+  //       console.log('✅ Loaded departments:', result.data?.length || result.departments?.length || 0);
+  //     } else {
+  //       console.error('❌ Failed to fetch departments:', result.message || 'No data received');
+  //       // Fallback to hardcoded departments
+  //       setDepartments(getFallbackDepartments());
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Error fetching departments:', error);
+  //     // Fallback to hardcoded departments
+  //     setDepartments(getFallbackDepartments());
+  //   } finally {
+  //     setLoadingDepartments(false);
+  //   }
+  // };
+
+  // 🚀 UPDATED: Fetch departments ONLY when a valid 6-character workspace code is entered
+  useEffect(() => {
+    if (userType === 'staff' && activeForm === 'signup' && workspaceCodeValue.length >= 6) {
+      fetchDepartments(workspaceCodeValue);
+    } else {
+      setDepartments([]); // Clear if code is removed
+      setWorkspaceValid(false);
+    }
+  }, [userType, activeForm, workspaceCodeValue]);
+
+  const fetchDepartments = async (code) => {
     try {
       setLoadingDepartments(true);
-      console.log('🌐 Fetching departments...');
+      setError('');
+      console.log(`🌐 Fetching departments for workspace: ${code}...`);
       
-      const response = await fetch(`${baseUrl}/api/staff/departments`, {
+      const response = await fetch(`${baseUrl}/api/admin/departments/workspace/${code}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
       
       const result = await response.json();
-      console.log('📋 Departments API response:', result);
       
       if (response.ok && result.success) {
-        setDepartments(result.data || result.departments || []);
-        console.log('✅ Loaded departments:', result.data?.length || result.departments?.length || 0);
+        setDepartments(result.data || []);
+        setWorkspaceValid(true);
+        setSuccess('Workspace verified! Please select your department.');
       } else {
-        console.error('❌ Failed to fetch departments:', result.message || 'No data received');
-        // Fallback to hardcoded departments
-        setDepartments(getFallbackDepartments());
+        setDepartments([]);
+        setWorkspaceValid(false);
+        setError(result.message || 'Invalid Workspace Code. Departments not found.');
       }
     } catch (error) {
       console.error('❌ Error fetching departments:', error);
-      // Fallback to hardcoded departments
-      setDepartments(getFallbackDepartments());
+      setError('Failed to verify workspace. Please check your connection.');
+      setWorkspaceValid(false);
     } finally {
       setLoadingDepartments(false);
     }
@@ -255,12 +300,17 @@ const AuthModal = ({
       let payload = {};
 
       if (activeForm === 'signup') {
-        // For signup - admin can't sign up
         if (userType === 'admin') {
-          throw new Error('Admin registration is not allowed. Use predefined credentials.');
-        }
-        
-        if (userType === 'user') {
+          // 🚀 NEW: Admin Signup Payload
+          url = `${baseUrl}/api/admin/signup`;
+          payload = {
+            organizationName: data.organizationName,
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            phone: data.phone
+          };
+        } else if (userType === 'user') {
           url = `${baseUrl}/api/otp/signup/user`;
           payload = {
             name: data.name,
@@ -271,14 +321,12 @@ const AuthModal = ({
             city: data.city || '',
             state: data.state || '',
             pincode: data.pincode || '',
-            otp: data.otp
+            otp: data.otp,
           };
         } else if (userType === 'staff') {
           url = `${baseUrl}/api/otp/signup/staff`;
-          
-          // Auto-generate a 5-digit staff ID
           const autoStaffId = generateStaffId();
-          setGeneratedStaffId(autoStaffId); // Store for display
+          setGeneratedStaffId(autoStaffId);
           
           payload = {
             name: data.name,
@@ -286,37 +334,28 @@ const AuthModal = ({
             password: data.password,
             phone: data.phone,
             staffId: autoStaffId,
-            departmentId: data.departmentId || data.department || '',
-            otp: data.otp
+            department: data.departmentId,
+            otp: data.otp,
+            workspaceCode: workspaceCodeValue // 🚀 NEW: Link staff to workspace
           };
         }
       } else {
-        // For login - No OTP required
+        // For login
         if (userType === 'admin') {
           url = `${baseUrl}/api/admin/login`;
-          payload = {
-            adminId: data.email,
-            password: data.password
-          };
+          payload = { adminId: data.email, password: data.password };
         } else if (userType === 'user') {
           url = `${baseUrl}/api/users/login`;
-          payload = {
-            email: data.email,
-            password: data.password
-          };
+          payload = { email: data.email, password: data.password };
         } else if (userType === 'staff') {
-          url = `${baseUrl}/api/staff/login`;
-          
-          // Get identifier based on login method
+          url = `${baseUrl}/api/otp/login/staff`; // Adjust if your login route differs
           const identifier = data.identifier || data.email;
-          
-          // Send flexible payload
           payload = {
-            staffIdOrEmail: identifier,
-            password: data.password
+            identifier: identifier,
+            password: data.password,
+            otp: data.otp, // If using OTP for login
+            workspaceCode: workspaceCodeValue // 🚀 NEW: Required for Staff Login
           };
-          
-          console.log('👷 Staff login payload:', payload);
         }
       }
 
@@ -414,6 +453,21 @@ const AuthModal = ({
           window.location.href = '/staff/dashboard';
         }, activeForm === 'signup' ? 3000 : 1500); // Give more time to see the Staff ID
       } else if (userType === 'admin') {
+        
+        // 🚀 NEW: Handle Admin Signup Success
+        if (activeForm === 'signup') {
+          const workspaceCode = result.data?.workspaceCode;
+          setSuccess(`Workspace created! IMPORTANT: Your Workspace Code is ${workspaceCode}. Save this code for your staff.`);
+          
+          // Switch them to the sign-in form after 5 seconds so they can log in
+          setTimeout(() => {
+            setActiveForm('signin');
+            setSuccess('');
+          }, 5000);
+          return; // Stop here, don't try to log them in yet!
+        }
+
+        // 🚀 Handle Admin Login Success
         const accessToken = result.accessToken || result.data?.accessToken || result.token;
         const adminData = result.admin || result.data?.admin || result.data;
         
@@ -559,7 +613,6 @@ const AuthModal = ({
             </div>
 
             {/* Toggle between Sign In and Sign Up - Only for user and staff */}
-            {userType !== 'admin' && (
               <div className="mb-6">
                 <div className="flex rounded-lg bg-gray-100 p-1 max-w-xs mx-auto">
                   <button
@@ -603,7 +656,6 @@ const AuthModal = ({
                   </button>
                 </div>
               </div>
-            )}
 
             {/* Error/Success Messages */}
             <AnimatePresence>
@@ -664,9 +716,56 @@ const AuthModal = ({
               onSubmit={handleSubmit}
               className="space-y-4"
             >
-              {/* Admin Login Form */}
+              {/* 🚀 UPDATED: Admin Login/Signup Form */}
               {userType === 'admin' ? (
                 <div className="space-y-4">
+                  {/* Extra fields only for Admin Signup */}
+                  {activeForm === 'signup' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <Building className="w-4 h-4 inline mr-2" />
+                          Organization Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="organizationName"
+                          required
+                          placeholder="e.g., Agra City Council"
+                          className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <User className="w-4 h-4 inline mr-2" />
+                          Admin Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          placeholder="Enter your full name"
+                          className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <Phone className="w-4 h-4 inline mr-2" />
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          required
+                          pattern="[0-9]{10}"
+                          placeholder="Enter 10-digit phone number"
+                          className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Email & Password (Shared for both Login and Signup) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Mail className="w-4 h-4 inline mr-2" />
@@ -706,7 +805,7 @@ const AuthModal = ({
                   </div>
                 </div>
               ) : (
-                /* User/Staff Form */
+                /* User/Staff Form Container */
                 <>
                   {/* Login Method Selector - Only for Staff Login */}
                   {userType === 'staff' && activeForm === 'signin' && (
@@ -746,7 +845,30 @@ const AuthModal = ({
                     </div>
                   )}
 
-                  {/* Login Identifier Field */}
+                  {/* STAFF ONLY: Workspace Code Field for both Login and Signup */}
+                  {userType === 'staff' && (
+                    <div className="mb-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                      <label className="block text-sm font-bold text-blue-900 mb-2">
+                        <Building className="w-4 h-4 inline mr-2" />
+                        Workspace Code *
+                      </label>
+                      <input
+                        type="text"
+                        name="workspaceCode"
+                        required
+                        value={workspaceCodeValue}
+                        onChange={(e) => setWorkspaceCodeValue(e.target.value.toUpperCase())}
+                        maxLength="8"
+                        placeholder="Enter 6-8 digit code (e.g., 03CB9A)"
+                        className="w-full p-3 text-sm rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors uppercase font-mono tracking-wider font-bold text-gray-800"
+                      />
+                      <p className="text-xs text-blue-600 mt-2 font-medium">
+                        Required: Ask your Admin for the organization's code.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Identifier Field (Email or Staff ID depending on mode) */}
                   {userType === 'staff' && activeForm === 'signin' ? (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -789,7 +911,6 @@ const AuthModal = ({
                       )}
                     </div>
                   ) : (
-                    // Email field for User Login/Registration or Staff Registration
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Mail className="w-4 h-4 inline mr-2" />
@@ -812,7 +933,7 @@ const AuthModal = ({
                     </div>
                   )}
 
-                  {/* OTP Field - Only for signup (not for staff login) */}
+                  {/* OTP Field - Only for signup */}
                   {activeForm === 'signup' && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -916,7 +1037,7 @@ const AuthModal = ({
                         />
                       </div>
 
-                      {/* DEPARTMENT DROPDOWN - STAFF ONLY */}
+                      {/* 🚀 UPDATED: DEPARTMENT DROPDOWN - STAFF ONLY */}
                       {userType === 'staff' && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -926,25 +1047,32 @@ const AuthModal = ({
                           <select
                             name="departmentId"
                             required
-                            disabled={loadingDepartments}
-                            className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            disabled={loadingDepartments || !workspaceValid}
+                            className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                           >
-                            <option value="">Select your department</option>
+                            <option value="">
+                              {!workspaceValid 
+                                ? "🔒 Enter a valid Workspace Code first..." 
+                                : "✅ Select your department"}
+                            </option>
                             {departments.map((dept) => (
                               <option key={dept._id || dept.id} value={dept._id || dept.id}>
                                 {dept.name} {dept.category && `(${dept.category})`}
                               </option>
                             ))}
                           </select>
+                          
+                          {/* Loading State UI */}
                           {loadingDepartments && (
-                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
                               <Loader2 className="w-3 h-3 animate-spin" />
-                              Loading departments...
+                              Verifying workspace and fetching departments...
                             </p>
                           )}
-                          {!loadingDepartments && departments.length === 0 && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              No departments available. Please contact administration.
+                          {/* Empty State UI */}
+                          {!loadingDepartments && workspaceValid && departments.length === 0 && (
+                            <p className="text-xs text-red-500 mt-2 bg-red-50 p-2 rounded border border-red-100">
+                              This workspace has no departments yet. Please contact your Admin.
                             </p>
                           )}
                         </div>
@@ -1047,15 +1175,15 @@ const AuthModal = ({
                 {userType === 'admin' ? (
                   <>
                     <div>Admin Credentials:</div>
-                    <div>Email: admin@resolvex.com</div>
-                    <div>Password: admin123</div>
+                    <div>Email: admin@agracouncil.gov</div>
+                    <div>Password: securepassword123</div>
                   </>
                 ) : userType === 'staff' && activeForm === 'signup' ? (
                   <>
                     <div>Staff Registration:</div>
-                    <div>1. Enter email and click "Send OTP"</div>
-                    <div>2. Check email for 6-digit OTP</div>
-                    <div>3. Staff ID will be auto-generated</div>
+                    <div>1. Enter your Admin's Workspace Code</div>
+                    <div>2. Enter email and click "Send OTP"</div>
+                    <div>3. Check email for 6-digit OTP</div>
                     <div>4. Select department from dropdown</div>
                     <div>5. Click "Create Account"</div>
                     <div className="font-bold mt-1">SAVE YOUR STAFF ID!</div>
