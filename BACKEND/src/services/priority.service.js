@@ -4,7 +4,6 @@ class PriorityService {
     constructor() {
         this.apiKey = process.env.GOOGLE_API_KEY;
         this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        
         // Validate API key on initialization
         if (!this.apiKey || this.apiKey === 'is set') {
             console.warn('⚠️ GOOGLE_API_KEY not properly configured. AI priority assignment will use fallback method.');

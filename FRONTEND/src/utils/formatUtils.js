@@ -125,6 +125,22 @@ export const formatAddress = (address) => {
   
   return parts.join(', ') || 'No address';
 };
+// Add these functions
+
+// Format coordinates to readable string
+export const formatCoordinates = (latitude, longitude, precision = 6) => {
+  if (!latitude || !longitude) return 'No coordinates';
+  return `${latitude.toFixed(precision)}°, ${longitude.toFixed(precision)}°`;
+};
+
+// Format distance in meters to readable string
+export const formatDistance = (meters) => {
+  if (!meters) return '';
+  if (meters < 1000) {
+    return `${Math.round(meters)} m away`;
+  }
+  return `${(meters / 1000).toFixed(1)} km away`;
+};
 
 export default {
   formatDate,
@@ -137,5 +153,7 @@ export default {
   formatPhoneNumber,
   formatCurrency,
   formatStatus,
-  formatAddress
+  formatAddress,
+  formatCoordinates,
+  formatDistance
 };

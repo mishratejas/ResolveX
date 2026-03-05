@@ -1,6 +1,6 @@
 import UserComplaint from "../models/UserComplaint.models.js";
 import priorityService from '../services/priority.service.js';
-
+import { truncateCoordinates,getBoundingBox,calculateDistance,areComplaintsSimilar } from "../utils/locationUtils.js";
 // GET all issues - PUBLIC
 export const handleAllIssueFetch = async (req, res) => {
     try {
@@ -56,108 +56,228 @@ export const handleSingleUserIssueFetch = async (req, res)=>{
     }
 }
 
-// 🔧 FIXED: POST create issue - PROTECTED (with proper location handling + AI priority)
-export const handleIssueGeneration = async (req, res) => {
-    try {
-        const { title, description, location, category, images, userId } = req.body;
-        
-        // Use userId from body OR from auth middleware
-        const complaintUserId = userId || req.user?._id;
+export const checkDuplicateComplaint = async (req, res) => {
+  try {
+    const { title, description, location, category } = req.body;
+    const userId = req.user?._id;
 
-        // 🔧 FIX #1: Validation with proper error messages
-        if (!title || !description) {
-            return res.status(400).json({
-                success: false,
-                message: "Title and description are required"
-            });
-        }
-
-        // 🔧 FIX #2: Handle location properly - support both object and string
-        let locationData = {
-            address: '',
-            latitude: null,
-            longitude: null
-        };
-
-        if (typeof location === 'string') {
-            // Legacy format: just a string address
-            locationData.address = location;
-        } else if (typeof location === 'object' && location !== null) {
-            // New format: object with address, lat, lon
-            locationData = {
-                address: location.address || '',
-                latitude: location.latitude || null,
-                longitude: location.longitude || null
-            };
-        }
-
-        if (!locationData.address || locationData.address.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                message: "Location is required"
-            });
-        }
-
-        // 🔧 FIX #3: Auto-assign priority using AI with better error handling
-        let priority = 'medium'; // Default fallback
-        let prioritySource = 'fallback';
-        
-        try {
-            console.log('🤖 Calling AI priority service...');
-            priority = await priorityService.analyzePriority({
-                title,
-                description,
-                category: category || 'other',
-                department: null
-            });
-            prioritySource = 'ai';
-            console.log(`✅ AI assigned priority: ${priority} for complaint: ${title}`);
-        } catch (aiError) {
-            console.error('⚠️ AI priority assignment failed:', aiError.message);
-            // Fallback to rule-based priority
-            priority = calculatePriorityFallback(title, description, category);
-            prioritySource = 'rule-based';
-            console.log(`🔄 Using rule-based priority: ${priority}`);
-        }
-
-        // 🔧 FIX #4: Create complaint with proper structure
-        const complaint = new UserComplaint({
-            title: title.trim(),
-            description: description.trim(),
-            location: locationData,
-            images: images || [],
-            category: category || 'other',
-            user: complaintUserId,
-            status: 'pending',
-            priority: priority,
-            autoPriorityAssigned: prioritySource === 'ai',
-            manualPriorityOverridden: false
-        });
-        
-        await complaint.save();
-        await complaint.populate('user', 'name email');
-        
-        console.log(`✅ Complaint created successfully:`, {
-            id: complaint._id,
-            title: complaint.title,
-            priority: complaint.priority,
-            prioritySource: prioritySource,
-            location: complaint.location
-        });
-
-        res.status(201).json({ 
-            success: true,
-            message: `Complaint submitted successfully with ${prioritySource === 'ai' ? 'AI-assigned' : 'rule-based'} priority`, 
-            data: complaint,
-            priorityAssignedBy: prioritySource
-        });
-    } catch (error) {
-        console.error('❌ Error submitting complaint:', error);
-        res.status(500).json({ 
-            success: false,
-            message: 'Error submitting complaint: ' + error.message
-        });
+    // Validate required fields
+    if (!location || !location.latitude || !location.longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Location coordinates are required for duplicate check"
+      });
     }
+
+    const { latitude, longitude } = location;
+
+    // Get bounding box for ~150 meter radius
+    const bbox = getBoundingBox(latitude, longitude, 150);
+
+    // Find potential duplicates within bounding box
+    const nearbyComplaints = await UserComplaint.find({
+      "location.latitude": { $gte: bbox.minLat, $lte: bbox.maxLat },
+      "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
+      status: { $in: ["pending", "in-progress"] }, // Only active complaints
+      _id: { $ne: req.body.complaintId } // Exclude current complaint if editing
+    }).populate('user', 'name email');
+
+    // Filter for truly similar complaints
+    const similarComplaints = nearbyComplaints.filter(existing => {
+      // Don't show user's own complaints as duplicates
+      if (existing.user._id.toString() === userId?.toString()) return false;
+
+      return areComplaintsSimilar(
+        { location, title, category },
+        existing,
+        {
+          maxDistance: 150,
+          titleSimilarityThreshold: 0.5,
+          sameCategoryRequired: true
+        }
+      );
+    });
+
+    // Check if user has already voted on any of these
+    const userVotedComplaints = similarComplaints.filter(c => 
+      c.voters?.includes(userId)
+    );
+
+    res.json({
+      success: true,
+      hasDuplicates: similarComplaints.length > 0,
+      duplicates: similarComplaints.map(c => ({
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        category: c.category,
+        status: c.status,
+        priority: c.priority,
+        voteCount: c.voteCount || 0,
+        hasUserVoted: c.voters?.includes(userId) || false,
+        user: {
+          name: c.user.name,
+          email: c.user.email
+        },
+        location: c.location,
+        createdAt: c.createdAt,
+        distance: calculateDistance(
+          latitude, longitude,
+          c.location.latitude, c.location.longitude
+        ).toFixed(0) // Distance in meters
+      })),
+      userVotedComplaints: userVotedComplaints.length > 0
+    });
+
+  } catch (error) {
+    console.error('Error checking duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking for duplicate complaints'
+    });
+  }
+};
+
+
+export const handleIssueGeneration = async (req, res) => {
+  try {
+    const { title, description, location, category, images, userId, skipDuplicateCheck } = req.body;
+    
+    const complaintUserId = userId || req.user?._id;
+
+    // Validation
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and description are required"
+      });
+    }
+
+    // Handle location
+    let locationData = {
+      address: '',
+      latitude: null,
+      longitude: null
+    };
+
+    if (typeof location === 'string') {
+      locationData.address = location;
+    } else if (typeof location === 'object' && location !== null) {
+      locationData = {
+        address: location.address || '',
+        latitude: location.latitude || null,
+        longitude: location.longitude || null
+      };
+    }
+
+    if (!locationData.address || locationData.address.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: "Location is required"
+      });
+    }
+
+    // Check for duplicates if coordinates exist and skipDuplicateCheck is false
+    if (!skipDuplicateCheck && locationData.latitude && locationData.longitude) {
+      const bbox = getBoundingBox(locationData.latitude, locationData.longitude, 150);
+      
+      const nearbyComplaints = await UserComplaint.find({
+        "location.latitude": { $gte: bbox.minLat, $lte: bbox.maxLat },
+        "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
+        status: { $in: ["pending", "in-progress"] },
+        user: { $ne: complaintUserId } // Exclude user's own complaints
+      });
+
+      const similarComplaints = nearbyComplaints.filter(existing => 
+        areComplaintsSimilar(
+          { location: locationData, title, category },
+          existing,
+          {
+            maxDistance: 150,
+            titleSimilarityThreshold: 0.5,
+            sameCategoryRequired: true
+          }
+        )
+      );
+
+      if (similarComplaints.length > 0) {
+        return res.status(409).json({ // 409 Conflict
+          success: false,
+          message: "Similar complaint already exists in this area",
+          hasDuplicates: true,
+          duplicates: similarComplaints.map(c => ({
+            _id: c._id,
+            title: c.title,
+            description: c.description,
+            category: c.category,
+            status: c.status,
+            voteCount: c.voteCount || 0,
+            hasUserVoted: c.voters?.includes(complaintUserId) || false
+          }))
+        });
+      }
+    }
+
+    // Auto-assign priority
+    let priority = 'medium';
+    let prioritySource = 'fallback';
+    
+    try {
+      console.log('🤖 Calling AI priority service...');
+      priority = await priorityService.analyzePriority({
+        title,
+        description,
+        category: category || 'other',
+        department: null
+      });
+      prioritySource = 'ai';
+      console.log(`✅ AI assigned priority: ${priority} for complaint: ${title}`);
+    } catch (aiError) {
+      console.error('⚠️ AI priority assignment failed:', aiError.message);
+      priority = calculatePriorityFallback(title, description, category);
+      prioritySource = 'rule-based';
+      console.log(`🔄 Using rule-based priority: ${priority}`);
+    }
+
+    // Create complaint
+    const complaint = new UserComplaint({
+      title: title.trim(),
+      description: description.trim(),
+      location: locationData,
+      images: images || [],
+      category: category || 'other',
+      user: complaintUserId,
+      status: 'pending',
+      priority: priority,
+      autoPriorityAssigned: prioritySource === 'ai',
+      manualPriorityOverridden: false,
+      voteCount: 0,
+      voters: []
+    });
+    
+    await complaint.save();
+    await complaint.populate('user', 'name email');
+    
+    console.log(`✅ Complaint created successfully:`, {
+      id: complaint._id,
+      title: complaint.title,
+      priority: complaint.priority,
+      prioritySource: prioritySource
+    });
+
+    res.status(201).json({ 
+      success: true,
+      message: `Complaint submitted successfully with ${prioritySource === 'ai' ? 'AI-assigned' : 'rule-based'} priority`, 
+      data: complaint,
+      priorityAssignedBy: prioritySource
+    });
+  } catch (error) {
+    console.error('❌ Error submitting complaint:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error submitting complaint: ' + error.message
+    });
+  }
 };
 
 // 🔧 NEW: Fallback priority calculation
@@ -463,4 +583,57 @@ export const getComplaintsByPriority = async (req, res) => {
             message: 'Error fetching complaints'
         });
     }
+};
+
+export const handleUpvoteComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const complaint = await UserComplaint.findById(complaintId);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: 'Complaint not found'
+      });
+    }
+
+    // Check if user already voted
+    if (complaint.voters?.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already upvoted this complaint'
+      });
+    }
+
+    // Add vote
+    complaint.voteCount = (complaint.voteCount || 0) + 1;
+    complaint.voters = complaint.voters || [];
+    complaint.voters.push(userId);
+    
+    await complaint.save();
+
+    res.json({
+      success: true,
+      message: 'Complaint upvoted successfully',
+      data: {
+        voteCount: complaint.voteCount,
+        hasUserVoted: true
+      }
+    });
+  } catch (error) {
+    console.error('Error upvoting complaint:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error upvoting complaint'
+    });
+  }
 };

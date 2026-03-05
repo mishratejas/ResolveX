@@ -223,4 +223,6 @@ const userComplaintSchema = new mongoose.Schema({
   ],
 }, { timestamps: true });
 
+userComplaintSchema.index({"location.latitude":1,"location.longitude":1});
+
 export default mongoose.model("UserComplaint", userComplaintSchema);

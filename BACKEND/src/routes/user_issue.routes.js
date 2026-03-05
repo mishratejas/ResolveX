@@ -6,8 +6,11 @@ import {
     handleSingleIssueFetch, 
     handleVoteCount,
     handleComplaintLocations,
-    handleGetMyIssues,  // ADD THIS
-    handleGetStats      // ADD THIS
+    handleGetMyIssues,
+    handleGetStats,
+    // NEW IMPORTS
+    checkDuplicateComplaint,
+    handleUpvoteComplaint
 } from "../controllers/user_issue.controllers.js";
 import { auth } from "../middleware/auth.js";
 
@@ -22,6 +25,9 @@ router.get('/my', auth, handleGetMyIssues);
 // GET /api/user_issues/stats - Get statistics (public)
 router.get('/stats', handleGetStats);
 
+// NEW: Check for duplicates before submitting
+router.post('/check-duplicate', auth, checkDuplicateComplaint);
+
 // POST /api/user_issues - Create new complaint (requires auth)
 router.post('/', auth, handleIssueGeneration);
 
@@ -32,6 +38,9 @@ router.get('/locations', handleComplaintLocations);
 
 // GET /api/user_issues/:id - Get single complaint details (public)
 router.get('/:id', handleSingleIssueFetch);
+
+// NEW: Upvote an existing complaint
+router.put('/:id/upvote', auth, handleUpvoteComplaint);
 
 // PUT /api/user_issues/:id/vote - Add voting system for public engagement
 router.put('/:id/vote', handleVoteCount);

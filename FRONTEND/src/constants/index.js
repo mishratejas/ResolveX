@@ -75,6 +75,19 @@ export const PAGINATION = {
   DEFAULT_LIMIT: 10,
   MAX_LIMIT: 100
 };
+// Add to the exports
+export const LOCATION_PRECISION = {
+  METERS_100: 3, // 3 decimal places ≈ 111 meters
+  METERS_10: 4,   // 4 decimal places ≈ 11 meters
+  METERS_1: 5     // 5 decimal places ≈ 1.1 meters
+};
+
+export const DUPLICATE_DETECTION = {
+  MAX_DISTANCE_METERS: 150,
+  TITLE_SIMILARITY_THRESHOLD: 0.5,
+  CHECK_ACTIVE_ONLY: true,
+  ACTIVE_STATUSES: ['pending', 'in-progress']
+};
 
 // API Endpoints
 export const API_ENDPOINTS = {

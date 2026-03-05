@@ -31,15 +31,15 @@ export const userSignup = async (req, res) => {
             });
         }
 
-        // 4. Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        console.log('✅ Password hashed');
-
-        // 5. Create the new user
+        // 🔧 FIX: REMOVED MANUAL HASHING
+        // Let the User model's pre-save hook handle password hashing
+        // This prevents double hashing issue
+        
+        // 4. Create the new user (password will be hashed by pre-save hook)
         const newUser = new User({
             name,
             email,
-            password: hashedPassword,
+            password: password,  // ← FIXED: Pass plain password, let model hash it
             phone,
             address: {
                 street: street || "",
@@ -50,9 +50,9 @@ export const userSignup = async (req, res) => {
             isVerified: true
         });
 
-        console.log('📝 User object created:', newUser);
+        console.log('📝 User object created (password will be auto-hashed on save)');
 
-        // 6. Save user to database
+        // 5. Save user to database (pre-save hook will hash password)
         try {
             await newUser.save();
             console.log('💾 User saved to database with ID:', newUser._id);
@@ -61,19 +61,19 @@ export const userSignup = async (req, res) => {
             throw saveError;
         }
 
-        // 7. Verify the user was actually saved
+        // 6. Verify the user was actually saved
         const savedUser = await User.findById(newUser._id);
         if (!savedUser) {
             throw new Error('User was not saved to database');
         }
         console.log('✅ User verified in database:', savedUser._id);
 
-        // 8. Generate tokens
+        // 7. Generate tokens
         const payload = { id: newUser._id, role: newUser.role || "user" };
         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
-        // 9. Send refresh token as a cookie
+        // 8. Send refresh token as a cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -81,20 +81,18 @@ export const userSignup = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        // 10. Send the final JSON response
+        // 9. Send the final JSON response
         res.status(201).json({
             success: true,
             message: "User registered successfully",
-            data: {
-                accessToken,
-                user: {
-                    id: newUser._id,
-                    name: newUser.name,
-                    email: newUser.email,
-                    phone: newUser.phone,
-                    address: newUser.address,
-                    role: newUser.role,
-                }
+            accessToken,  // ← FIXED: Return at root level for frontend
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone,
+                address: newUser.address,
+                role: newUser.role,
             }
         });
 
@@ -124,95 +122,42 @@ export const userSignup = async (req, res) => {
     }
 };
 
-// export const userSignup = async (req, res) => {
-//     try {
-//         const { name, email, password, phone, street, city, state, pincode } = req.body;
-
-//         if (!name || !email || !password || !phone) {
-//             return res.status(400).json({ message: "Please fill all required fields: name, email, password, phone." });
-//         }
-
-//         //Check if user already exists
-//         const existingUser = await User.findOne({ email });
-//         if (existingUser) {
-//             return res.status(400).json({ message: "Email already registered" });
-//         }
-
-//         //Hash Password
-//         const hashedPassword = await bcrypt.hash(password, 10);
-//         //create newUser
-//         const newUser = new User({
-//             name,
-//             email,
-//             password: hashedPassword,
-//             phone,
-//             address: {
-//                 street,
-//                 city,
-//                 state,
-//                 pincode,
-//             },
-//         });
-
-//         await newUser.save();
-//         // Generate tokens after signup
-//         const payload = { id: newUser._id, role: newUser.role || "user" };
-//         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
-//         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-
-//         // Send refresh token as cookie
-//         res.cookie("refreshToken", refreshToken, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === "production",
-//             sameSite: "strict",
-//             maxAge: 7 * 24 * 60 * 60 * 1000,
-//         });
-
-//         res.status(201).json({
-//             message: "User registered successfully",
-//             accessToken, // ← ADD THIS
-//             user: { // ← ADD THIS
-//                 id: newUser._id,
-//                 name: newUser.name,
-//                 email: newUser.email,
-//                 phone: newUser.phone,
-//                 address: newUser.address,
-//                 role: newUser.role,
-//             }
-//         });
-//     }
-//     catch (err) {
-//         console.error("User Signup Error: ", err);
-//         if (err.name === 'ValidationError') {
-//             return res.status(400).json({ message: err.message || "Validation failed for one or more fields." });
-//         }
-//         res.status(500).json({ message: "Server Error" });
-//     }
-// };
-
-
 
 //Login controller
 
 export const userLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
+        
+        console.log('🔐 Login attempt for:', email);
+        
         //Find user by email or phone
         const user = await User.findOne({
             $or: [{ email: email }, { phone: email }],
         });
 
         if (!user) {
+            console.log('❌ User not found:', email);
             return res.status(404).json({
                 message: "User not found"
             });
         }
 
+        console.log('✅ User found:', user.email);
+        console.log('🔍 Comparing passwords...');
+
         //Compare password
         const isMatch = await bcrypt.compare(password, user.password);
+        
+        console.log('🔐 Password match result:', isMatch);
+        
         if (!isMatch) {
+            console.log('❌ Password mismatch for:', email);
             return res.status(400).json({ message: "Invalid Credentials" });
         }
+        
+        console.log('✅ Password matched! Generating tokens...');
+        
         //Generate JWT
         const payload = { id: user._id, role: user.role || "user" };
 
@@ -226,6 +171,8 @@ export const userLogin = async (req, res) => {
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
+
+        console.log('✅ Login successful for:', user.email);
 
         res.status(200).json({
             message: "Login Successful",
@@ -241,7 +188,7 @@ export const userLogin = async (req, res) => {
         });
     }
     catch (err) {
-        console.error("User login error: ", err);
+        console.error("❌ User login error: ", err);
         res.status(500).json({ message: "Server Error" });
     }
 };

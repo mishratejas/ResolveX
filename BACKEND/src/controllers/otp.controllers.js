@@ -347,19 +347,22 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Email or phone already registered");
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 🔧 FIX: Removed manual password hashing
+    // The User model's pre-save hook will handle password hashing automatically
+    // This prevents the double hashing bug where password gets hashed twice
 
-    // Create user
+    // Create user (password will be hashed by pre-save hook)
     const newUser = await User.create({
         name,
         email,
-        password: hashedPassword,
+        password: password,  // ← FIXED: Pass plain password, let model hash it
         phone,
         address: { street, city, state, pincode },
         isVerified: true,
         joinedWorkspaces // 🚀 NEW: Assign the workspace array to the user!
     });
+    
+    console.log('✅ User created with ID:', newUser._id, '(password auto-hashed by model)');
 
     // Delete OTP record
     await OTP.deleteOne({ _id: otpRecord._id });
@@ -592,14 +595,15 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Email or Staff ID already registered");
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 🔧 FIX: Removed manual password hashing
+    // The Staff model's pre-save hook will handle password hashing automatically
+    // This prevents the double hashing bug where password gets hashed twice
 
-    // Create staff
+    // Create staff (password will be hashed by pre-save hook)
     const newStaff = await Staff.create({
         name,
         email,
-        password: hashedPassword,
+        password: password,  // ← FIXED: Pass plain password, let model hash it
         phone,
         staffId,
         department,
@@ -607,6 +611,8 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
         isApproved: false,  // 🚀 NEW: Admin must approve them before they can log in
         isVerified: true
     });
+    
+    console.log('✅ Staff created with ID:', newStaff._id, '(password auto-hashed by model)');
 
     // Delete OTP record
     await OTP.deleteOne({ _id: otpRecord._id });

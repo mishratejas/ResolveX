@@ -61,14 +61,17 @@ const ComplaintDetailPage = () => {
         return;
       }
 
-      if (complaint?.voters?.includes(user._id)) {
+      // 🔧 FIX: Backend returns 'id', not '_id'
+      const userId = user?.id || user?._id;
+
+      if (complaint?.voters?.includes(userId)) {
         alert("You have already voted for this issue!");
         return;
       }
 
       const response = await axios.put(
         `${BASE_URL}/api/user_issues/${id}/vote`,
-        { userId: user._id },
+        { userId: userId },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 

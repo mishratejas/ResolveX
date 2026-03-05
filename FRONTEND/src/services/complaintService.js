@@ -1,17 +1,19 @@
 // TODO: Update with proper error handling and pagination
-import axios from '../api/axios';
-import { API_ENDPOINTS } from '../constants';
+import axios from "../api/axios";
+import { API_ENDPOINTS } from "../constants";
 
 const complaintService = {
   // Get All Complaints
   getAll: async (params = {}) => {
     try {
       const queryString = new URLSearchParams(params).toString();
-      const url = queryString ? `${API_ENDPOINTS.COMPLAINTS}?${queryString}` : API_ENDPOINTS.COMPLAINTS;
+      const url = queryString
+        ? `${API_ENDPOINTS.COMPLAINTS}?${queryString}`
+        : API_ENDPOINTS.COMPLAINTS;
       const response = await axios.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching complaints:', error);
+      console.error("Error fetching complaints:", error);
       throw error;
     }
   },
@@ -22,7 +24,7 @@ const complaintService = {
       const response = await axios.get(`${API_ENDPOINTS.COMPLAINTS}/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching complaint:', error);
+      console.error("Error fetching complaint:", error);
       throw error;
     }
   },
@@ -33,7 +35,7 @@ const complaintService = {
       const response = await axios.get(API_ENDPOINTS.MY_COMPLAINTS);
       return response.data;
     } catch (error) {
-      console.error('Error fetching my complaints:', error);
+      console.error("Error fetching my complaints:", error);
       throw error;
     }
   },
@@ -41,10 +43,14 @@ const complaintService = {
   // Create Complaint
   create: async (complaintData) => {
     try {
-      const response = await axios.post(API_ENDPOINTS.COMPLAINTS, complaintData);
+      const response = await axios.post("/api/user_issues", complaintData);
       return response.data;
     } catch (error) {
-      console.error('Error creating complaint:', error);
+      // If duplicate found (409 status), return the error data
+      if (error.response?.status === 409) {
+        return error.response.data;
+      }
+      console.error("Error creating complaint:", error);
       throw error;
     }
   },
@@ -52,10 +58,13 @@ const complaintService = {
   // Update Complaint
   update: async (id, updates) => {
     try {
-      const response = await axios.put(`${API_ENDPOINTS.COMPLAINTS}/${id}`, updates);
+      const response = await axios.put(
+        `${API_ENDPOINTS.COMPLAINTS}/${id}`,
+        updates,
+      );
       return response.data;
     } catch (error) {
-      console.error('Error updating complaint:', error);
+      console.error("Error updating complaint:", error);
       throw error;
     }
   },
@@ -66,7 +75,7 @@ const complaintService = {
       const response = await axios.delete(`${API_ENDPOINTS.COMPLAINTS}/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Error deleting complaint:', error);
+      console.error("Error deleting complaint:", error);
       throw error;
     }
   },
@@ -74,21 +83,37 @@ const complaintService = {
   // Vote on Complaint
   vote: async (id, userId) => {
     try {
-      const response = await axios.put(`${API_ENDPOINTS.COMPLAINTS}/${id}/vote`, { userId });
+      const response = await axios.put(
+        `${API_ENDPOINTS.COMPLAINTS}/${id}/vote`,
+        { userId },
+      );
       return response.data;
     } catch (error) {
-      console.error('Error voting on complaint:', error);
+      console.error("Error voting on complaint:", error);
       throw error;
     }
   },
-
+  upvoteComplaint: async (complaintId) => {
+    try {
+      const response = await axios.put(
+        `/api/user_issues/${complaintId}/upvote`,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error upvoting complaint:", error);
+      throw error;
+    }
+  },
   // Add Comment
   addComment: async (id, comment) => {
     try {
-      const response = await axios.post(`${API_ENDPOINTS.COMPLAINTS}/${id}/comments`, { comment });
+      const response = await axios.post(
+        `${API_ENDPOINTS.COMPLAINTS}/${id}/comments`,
+        { comment },
+      );
       return response.data;
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       throw error;
     }
   },
@@ -96,10 +121,12 @@ const complaintService = {
   // Get Comments
   getComments: async (id) => {
     try {
-      const response = await axios.get(`${API_ENDPOINTS.COMPLAINTS}/${id}/comments`);
+      const response = await axios.get(
+        `${API_ENDPOINTS.COMPLAINTS}/${id}/comments`,
+      );
       return response.data;
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       throw error;
     }
   },
@@ -107,10 +134,10 @@ const complaintService = {
   // Get Stats
   getStats: async () => {
     try {
-      const response = await axios.get('/api/user_issues/stats');
+      const response = await axios.get("/api/user_issues/stats");
       return response.data;
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
       throw error;
     }
   },
@@ -120,12 +147,14 @@ const complaintService = {
     try {
       const params = new URLSearchParams({
         q: query,
-        ...filters
+        ...filters,
       });
-      const response = await axios.get(`${API_ENDPOINTS.COMPLAINTS}/search?${params}`);
+      const response = await axios.get(
+        `${API_ENDPOINTS.COMPLAINTS}/search?${params}`,
+      );
       return response.data;
     } catch (error) {
-      console.error('Error searching complaints:', error);
+      console.error("Error searching complaints:", error);
       throw error;
     }
   },
@@ -134,13 +163,27 @@ const complaintService = {
   filter: async (filters) => {
     try {
       const queryString = new URLSearchParams(filters).toString();
-      const response = await axios.get(`${API_ENDPOINTS.COMPLAINTS}?${queryString}`);
+      const response = await axios.get(
+        `${API_ENDPOINTS.COMPLAINTS}?${queryString}`,
+      );
       return response.data;
     } catch (error) {
-      console.error('Error filtering complaints:', error);
+      console.error("Error filtering complaints:", error);
       throw error;
     }
-  }
+  },
+  checkDuplicate: async (complaintData) => {
+    try {
+      const response = await axios.post(
+        "/api/user_issues/check-duplicate",
+        complaintData,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      throw error;
+    }
+  },
 };
 
 export default complaintService;

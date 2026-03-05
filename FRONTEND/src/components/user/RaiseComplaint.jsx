@@ -8,10 +8,13 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  ThumbsUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
+import complaintService from '../../services/complaintService';
+import DuplicateWarningModal from './DuplicateWarningModal';
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
@@ -20,6 +23,9 @@ const RaiseComplaint = ({ currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateComplaints, setDuplicateComplaints] = useState([]);
+  const [pendingSubmission, setPendingSubmission] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     category: 'road',
@@ -43,7 +49,6 @@ const RaiseComplaint = ({ currentUser }) => {
     { id: 'other', label: 'Other' }
   ];
 
-  // 🔧 FIX #1: Proper geolocation with fallback to coordinates-only
   const getCurrentLocation = () => {
     setLocationLoading(true);
     setError('');
@@ -59,8 +64,6 @@ const RaiseComplaint = ({ currentUser }) => {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Try reverse geocoding using a CORS-friendly service
-          // Option 1: BigDataCloud (free, no API key, CORS-enabled)
           const response = await fetch(
             `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
           );
@@ -80,7 +83,6 @@ const RaiseComplaint = ({ currentUser }) => {
               }
             }));
           } else {
-            // Fallback: just use coordinates
             setFormData(prev => ({
               ...prev,
               location: {
@@ -92,7 +94,6 @@ const RaiseComplaint = ({ currentUser }) => {
           }
         } catch (error) {
           console.error('Geocoding error:', error);
-          // Even if geocoding fails, still save the coordinates
           setFormData(prev => ({
             ...prev,
             location: {
@@ -126,7 +127,6 @@ const RaiseComplaint = ({ currentUser }) => {
     }));
   };
 
-  // 🔧 FIX #2: Handle location address input
   const handleLocationChange = (e) => {
     const address = e.target.value;
     setFormData(prev => ({
@@ -142,7 +142,7 @@ const RaiseComplaint = ({ currentUser }) => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         setError('Image size should be less than 5MB');
         return;
       }
@@ -150,35 +150,95 @@ const RaiseComplaint = ({ currentUser }) => {
     }
   };
 
-  // 🔧 FIX #3: Proper payload structure matching backend expectations
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
+  // Check for duplicates before submission
+  const checkForDuplicates = async () => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
         setError('Please login to submit complaint');
-        setLoading(false);
-        return;
+        return false;
       }
       
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user) {
         setError('User data not found. Please login again.');
-        setLoading(false);
-        return;
+        return false;
       }
 
-      // Validate location has address
       if (!formData.location.address || formData.location.address.trim() === '') {
         setError('Please provide a location for the complaint');
+        return false;
+      }
+
+      // Only check duplicates if we have coordinates
+      if (formData.location.latitude && formData.location.longitude) {
+        const checkData = {
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+          location: {
+            address: formData.location.address,
+            latitude: formData.location.latitude,
+            longitude: formData.location.longitude
+          }
+        };
+
+        const response = await complaintService.checkDuplicate(checkData);
+        
+        if (response.success && response.hasDuplicates) {
+          setDuplicateComplaints(response.duplicates);
+          setShowDuplicateModal(true);
+          return false; // Don't proceed to submission yet
+        }
+      }
+      
+      return true; // No duplicates, proceed with submission
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      // If duplicate check fails, still allow submission
+      return true;
+    }
+  };
+
+  // Handle upvote from modal
+  const handleUpvoteDuplicate = async (complaintId) => {
+    try {
+      await complaintService.upvoteComplaint(complaintId);
+      // Show success message or redirect
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/home/my-complaints');
+      }, 2000);
+    } catch (error) {
+      console.error('Error upvoting:', error);
+      setError('Failed to upvote complaint. Please try again.');
+    }
+  };
+
+  // Handle proceed anyway (user wants to create new complaint despite duplicates)
+  const handleProceedAnyway = () => {
+    setShowDuplicateModal(false);
+    submitComplaint(true); // Skip duplicate check
+  };
+
+  // Submit complaint
+  const submitComplaint = async (skipDuplicateCheck = false) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      const user = JSON.parse(localStorage.getItem('user'));
+      
+      // 🔧 FIX: Backend returns 'id', not '_id'
+      const userId = user?.id || user?._id;
+      
+      if (!userId) {
+        setError('User session invalid. Please login again.');
         setLoading(false);
         return;
       }
       
-      // 🔧 CRITICAL FIX: Proper payload structure
       const payload = {
         title: formData.title,
         category: formData.category,
@@ -188,8 +248,9 @@ const RaiseComplaint = ({ currentUser }) => {
           latitude: formData.location.latitude,
           longitude: formData.location.longitude
         },
-        userId: user._id,
-        images: [] // Add later if implementing image upload
+        userId: userId,
+        images: [],
+        skipDuplicateCheck // Add this flag
       };
 
       console.log('📤 Submitting payload:', payload);
@@ -213,7 +274,12 @@ const RaiseComplaint = ({ currentUser }) => {
       }
     } catch (error) {
       console.error('❌ Error submitting complaint:', error);
-      if (error.response?.status === 401) {
+      
+      // Handle duplicate response (409)
+      if (error.response?.status === 409 && error.response.data.hasDuplicates) {
+        setDuplicateComplaints(error.response.data.duplicates);
+        setShowDuplicateModal(true);
+      } else if (error.response?.status === 401) {
         setError('Session expired. Please login again.');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
@@ -228,6 +294,17 @@ const RaiseComplaint = ({ currentUser }) => {
     }
   };
 
+  // Main submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // First check for duplicates
+    const shouldProceed = await checkForDuplicates();
+    if (shouldProceed) {
+      submitComplaint();
+    }
+  };
+
   if (success) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -239,23 +316,14 @@ const RaiseComplaint = ({ currentUser }) => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Complaint Submitted Successfully!</h2>
-          <p className="text-gray-600 mb-2">Your issue has been registered with AI-assigned priority.</p>
-          <p className="text-sm text-gray-500 mb-6">Authorities will be notified shortly.</p>
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => navigate('/home/my-complaints')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              View My Complaints
-            </button>
-            <button
-              onClick={() => navigate('/home')}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Back to Dashboard
-            </button>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Action Successful!</h2>
+          <p className="text-gray-600 mb-6">Thank you for your contribution.</p>
+          <button
+            onClick={() => navigate('/home/my-complaints')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            View My Complaints
+          </button>
         </motion.div>
       </div>
     );
@@ -285,6 +353,15 @@ const RaiseComplaint = ({ currentUser }) => {
           </div>
         </div>
       )}
+
+      {/* Duplicate Warning Modal */}
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        duplicates={duplicateComplaints}
+        onUpvote={handleUpvoteDuplicate}
+        onProceed={handleProceedAnyway}
+      />
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -348,7 +425,7 @@ const RaiseComplaint = ({ currentUser }) => {
                 <p className="text-sm text-gray-500 mt-1">Provide as much detail as possible for better AI priority assignment</p>
               </div>
 
-              {/* Location - FIXED */}
+              {/* Location */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Location *
@@ -391,7 +468,23 @@ const RaiseComplaint = ({ currentUser }) => {
                 )}
               </div>
 
-              {/* Priority Info - READ ONLY (AI will assign) */}
+              {/* Duplicate Detection Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <ThumbsUp className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">🔍 Duplicate Detection Active</h4>
+                    <p className="text-sm text-gray-700">
+                      We'll automatically check if similar complaints exist in your area (within ~150 meters). 
+                      If found, you can upvote them instead of creating a duplicate.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority Info */}
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -401,7 +494,7 @@ const RaiseComplaint = ({ currentUser }) => {
                     <h4 className="font-semibold text-gray-900 mb-1">🤖 AI-Powered Priority Assignment</h4>
                     <p className="text-sm text-gray-700">
                       Our AI will automatically analyze your complaint and assign an appropriate priority level 
-                      (Low, Medium, High, or Critical) based on urgency, impact, and severity. No manual selection needed!
+                      based on urgency, impact, and severity. No manual selection needed!
                     </p>
                   </div>
                 </div>
@@ -471,6 +564,10 @@ const RaiseComplaint = ({ currentUser }) => {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Duplicate detection will check nearby complaints</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
                   <span>Your report will be visible to community</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -492,7 +589,7 @@ const RaiseComplaint = ({ currentUser }) => {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Submitting & Analyzing...
+                      Checking & Submitting...
                     </>
                   ) : (
                     <>
