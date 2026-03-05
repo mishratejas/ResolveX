@@ -545,6 +545,7 @@ const [lastUpdated, setLastUpdated] = useState(null);
           <nav className="space-y-2">
             {[
               { icon: Home, label: 'Dashboard', path: '/admin/dashboard', active: true, badge: null },
+              { icon: Building, label: 'Departments', path: '/admin/departments', active: false, badge: null },
               { icon: FileText, label: 'Complaints', path: '/admin/issues', active: false, badge: dashboardData.stats.pending },
               { icon: Users, label: 'Users', path: '/admin/users', active: false, badge: dashboardData.stats.totalUsers },
               { icon: UserCog, label: 'Staff', path: '/admin/staff', active: false, badge: dashboardData.stats.activeStaff },

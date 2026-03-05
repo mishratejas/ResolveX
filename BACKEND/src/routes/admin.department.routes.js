@@ -1,10 +1,11 @@
 import express from "express";
-import {adminAuth} from "../middleware/adminAuth.js";
+import { adminAuth } from "../middleware/adminAuth.js";
 import {
   getDepartments,
   createDepartment,
-  getDepartmentStats,  // Add this import
-  getDepartmentsByWorkspaceCode
+  getDepartmentStats,
+  getDepartmentsByWorkspaceCode,
+  deleteDepartment // 🚀 ADDED THIS IMPORT
 } from "../controllers/department.controllers.js";
 
 const router = express.Router();
@@ -17,10 +18,12 @@ router.get('/workspace/:code', getDepartmentsByWorkspaceCode);
 router.get("/", adminAuth, getDepartments);
 
 // GET department statistics
-router.get("/stats", adminAuth, getDepartmentStats);  // Add this route
+router.get("/stats", adminAuth, getDepartmentStats);
 
-// POST create department (Admin only – optional)
+// POST create department (Admin only)
 router.post("/", adminAuth, createDepartment);
 
+// 🚀 NEW: DELETE a department and reassign its data
+router.delete("/:id", adminAuth, deleteDepartment);
 
 export default router;

@@ -118,7 +118,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Home, FileText, Users, UserCog, BarChart3, 
   MessageSquare, Shield, Settings, Menu, LogOut,
-  ChevronRight, RefreshCw, AlertCircle
+  ChevronRight, RefreshCw, AlertCircle, Building
 } from 'lucide-react';
 
 const Sidebar = ({ activePage, onLogout }) => {
@@ -143,6 +143,7 @@ const Sidebar = ({ activePage, onLogout }) => {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', id: 'dashboard', path: '/admin/dashboard' },
+    { icon: Building, label: 'Departments', id: 'departments', path: '/admin/departments' },
     { icon: FileText, label: 'Complaints', id: 'issues', path: '/admin/issues' },
     { icon: Users, label: 'Users', id: 'users', path: '/admin/users' },
     { icon: UserCog, label: 'Staff', id: 'staff', path: '/admin/staff' },

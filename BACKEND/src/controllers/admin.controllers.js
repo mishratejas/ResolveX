@@ -910,6 +910,7 @@ import Admin from "../models/Admin.models.js";
 import UserComplaint from "../models/UserComplaint.models.js";
 import Staff from "../models/Staff.models.js";
 import User from "../models/User.models.js";
+import Department from "../models/Department.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -947,6 +948,21 @@ export const adminSignup = async (req, res) => {
 
         await newAdmin.save();
         console.log(`✅ Workspace created! Code: ${newAdmin.workspaceCode}`);
+
+        // 🚀 NEW: Auto-provision the default "Other" department for this workspace
+        try {
+            const defaultDept = new Department({
+                name: 'Other',
+                description: 'Default bucket for general or unassigned issues.',
+                adminId: newAdmin._id,
+                workspaceCode: newAdmin.workspaceCode
+            });
+            await defaultDept.save();
+            console.log(`✅ Default 'Other' department created for workspace ${newAdmin.workspaceCode}`);
+        } catch (deptError) {
+            console.error("⚠️ Failed to create default department:", deptError);
+            // We don't want to fail the whole signup if just the department fails
+        }
 
         res.status(201).json({
             success: true,

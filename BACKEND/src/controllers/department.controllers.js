@@ -95,11 +95,12 @@
 // };
 
 import Department from "../models/Department.model.js";
-import Admin from "../models/Admin.models.js"; // 🚀 NEW: Required to verify workspace codes
+import Admin from "../models/Admin.models.js";
+import Staff from "../models/Staff.models.js";
+import UserComplaint from "../models/UserComplaint.models.js";
 
 // ==================== PUBLIC ROUTES ====================
 
-// 🚀 NEW: Fetch departments by Workspace Code (For Staff Signup Dropdown)
 export const getDepartmentsByWorkspaceCode = async (req, res) => {
     try {
         const { code } = req.params;
@@ -108,16 +109,14 @@ export const getDepartmentsByWorkspaceCode = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Workspace code is required' });
         }
 
-        // 1. Find the admin that owns this workspace code
         const admin = await Admin.findOne({ workspaceCode: code.toUpperCase() });
         
         if (!admin) {
             return res.status(404).json({ success: false, message: 'Invalid workspace code' });
         }
 
-        // 2. Fetch ONLY departments belonging to this specific admin
         const departments = await Department.find({ adminId: admin._id, isActive: true })
-            .select('_id name category description')
+            .select('_id name description') // Removed category
             .sort({ name: 1 });
 
         res.status(200).json({
@@ -132,13 +131,12 @@ export const getDepartmentsByWorkspaceCode = async (req, res) => {
 
 // ==================== PROTECTED ROUTES (Requires Auth) ====================
 
-// 🔧 UPDATED: Get departments for the logged-in Admin's dashboard
 export const getDepartments = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
         
         const departments = await Department.find({ adminId: currentAdminId, isActive: true })
-            .select('_id name category description')
+            .select('_id name description') // Removed category
             .sort({ name: 1 });
 
         res.status(200).json({
@@ -151,16 +149,14 @@ export const getDepartments = async (req, res) => {
     }
 };
 
-// 🔧 UPDATED: Get department statistics scoped to the Admin
 export const getDepartmentStats = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
 
         const departments = await Department.find({ adminId: currentAdminId, isActive: true })
-            .select('_id name category')
+            .select('_id name')
             .sort({ name: 1 });
 
-        // Keeping your mock data structure, but it is now correctly mapped to the Admin's actual departments!
         const stats = departments.map(dept => ({
             name: dept.name,
             complaints: Math.floor(Math.random() * 100) + 20, 
@@ -178,28 +174,26 @@ export const getDepartmentStats = async (req, res) => {
     }
 };
 
-// 🔧 UPDATED: Create department (Locked to Admin Workspace)
 export const createDepartment = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
-        const { name, description, category, contactEmail, contactPhone } = req.body;
+        // 🚀 Removed category requirement from here
+        const { name, description, contactEmail, contactPhone } = req.body;
 
-        if (!name || !category) {
-            return res.status(400).json({ success: false, message: 'Name and category are required' });
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Name is required' });
         }
 
-        // 🚀 Ensure uniqueness is ONLY checked within this specific admin's workspace
-        // Admin A and Admin B can both have a "Maintenance" department safely.
         const existingDept = await Department.findOne({ name, adminId: currentAdminId });
         if (existingDept) {
             return res.status(400).json({ success: false, message: 'A department with this name already exists in your workspace' });
         }
 
         const department = new Department({
-            adminId: currentAdminId, // 🚀 Lock it to the admin!
+            adminId: currentAdminId,
             name,
             description,
-            category,
+            category: 'other', // Default value for schema
             contactEmail,
             contactPhone
         });
@@ -214,5 +208,62 @@ export const createDepartment = async (req, res) => {
     } catch (error) {
         console.error('❌ Error creating department:', error);
         res.status(500).json({ success: false, message: 'Error creating department' });
+    }
+};
+
+// 🚀 NEW: The Smart Delete Function
+export const deleteDepartment = async (req, res) => {
+    try {
+        const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
+        const { id } = req.params;
+
+        // 1. Check if the department exists and belongs to this admin
+        const deptToDelete = await Department.findOne({ _id: id, adminId: currentAdminId });
+        if (!deptToDelete) {
+            return res.status(404).json({ success: false, message: "Department not found" });
+        }
+
+        // 2. Prevent deleting the fallback 'Other' department
+        if (deptToDelete.name.toLowerCase() === 'other') {
+            return res.status(400).json({ success: false, message: "Cannot delete the default 'Other' department" });
+        }
+
+        // 3. Find the fallback "Other" department
+        let fallbackDept = await Department.findOne({ adminId: currentAdminId, name: 'Other' });
+        
+        // Safety net: if 'Other' got deleted somehow, recreate it
+        if (!fallbackDept) {
+            fallbackDept = new Department({ 
+                name: 'Other', 
+                description: 'Default bucket', 
+                adminId: currentAdminId,
+                category: 'other' 
+            });
+            await fallbackDept.save();
+        }
+
+        // 4. Move all Staff
+        const staffUpdate = await Staff.updateMany(
+            { department: id, adminId: currentAdminId },
+            { $set: { department: fallbackDept._id } }
+        );
+
+        // 5. Move all Tickets (Ensure field name matches your UserComplaint schema: 'department' or 'assignedDepartment')
+        const ticketUpdate = await UserComplaint.updateMany(
+            { department: id, adminId: currentAdminId }, 
+            { $set: { department: fallbackDept._id } } 
+        );
+
+        // 6. Finally, delete the department
+        await Department.findByIdAndDelete(id);
+
+        res.status(200).json({ 
+            success: true, 
+            message: `Department deleted. Moved ${staffUpdate.modifiedCount} staff and ${ticketUpdate.modifiedCount} tickets to 'Other'.` 
+        });
+
+    } catch (error) {
+        console.error("❌ Error deleting department:", error);
+        res.status(500).json({ success: false, message: "Error deleting department" });
     }
 };

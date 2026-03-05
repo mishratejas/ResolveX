@@ -141,6 +141,7 @@ const DashboardLayout = ({ children, role, onLogout }) => {
     if (role === 'admin') {
       return [
         ...commonItems,
+        { icon: 'fa-building', label: 'Departments', href: '/admin/departments' },
         { icon: 'fa-users', label: 'Users', href: '/admin/users' },
         { icon: 'fa-user-tie', label: 'Staff', href: '/admin/staff' },
         { icon: 'fa-comments', label: 'Chat', href: '/admin/chat' },
