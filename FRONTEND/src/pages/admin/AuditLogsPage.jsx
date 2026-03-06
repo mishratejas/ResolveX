@@ -35,32 +35,56 @@ const AuditLogsPage = () => {
     }, [filters, pagination.page]);
 
     const fetchAuditLogs = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('adminToken');
-            const response = await axios.get(`${API_URL}/api/audit`, {
-                headers: { Authorization: `Bearer ${token}` },
-                params: {
-                    ...filters,
-                    page: pagination.page,
-                    limit: pagination.limit
-                }
-            });
+    try {
+        setLoading(true);
+        const token = localStorage.getItem('adminToken');
+        
+        console.log('🔑 Token being used:', token ? 'Present' : 'Missing');
+        
+        if (!token) {
+            console.error('No admin token found - please login again');
+            // Redirect to login or show message
+            return;
+        }
+        
+        const response = await axios.get(`${API_URL}/api/audit`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                ...filters,
+                page: pagination.page,
+                limit: pagination.limit
+            }
+        });
 
-            if (response.data.success) {
-                setLogs(response.data.data.logs);
+        console.log('✅ API Response:', response.data);
+
+        if (response.data.success) {
+            // Check if logs exist in the response
+            const logsData = response.data.data?.logs || response.data.data || [];
+            setLogs(Array.isArray(logsData) ? logsData : []);
+            
+            if (response.data.data?.pagination) {
                 setPagination(prev => ({
                     ...prev,
                     total: response.data.data.pagination.total,
                     totalPages: response.data.data.pagination.totalPages
                 }));
             }
-        } catch (error) {
-            console.error('Error fetching audit logs:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    } catch (error) {
+        console.error('❌ Error fetching audit logs:', error);
+        if (error.response?.status === 401) {
+            console.error('Authentication failed - token expired');
+            // Clear invalid token and redirect to login
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminData');
+            // Optionally redirect to login page
+            window.location.href = '/admin/login';
+        }
+    } finally {
+        setLoading(false);
+    }
+};
 
     const fetchStats = async () => {
         try {
@@ -143,7 +167,6 @@ const AuditLogsPage = () => {
             </div>
         );
     }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
             {/* Header */}

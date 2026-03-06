@@ -40,33 +40,51 @@ const MyComplaints = ({ currentUser }) => {
     loadMyComplaints();
   }, [currentUser]);
 
-  const loadMyComplaints = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
+// Update the loadMyComplaints function
+const loadMyComplaints = async () => {
+  try {
+    setLoading(true);
+    const token = localStorage.getItem('accessToken');
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
+    
+    // Add workspace filter
+    const workspaceParam = currentWorkspace?.id ? `?workspaceId=${currentWorkspace.id}` : '';
+    
+    const response = await axios.get(`${BASE_URL}/api/user_issues/my${workspaceParam}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.data.success) {
+      const complaintsData = response.data.data || [];
+      setComplaints(complaintsData);
       
-      const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // Calculate stats only for current workspace
+      const total = complaintsData.length;
+      const resolved = complaintsData.filter(c => c.status === 'resolved').length;
+      const pending = complaintsData.filter(c => c.status === 'pending').length;
+      const inProgress = complaintsData.filter(c => c.status === 'in-progress').length;
+      const totalVotes = complaintsData.reduce((sum, c) => sum + (c.voteCount || 0), 0);
       
-      if (response.data.success) {
-        const complaintsData = response.data.data || [];
-        setComplaints(complaintsData);
-        
-        const total = complaintsData.length;
-        const resolved = complaintsData.filter(c => c.status === 'resolved').length;
-        const pending = complaintsData.filter(c => c.status === 'pending').length;
-        const inProgress = complaintsData.filter(c => c.status === 'in-progress').length;
-        const totalVotes = complaintsData.reduce((sum, c) => sum + (c.voteCount || 0), 0);
-        
-        setStats({ total, resolved, pending, inProgress, totalVotes });
-      }
-    } catch (error) {
-      console.error('Error loading my complaints:', error);
-    } finally {
-      setLoading(false);
+      setStats({ total, resolved, pending, inProgress, totalVotes });
     }
-  };
+  } catch (error) {
+    console.error('Error loading my complaints:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Add a helper function to format workspace name
+const getWorkspaceName = (complaint) => {
+  if (!complaint.adminId) return 'No Workspace';
+  
+  // Handle different possible formats
+  if (typeof complaint.adminId === 'object') {
+    return complaint.adminId.organizationName || complaint.adminId.name || 'Unknown Workspace';
+  }
+  
+  return 'Workspace';
+};
 
   const handleDelete = async (complaintId) => {
     if (!window.confirm('Are you sure you want to delete this complaint?')) return;
@@ -241,6 +259,9 @@ const MyComplaints = ({ currentUser }) => {
                     Issue
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Workspace
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -270,6 +291,16 @@ const MyComplaints = ({ currentUser }) => {
                           </span>
                           <span className="text-xs text-gray-500">•</span>
                           <span className="text-xs text-gray-500">{complaint.category}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-900">
+                          {complaint.adminId?.name || 'Unknown Workspace'}
+                        </span>
+                        <div className="text-xs text-gray-500">
+                          {complaint.adminId?.workspaceCode || 'N/A'}
                         </div>
                       </div>
                     </td>

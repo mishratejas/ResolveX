@@ -3,7 +3,7 @@ import axios from "../api/axios";
 import { API_ENDPOINTS } from "../constants";
 
 const complaintService = {
-  // Get All Complaints
+  // Get All Complaints - with workspace filter
   getAll: async (params = {}) => {
     try {
       const queryString = new URLSearchParams(params).toString();
@@ -29,10 +29,13 @@ const complaintService = {
     }
   },
 
-  // Get My Complaints
-  getMyComplaints: async () => {
+getMyComplaints: async (workspaceId = null) => {
     try {
-      const response = await axios.get(API_ENDPOINTS.MY_COMPLAINTS);
+      let url = API_ENDPOINTS.MY_COMPLAINTS;
+      if (workspaceId) {
+        url += `?workspaceId=${workspaceId}`;
+      }
+      const response = await axios.get(url);
       return response.data;
     } catch (error) {
       console.error("Error fetching my complaints:", error);
@@ -40,13 +43,36 @@ const complaintService = {
     }
   },
 
-  // Create Complaint
-  create: async (complaintData) => {
+  // Get User's Issues (for profile) - with workspace filter
+  getUserIssues: async (workspaceId = null) => {
     try {
-      const response = await axios.post("/api/user_issues", complaintData);
+      let url = "/api/user_issues/my";
+      if (workspaceId) {
+        url += `?workspaceId=${workspaceId}`;
+      }
+      const response = await axios.get(url);
       return response.data;
     } catch (error) {
-      // If duplicate found (409 status), return the error data
+      console.error("Error fetching user issues:", error);
+      throw error;
+    }
+  },
+
+  // Create Complaint - with workspace ID
+  create: async (complaintData) => {
+    try {
+      // Get current workspace from localStorage
+      const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
+      
+      // Add adminId (workspace ID) to complaint data
+      const dataToSend = {
+        ...complaintData,
+        adminId: currentWorkspace?.id
+      };
+      
+      const response = await axios.post("/api/user_issues", dataToSend);
+      return response.data;
+    } catch (error) {
       if (error.response?.status === 409) {
         return error.response.data;
       }

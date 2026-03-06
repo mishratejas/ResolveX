@@ -6,10 +6,10 @@ import {
   calculateDistance,
   areComplaintsSimilar,
 } from "../utils/locationUtils.js";
-// GET all issues - PUBLIC
+// GET all issues - PUBLIC (with workspace filtering)
 export const handleAllIssueFetch = async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, workspaceId } = req.query;
 
     const statusMap = {
       Open: "pending",
@@ -18,6 +18,12 @@ export const handleAllIssueFetch = async (req, res) => {
     };
 
     let filter = {};
+
+    // 🔧 FIX: Add workspace filtering
+    // If workspaceId is provided, filter by that workspace
+    if (workspaceId) {
+      filter.adminId = workspaceId;
+    }
 
     if (status && status !== "All") {
       if (status === "Closed") {
@@ -29,7 +35,8 @@ export const handleAllIssueFetch = async (req, res) => {
 
     const complaints = await UserComplaint.find(filter)
       .sort({ createdAt: -1 })
-      .populate("user", "name email");
+      .populate("user", "name email")
+      .populate("adminId", "workspaceCode name"); // 🔧 FIX: Populate workspace info
 
     res.json({
       success: true,
@@ -47,9 +54,17 @@ export const handleAllIssueFetch = async (req, res) => {
 
 export const handleSingleUserIssueFetch = async (req, res) => {
   try {
-    const userIssues = await UserComplaint.find({ user: req.user._id }).sort({
-      createdAt: -1,
-    });
+    const { workspaceId } = req.query;
+    let filter = { user: req.user._id };
+    
+    // Add workspace filter if provided
+    if (workspaceId) {
+      filter.adminId = workspaceId;
+    }
+
+    const userIssues = await UserComplaint.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("adminId", "workspaceCode organizationName name"); // Populate workspace info
 
     res.status(200).json({
       success: true,
@@ -64,7 +79,7 @@ export const handleSingleUserIssueFetch = async (req, res) => {
 
 export const checkDuplicateComplaint = async (req, res) => {
   try {
-    const { title, description, location, category } = req.body;
+    const { title, description, location, category, workspaceId } = req.body; // 🔧 FIX: Add workspaceId
     const userId = req.user?._id;
 
     // Validate required fields
@@ -75,17 +90,26 @@ export const checkDuplicateComplaint = async (req, res) => {
       });
     }
 
+    // 🔧 FIX: Validate workspaceId
+    if (!workspaceId) {
+      return res.status(400).json({
+        success: false,
+        message: "Workspace ID is required for duplicate check",
+      });
+    }
+
     const { latitude, longitude } = location;
 
     // Get bounding box for ~150 meter radius
     const bbox = getBoundingBox(latitude, longitude, 150);
 
-    // Find potential duplicates within bounding box
+    // Find potential duplicates within bounding box AND same workspace
     const nearbyComplaints = await UserComplaint.find({
       "location.latitude": { $gte: bbox.minLat, $lte: bbox.maxLat },
       "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
       status: { $in: ["pending", "in-progress"] }, // Only active complaints
       _id: { $ne: req.body.complaintId }, // Exclude current complaint if editing
+      adminId: workspaceId // 🔧 CRITICAL: Only check within the same workspace
     }).populate("user", "name email");
 
     // Filter for truly similar complaints
@@ -95,8 +119,8 @@ export const checkDuplicateComplaint = async (req, res) => {
 
       return areComplaintsSimilar({ location, title, category }, existing, {
         maxDistance: 150,
-        titleSimilarityThreshold: 0.5,
-        sameCategoryRequired: true,
+        titleSimilarityThreshold: 0.3,
+        sameCategoryRequired: false,
       });
     });
 
@@ -128,7 +152,7 @@ export const checkDuplicateComplaint = async (req, res) => {
           longitude,
           c.location.latitude,
           c.location.longitude,
-        ).toFixed(0), // Distance in meters
+        ).toFixed(0),
       })),
       userVotedComplaints: userVotedComplaints.length > 0,
     });
@@ -151,6 +175,7 @@ export const handleIssueGeneration = async (req, res) => {
       images,
       userId,
       skipDuplicateCheck,
+      adminId // 🔧 CRITICAL: Destructure adminId from request body
     } = req.body;
 
     const complaintUserId = userId || req.user?._id;
@@ -187,6 +212,14 @@ export const handleIssueGeneration = async (req, res) => {
       });
     }
 
+    // 🔧 CRITICAL FIX: Validate adminId (workspace ID)
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: "Workspace selection is required. Please select a workspace before submitting."
+      });
+    }
+
     // Check for duplicates if coordinates exist and skipDuplicateCheck is false
     if (
       !skipDuplicateCheck &&
@@ -204,6 +237,7 @@ export const handleIssueGeneration = async (req, res) => {
         "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
         status: { $in: ["pending", "in-progress"] },
         user: { $ne: complaintUserId }, // Exclude user's own complaints
+        adminId: adminId // 🔧 FIX: Only check duplicates within the same workspace
       });
 
       const similarComplaints = nearbyComplaints.filter((existing) =>
@@ -220,7 +254,6 @@ export const handleIssueGeneration = async (req, res) => {
 
       if (similarComplaints.length > 0) {
         return res.status(409).json({
-          // 409 Conflict
           success: false,
           message: "Similar complaint already exists in this area",
           hasDuplicates: true,
@@ -260,8 +293,7 @@ export const handleIssueGeneration = async (req, res) => {
       console.log(`🔄 Using rule-based priority: ${priority}`);
     }
 
-    // Create complaint
-    // Create complaint
+    // 🔧 FIX: Create complaint with the provided adminId
     const complaint = new UserComplaint({
       title: title.trim(),
       description: description.trim(),
@@ -269,14 +301,7 @@ export const handleIssueGeneration = async (req, res) => {
       images: images || [],
       category: category || "other",
       user: complaintUserId,
-
-      // 🔧 FIX: Auto-assign adminId from user's first workspace
-      adminId:
-        req.user?.joinedWorkspaces?.[0]?._id ||
-        req.user?.joinedWorkspaces?.[0] ||
-        req.body.adminId || // Allow manual override from frontend
-        null,
-
+      adminId: adminId, // 🔧 CRITICAL: Use the adminId from request body
       status: "pending",
       priority: priority,
       autoPriorityAssigned: prioritySource === "ai",
@@ -287,12 +312,14 @@ export const handleIssueGeneration = async (req, res) => {
 
     await complaint.save();
     await complaint.populate("user", "name email");
+    await complaint.populate("adminId", "workspaceCode organizationName name"); // Populate workspace info
 
     console.log(`✅ Complaint created successfully:`, {
       id: complaint._id,
       title: complaint.title,
       priority: complaint.priority,
       prioritySource: prioritySource,
+      workspaceId: complaint.adminId
     });
 
     res.status(201).json({
@@ -464,10 +491,18 @@ export const adminOverridePriority = async (req, res) => {
 export const handleGetMyIssues = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
+    const { workspaceId } = req.query;
+    
+    let filter = { user: userId };
+    
+    // Add workspace filter if provided
+    if (workspaceId) {
+      filter.adminId = workspaceId;
+    }
 
-    const myIssues = await UserComplaint.find({
-      user: userId,
-    }).sort({ createdAt: -1 });
+    const myIssues = await UserComplaint.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("adminId", "workspaceCode organizationName name");
 
     return res.status(200).json({
       success: true,

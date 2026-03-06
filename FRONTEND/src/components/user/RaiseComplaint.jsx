@@ -12,7 +12,7 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../api/axios';
+import axios from 'axios'; // Changed from '../../api/axios' to 'axios'
 import complaintService from '../../services/complaintService';
 import DuplicateWarningModal from './DuplicateWarningModal';
 
@@ -25,7 +25,6 @@ const RaiseComplaint = ({ currentUser }) => {
   const [error, setError] = useState('');
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateComplaints, setDuplicateComplaints] = useState([]);
-  const [pendingSubmission, setPendingSubmission] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     category: 'road',
@@ -132,9 +131,8 @@ const RaiseComplaint = ({ currentUser }) => {
     setFormData(prev => ({
       ...prev,
       location: {
-        address: address,
-        latitude: prev.location.latitude,
-        longitude: prev.location.longitude
+        ...prev.location,
+        address: address
       }
     }));
   };
@@ -150,7 +148,7 @@ const RaiseComplaint = ({ currentUser }) => {
     }
   };
 
-  // Check for duplicates before submission
+  // 🔧 FIXED: Check for duplicates before submission with workspace context
   const checkForDuplicates = async () => {
     try {
       const token = localStorage.getItem('accessToken');
@@ -162,6 +160,13 @@ const RaiseComplaint = ({ currentUser }) => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user) {
         setError('User data not found. Please login again.');
+        return false;
+      }
+
+      // 🔧 NEW: Get current workspace
+      const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
+      if (!currentWorkspace) {
+        setError('Please select a workspace before submitting a complaint');
         return false;
       }
 
@@ -180,7 +185,8 @@ const RaiseComplaint = ({ currentUser }) => {
             address: formData.location.address,
             latitude: formData.location.latitude,
             longitude: formData.location.longitude
-          }
+          },
+          workspaceId: currentWorkspace.id // 🔧 NEW: Add workspace ID
         };
 
         const response = await complaintService.checkDuplicate(checkData);
@@ -204,7 +210,6 @@ const RaiseComplaint = ({ currentUser }) => {
   const handleUpvoteDuplicate = async (complaintId) => {
     try {
       await complaintService.upvoteComplaint(complaintId);
-      // Show success message or redirect
       setSuccess(true);
       setTimeout(() => {
         navigate('/home/my-complaints');
@@ -221,7 +226,7 @@ const RaiseComplaint = ({ currentUser }) => {
     submitComplaint(true); // Skip duplicate check
   };
 
-  // Submit complaint
+  // 🔧 FIXED: Submit complaint with workspace ID
   const submitComplaint = async (skipDuplicateCheck = false) => {
     setLoading(true);
     setError('');
@@ -233,8 +238,17 @@ const RaiseComplaint = ({ currentUser }) => {
       // 🔧 FIX: Backend returns 'id', not '_id'
       const userId = user?.id || user?._id;
       
+      // 🔧 NEW: Get current workspace
+      const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
+      
       if (!userId) {
         setError('User session invalid. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      if (!currentWorkspace) {
+        setError('Please select a workspace before submitting a complaint');
         setLoading(false);
         return;
       }
@@ -249,12 +263,14 @@ const RaiseComplaint = ({ currentUser }) => {
           longitude: formData.location.longitude
         },
         userId: userId,
+        adminId: currentWorkspace.id, // 🔧 CRITICAL: Add workspace ID
         images: [],
         skipDuplicateCheck // Add this flag
       };
 
       console.log('📤 Submitting payload:', payload);
       
+      // 🔧 FIX: Use axios with base URL
       const response = await axios.post(`${BASE_URL}/api/user_issues`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -298,6 +314,13 @@ const RaiseComplaint = ({ currentUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // 🔧 NEW: Validate workspace selection first
+    const currentWorkspace = localStorage.getItem('currentWorkspace');
+    if (!currentWorkspace) {
+      setError('Please select a workspace before submitting a complaint');
+      return;
+    }
+    
     // First check for duplicates
     const shouldProceed = await checkForDuplicates();
     if (shouldProceed) {
@@ -316,8 +339,8 @@ const RaiseComplaint = ({ currentUser }) => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Action Successful!</h2>
-          <p className="text-gray-600 mb-6">Thank you for your contribution.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Complaint Submitted Successfully!</h2>
+          <p className="text-gray-600 mb-6">Thank you for helping improve your community.</p>
           <button
             onClick={() => navigate('/home/my-complaints')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -477,7 +500,7 @@ const RaiseComplaint = ({ currentUser }) => {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">🔍 Duplicate Detection Active</h4>
                     <p className="text-sm text-gray-700">
-                      We'll automatically check if similar complaints exist in your area (within ~150 meters). 
+                      We'll automatically check if similar complaints exist in your workspace area (within ~150 meters). 
                       If found, you can upvote them instead of creating a duplicate.
                     </p>
                   </div>
@@ -564,15 +587,15 @@ const RaiseComplaint = ({ currentUser }) => {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Duplicate detection will check nearby complaints</span>
+                  <span>Duplicate detection will check nearby complaints in your workspace</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Your report will be visible to community</span>
+                  <span>Your report will be visible to your workspace community</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Local authorities will be notified</span>
+                  <span>Workspace authorities will be notified</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-green-500" />

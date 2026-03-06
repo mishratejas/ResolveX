@@ -115,25 +115,27 @@ const WorkspaceSelector = ({ onWorkspaceSelect }) => {
   };
 
   // Update handleSelectWorkspace function:
-  const handleSelectWorkspace = (workspace) => {
-    // Save to localStorage as object
-    const workspaceData = {
-      id: workspace._id,
-      name: workspace.organizationName,
-      code: workspace.workspaceCode,
-      email: workspace.email,
-    };
-
-    localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
-
-    // Notify parent
-    if (onWorkspaceSelect) {
-      onWorkspaceSelect(workspaceData);
-    }
-
-    // Go to home/dashboard
-    navigate("/home");
+// Update handleSelectWorkspace function
+const handleSelectWorkspace = (workspace) => {
+  // Save to localStorage as object with all necessary info
+  const workspaceData = {
+    id: workspace._id,
+    name: workspace.organizationName,
+    code: workspace.workspaceCode,
+    email: workspace.email,
+    joinedAt: new Date().toISOString()
   };
+
+  localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
+
+  // Notify parent
+  if (onWorkspaceSelect) {
+    onWorkspaceSelect(workspaceData);
+  }
+
+  // Go to home/dashboard
+  navigate("/home");
+};
 
   const copyToClipboard = (code) => {
     navigator.clipboard.writeText(code);

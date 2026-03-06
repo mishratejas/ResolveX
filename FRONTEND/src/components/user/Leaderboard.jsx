@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   BarChart,
   Bar,
@@ -16,11 +16,11 @@ import {
   Pie,
   Cell,
   AreaChart,
-  Area
-} from 'recharts';
+  Area,
+} from "recharts";
 
 // Import all icons individually to avoid missing imports
-import { 
+import {
   Award,
   Trophy,
   Crown,
@@ -81,61 +81,121 @@ import {
   CloudSnow,
   CloudLightning,
   Wind,
-  Thermometer
-} from 'lucide-react';
+  Thermometer,
+} from "lucide-react";
 
 // Create custom icons for your categories
 const RoadIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+    />
   </svg>
 );
 
 const SecurityIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+    />
   </svg>
 );
 
 const ElectricityIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13 10V3L4 14h7v7l9-11h-7z"
+    />
   </svg>
 );
 
 const WaterIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+    />
   </svg>
 );
 
 const TransportIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+    />
   </svg>
 );
 
 const SanitationIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
   </svg>
 );
 
 const Leaderboard = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState('all');
+  const [timeRange, setTimeRange] = useState("all");
   const [leaderboardData, setLeaderboardData] = useState({
     topContributors: [],
     userRank: null,
     stats: {},
     trends: [],
     categories: [],
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
   });
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAnalytics, setShowAnalytics] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
@@ -144,81 +204,89 @@ const Leaderboard = ({ currentUser }) => {
 
   // ================ YOUR ACTUAL COMPLAINT CATEGORIES ================
   const COMPLAINT_CATEGORIES = [
-    { 
-      id: 'road_infrastructure', 
-      name: 'Road & Infrastructure', 
-      color: '#3B82F6',
+    {
+      id: "road_infrastructure",
+      name: "Road & Infrastructure",
+      color: "#3B82F6",
       icon: <RoadIcon className="w-4 h-4" />,
-      description: 'Roads, bridges, street lights, footpaths'
+      description: "Roads, bridges, street lights, footpaths",
     },
-    { 
-      id: 'sanitation_waste', 
-      name: 'Sanitation & Waste', 
-      color: '#10B981',
+    {
+      id: "sanitation_waste",
+      name: "Sanitation & Waste",
+      color: "#10B981",
       icon: <SanitationIcon className="w-4 h-4" />,
-      description: 'Garbage collection, drainage, cleaning'
+      description: "Garbage collection, drainage, cleaning",
     },
-    { 
-      id: 'water_supply', 
-      name: 'Water Supply', 
-      color: '#06B6D4',
+    {
+      id: "water_supply",
+      name: "Water Supply",
+      color: "#06B6D4",
       icon: <WaterIcon className="w-4 h-4" />,
-      description: 'Water pipes, supply issues, quality'
+      description: "Water pipes, supply issues, quality",
     },
-    { 
-      id: 'electricity', 
-      name: 'Electricity', 
-      color: '#F59E0B',
+    {
+      id: "electricity",
+      name: "Electricity",
+      color: "#F59E0B",
       icon: <ElectricityIcon className="w-4 h-4" />,
-      description: 'Power cuts, electrical poles, wiring'
+      description: "Power cuts, electrical poles, wiring",
     },
-    { 
-      id: 'security', 
-      name: 'Security', 
-      color: '#EF4444',
+    {
+      id: "security",
+      name: "Security",
+      color: "#EF4444",
       icon: <SecurityIcon className="w-4 h-4" />,
-      description: 'Police, street lights, safety issues'
+      description: "Police, street lights, safety issues",
     },
-    { 
-      id: 'transport', 
-      name: 'Transport', 
-      color: '#8B5CF6',
+    {
+      id: "transport",
+      name: "Transport",
+      color: "#8B5CF6",
       icon: <TransportIcon className="w-4 h-4" />,
-      description: 'Public transport, traffic, parking'
+      description: "Public transport, traffic, parking",
     },
-    { 
-      id: 'other', 
-      name: 'Other', 
-      color: '#9CA3AF',
+    {
+      id: "other",
+      name: "Other",
+      color: "#9CA3AF",
       icon: <AlertTriangle className="w-4 h-4" />,
-      description: 'Other community issues'
-    }
+      description: "Other community issues",
+    },
   ];
 
   // All categories including "All Categories"
   const CATEGORIES = [
-    { 
-      id: 'all', 
-      name: 'All Categories', 
-      color: '#6366F1',
+    {
+      id: "all",
+      name: "All Categories",
+      color: "#6366F1",
       icon: <Globe className="w-4 h-4" />,
-      description: 'All complaint categories'
+      description: "All complaint categories",
     },
-    ...COMPLAINT_CATEGORIES
+    ...COMPLAINT_CATEGORIES,
   ];
 
   // Time range options
   const TIME_RANGES = [
-    { value: 'today', label: 'Today' },
-    { value: 'week', label: 'This Week' },
-    { value: 'month', label: 'This Month' },
-    { value: 'quarter', label: 'This Quarter' },
-    { value: 'year', label: 'This Year' },
-    { value: 'all', label: 'All Time' }
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+    { value: "quarter", label: "This Quarter" },
+    { value: "year", label: "This Year" },
+    { value: "all", label: "All Time" },
   ];
 
   // Color scheme for charts
-  const COLORS = ['#3B82F6', '#10B981', '#06B6D4', '#F59E0B', '#EF4444', '#8B5CF6', '#9CA3AF'];
+  const COLORS = [
+    "#3B82F6",
+    "#10B981",
+    "#06B6D4",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#9CA3AF",
+  ];
 
   // Fetch live data from API
   const fetchLiveData = useCallback(async () => {
@@ -231,37 +299,44 @@ const Leaderboard = ({ currentUser }) => {
         params: {
           includeUser: true,
           includeStats: true,
-          timeRange: timeRange
+          timeRange: timeRange,
         },
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${
+            localStorage.getItem("userToken") ||
+            localStorage.getItem("adminToken") ||
+            localStorage.getItem("staffToken")
+          }`,
+        },
       });
 
       if (response.data.success) {
         const issues = response.data.data || [];
         processRealTimeData(issues);
       } else {
-        throw new Error('Failed to fetch issues');
+        throw new Error("Failed to fetch issues");
       }
     } catch (error) {
-      console.error('Error fetching live data:', error);
-      setError('Failed to load real-time data. Please try again.');
-      
+      console.error("Error fetching live data:", error);
+      setError("Failed to load real-time data. Please try again.");
+
       // Try fallback to user_issues endpoint
       try {
-        const fallbackResponse = await axios.get(`${BASE_URL}/api/user_issues`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
+        const fallbackResponse = await axios.get(
+          `${BASE_URL}/api/user_issues`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          },
+        );
+
         if (fallbackResponse.data.success) {
           const issues = fallbackResponse.data.data || [];
           processRealTimeData(issues);
         }
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        console.error("Fallback also failed:", fallbackError);
       }
     } finally {
       setLoading(false);
@@ -274,25 +349,25 @@ const Leaderboard = ({ currentUser }) => {
     const userStats = {};
     const categoryStats = {};
     const today = new Date();
-    
+
     // Initialize category stats with YOUR categories
-    COMPLAINT_CATEGORIES.forEach(cat => {
-      categoryStats[cat.id] = { 
-        name: cat.name, 
-        total: 0, 
+    COMPLAINT_CATEGORIES.forEach((cat) => {
+      categoryStats[cat.id] = {
+        name: cat.name,
+        total: 0,
         resolved: 0,
         color: cat.color,
-        icon: cat.icon
+        icon: cat.icon,
       };
     });
 
     // Process each issue
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       // Extract user info
       const userId = issue.user?._id || issue.user;
-      const userName = issue.user?.name || 'Anonymous';
-      const userEmail = issue.user?.email || '';
-      
+      const userName = issue.user?.name || "Anonymous";
+      const userEmail = issue.user?.email || "";
+
       if (!userId) return;
 
       // Initialize user stats
@@ -301,8 +376,13 @@ const Leaderboard = ({ currentUser }) => {
           id: userId,
           name: userName,
           email: userEmail,
-          avatar: issue.user?.avatar || '',
-          location: issue.user?.location || issue.location || 'Unknown',
+          avatar: issue.user?.avatar || "",
+          location:
+            typeof (issue.user?.location || issue.location) === "object"
+              ? issue.user?.location?.address ||
+                issue.location?.address ||
+                "Unknown"
+              : issue.user?.location || issue.location || "Unknown",
           issuesReported: 0,
           issuesResolved: 0,
           issuesInProgress: 0,
@@ -317,54 +397,69 @@ const Leaderboard = ({ currentUser }) => {
           streak: 0,
           points: 0,
           resolutionRate: 0,
-          impactScore: 0
+          impactScore: 0,
         };
       }
 
       // Update user stats
       const user = userStats[userId];
       user.issuesReported++;
-      
+
       // Handle YOUR category - map to your actual categories
-      let category = issue.category || 'other';
-      
+      let category = issue.category || "other";
+
       // Normalize category names to match your IDs
-      if (category.toLowerCase().includes('road') || category.toLowerCase().includes('infrastructure')) {
-        category = 'road_infrastructure';
-      } else if (category.toLowerCase().includes('sanitation') || category.toLowerCase().includes('waste') || category.toLowerCase().includes('garbage')) {
-        category = 'sanitation_waste';
-      } else if (category.toLowerCase().includes('water')) {
-        category = 'water_supply';
-      } else if (category.toLowerCase().includes('electric')) {
-        category = 'electricity';
-      } else if (category.toLowerCase().includes('security') || category.toLowerCase().includes('safety')) {
-        category = 'security';
-      } else if (category.toLowerCase().includes('transport') || category.toLowerCase().includes('traffic') || category.toLowerCase().includes('parking')) {
-        category = 'transport';
+      if (
+        category.toLowerCase().includes("road") ||
+        category.toLowerCase().includes("infrastructure")
+      ) {
+        category = "road_infrastructure";
+      } else if (
+        category.toLowerCase().includes("sanitation") ||
+        category.toLowerCase().includes("waste") ||
+        category.toLowerCase().includes("garbage")
+      ) {
+        category = "sanitation_waste";
+      } else if (category.toLowerCase().includes("water")) {
+        category = "water_supply";
+      } else if (category.toLowerCase().includes("electric")) {
+        category = "electricity";
+      } else if (
+        category.toLowerCase().includes("security") ||
+        category.toLowerCase().includes("safety")
+      ) {
+        category = "security";
+      } else if (
+        category.toLowerCase().includes("transport") ||
+        category.toLowerCase().includes("traffic") ||
+        category.toLowerCase().includes("parking")
+      ) {
+        category = "transport";
       } else {
-        category = 'other';
+        category = "other";
       }
-      
+
       if (!user.categories[category]) {
         user.categories[category] = 0;
       }
       user.categories[category]++;
-      
+
       // Update status counts
-      if (issue.status === 'resolved') {
+      if (issue.status === "resolved") {
         user.issuesResolved++;
-      } else if (issue.status === 'in-progress') {
+      } else if (issue.status === "in-progress") {
         user.issuesInProgress++;
       } else {
         user.issuesPending++;
       }
-      
+
       // Update engagement metrics
-      user.totalVotes += issue.votes?.length || 0;
-      user.totalComments += issue.comments?.length || 0;
-      user.totalUpvotes += issue.upvotes || 0;
-      user.totalViews += issue.views || 0;
-      
+      // 🔧 FIX: Use correct field names from UserComplaint schema
+      user.totalVotes += issue.voteCount || 0; // Changed from votes.length to voteCount
+      user.totalComments += issue.comments?.length || 0; // This is OK as comments exist
+      user.totalUpvotes += issue.voteCount || 0; // Changed from upvotes to voteCount
+      user.totalViews += issue.views || 0; // This field might not exist, default to 0
+
       // Update last activity
       if (new Date(issue.createdAt) > new Date(user.lastActivity)) {
         user.lastActivity = issue.createdAt;
@@ -373,31 +468,31 @@ const Leaderboard = ({ currentUser }) => {
       // Update category stats (YOUR categories)
       if (categoryStats[category]) {
         categoryStats[category].total++;
-        if (issue.status === 'resolved') {
+        if (issue.status === "resolved") {
           categoryStats[category].resolved++;
         }
       }
     });
 
     // Calculate points and scores for each user
-    Object.values(userStats).forEach(user => {
+    Object.values(userStats).forEach((user) => {
       // Calculate resolution rate
-      user.resolutionRate = user.issuesReported > 0 
-        ? (user.issuesResolved / user.issuesReported) * 100 
-        : 0;
+      user.resolutionRate =
+        user.issuesReported > 0
+          ? (user.issuesResolved / user.issuesReported) * 100
+          : 0;
 
       // Calculate engagement score
-      user.engagementScore = (
-        (user.totalVotes * 0.3) +
-        (user.totalComments * 0.4) +
-        (user.totalUpvotes * 0.2) +
-        (user.totalViews * 0.1)
-      );
+      user.engagementScore =
+        user.totalVotes * 0.3 +
+        user.totalComments * 0.4 +
+        user.totalUpvotes * 0.2 +
+        user.totalViews * 0.1;
 
       // Calculate points based on YOUR categories
       let categoryBonus = 0;
-      Object.keys(user.categories).forEach(catId => {
-        const category = COMPLAINT_CATEGORIES.find(c => c.id === catId);
+      Object.keys(user.categories).forEach((catId) => {
+        const category = COMPLAINT_CATEGORIES.find((c) => c.id === catId);
         if (category) {
           // Bonus for reporting in different categories
           categoryBonus += user.categories[catId] * 5;
@@ -406,38 +501,44 @@ const Leaderboard = ({ currentUser }) => {
 
       // Calculate total points
       user.points = Math.round(
-        (user.issuesReported * 10) +                    // Base points for reports
-        (user.issuesResolved * 20) +                   // Resolution bonus
-        (user.engagementScore * 1.5) +                 // Engagement bonus
-        (user.resolutionRate * 0.5) +                  // Resolution rate bonus
-        categoryBonus                                   // Category diversity bonus
+        user.issuesReported * 10 + // Base points for reports
+          user.issuesResolved * 20 + // Resolution bonus
+          user.engagementScore * 1.5 + // Engagement bonus
+          user.resolutionRate * 0.5 + // Resolution rate bonus
+          categoryBonus, // Category diversity bonus
       );
 
       // Calculate impact score (0-100)
-      user.impactScore = Math.min(100, Math.round(
-        (user.issuesResolved * 30) / Math.max(1, user.issuesReported) +
-        (user.engagementScore / 5) +
-        (Object.keys(user.categories).length * 10)
-      ));
+      user.impactScore = Math.min(
+        100,
+        Math.round(
+          (user.issuesResolved * 30) / Math.max(1, user.issuesReported) +
+            user.engagementScore / 5 +
+            Object.keys(user.categories).length * 10,
+        ),
+      );
 
       // Determine user level
-      if (user.points >= 5000) user.level = 'Legend';
-      else if (user.points >= 2000) user.level = 'Expert';
-      else if (user.points >= 1000) user.level = 'Advanced';
-      else if (user.points >= 500) user.level = 'Intermediate';
-      else if (user.points >= 100) user.level = 'Beginner';
-      else user.level = 'Newcomer';
+      if (user.points >= 5000) user.level = "Legend";
+      else if (user.points >= 2000) user.level = "Expert";
+      else if (user.points >= 1000) user.level = "Advanced";
+      else if (user.points >= 500) user.level = "Intermediate";
+      else if (user.points >= 100) user.level = "Beginner";
+      else user.level = "Newcomer";
 
       // Determine top category
-      const topCategoryEntry = Object.entries(user.categories)
-        .sort((a, b) => b[1] - a[1])[0];
-      user.topCategory = topCategoryEntry ? topCategoryEntry[0] : 'none';
-      
+      const topCategoryEntry = Object.entries(user.categories).sort(
+        (a, b) => b[1] - a[1],
+      )[0];
+      user.topCategory = topCategoryEntry ? topCategoryEntry[0] : "none";
+
       // Calculate streak (days with activity)
       const lastActivity = new Date(user.lastActivity);
-      const daysSinceLastActivity = Math.floor((today - lastActivity) / (1000 * 60 * 60 * 24));
-      user.streak = daysSinceLastActivity === 0 ? 7 : 
-                    daysSinceLastActivity <= 3 ? 3 : 1;
+      const daysSinceLastActivity = Math.floor(
+        (today - lastActivity) / (1000 * 60 * 60 * 24),
+      );
+      user.streak =
+        daysSinceLastActivity === 0 ? 7 : daysSinceLastActivity <= 3 ? 3 : 1;
     });
 
     // Sort users by points
@@ -447,23 +548,27 @@ const Leaderboard = ({ currentUser }) => {
         ...user,
         rank: index + 1,
         rankChange: Math.floor(Math.random() * 5) - 2, // This would come from historical data
-        trend: index < 3 ? 'up' : Math.random() > 0.5 ? 'stable' : 'down'
+        trend: index < 3 ? "up" : Math.random() > 0.5 ? "stable" : "down",
       }));
 
     // Find current user's rank
     const currentUserId = currentUser?._id;
-    let userRank = sortedUsers.find(user => user.id === currentUserId) || null;
+    let userRank =
+      sortedUsers.find((user) => user.id === currentUserId) || null;
 
     // If user not in top 50, find their rank
     if (!userRank && currentUserId && userStats[currentUserId]) {
-      const allUsersSorted = Object.values(userStats)
-        .sort((a, b) => b.points - a.points);
-      const userIndex = allUsersSorted.findIndex(user => user.id === currentUserId);
-      
+      const allUsersSorted = Object.values(userStats).sort(
+        (a, b) => b.points - a.points,
+      );
+      const userIndex = allUsersSorted.findIndex(
+        (user) => user.id === currentUserId,
+      );
+
       if (userIndex !== -1) {
         userRank = {
           ...userStats[currentUserId],
-          rank: userIndex + 1
+          rank: userIndex + 1,
         };
       }
     }
@@ -472,39 +577,66 @@ const Leaderboard = ({ currentUser }) => {
     const trends = Array.from({ length: 12 }, (_, i) => {
       const monthDate = new Date();
       monthDate.setMonth(monthDate.getMonth() - (11 - i));
-      const monthIssues = issues.filter(issue => {
+      const monthIssues = issues.filter((issue) => {
         const issueDate = new Date(issue.createdAt);
-        return issueDate.getMonth() === monthDate.getMonth() && 
-               issueDate.getFullYear() === monthDate.getFullYear();
+        return (
+          issueDate.getMonth() === monthDate.getMonth() &&
+          issueDate.getFullYear() === monthDate.getFullYear()
+        );
       });
-      
+
       return {
-        month: monthDate.toLocaleString('default', { month: 'short' }),
+        month: monthDate.toLocaleString("default", { month: "short" }),
         issues: monthIssues.length,
-        resolved: monthIssues.filter(i => i.status === 'resolved').length,
-        activeUsers: new Set(monthIssues.map(i => i.user?._id || i.user)).size
+        resolved: monthIssues.filter((i) => i.status === "resolved").length,
+        activeUsers: new Set(monthIssues.map((i) => i.user?._id || i.user))
+          .size,
       };
     });
 
     // Prepare category distribution for charts (YOUR categories)
     const categoryDistribution = Object.values(categoryStats)
-      .filter(cat => cat.total > 0)
-      .map(cat => ({
+      .filter((cat) => cat.total > 0)
+      .map((cat) => ({
         name: cat.name,
         value: cat.total,
         resolved: cat.resolved,
         resolutionRate: cat.total > 0 ? (cat.resolved / cat.total) * 100 : 0,
-        color: cat.color
+        color: cat.color,
       }));
 
     // User level distribution
     const userDistribution = [
-      { level: 'Newcomer', count: sortedUsers.filter(u => u.level === 'Newcomer').length, color: '#9CA3AF' },
-      { level: 'Beginner', count: sortedUsers.filter(u => u.level === 'Beginner').length, color: '#3B82F6' },
-      { level: 'Intermediate', count: sortedUsers.filter(u => u.level === 'Intermediate').length, color: '#10B981' },
-      { level: 'Advanced', count: sortedUsers.filter(u => u.level === 'Advanced').length, color: '#F59E0B' },
-      { level: 'Expert', count: sortedUsers.filter(u => u.level === 'Expert').length, color: '#EF4444' },
-      { level: 'Legend', count: sortedUsers.filter(u => u.level === 'Legend').length, color: '#8B5CF6' }
+      {
+        level: "Newcomer",
+        count: sortedUsers.filter((u) => u.level === "Newcomer").length,
+        color: "#9CA3AF",
+      },
+      {
+        level: "Beginner",
+        count: sortedUsers.filter((u) => u.level === "Beginner").length,
+        color: "#3B82F6",
+      },
+      {
+        level: "Intermediate",
+        count: sortedUsers.filter((u) => u.level === "Intermediate").length,
+        color: "#10B981",
+      },
+      {
+        level: "Advanced",
+        count: sortedUsers.filter((u) => u.level === "Advanced").length,
+        color: "#F59E0B",
+      },
+      {
+        level: "Expert",
+        count: sortedUsers.filter((u) => u.level === "Expert").length,
+        color: "#EF4444",
+      },
+      {
+        level: "Legend",
+        count: sortedUsers.filter((u) => u.level === "Legend").length,
+        color: "#8B5CF6",
+      },
     ];
 
     // Set the leaderboard data
@@ -514,65 +646,81 @@ const Leaderboard = ({ currentUser }) => {
       stats: {
         totalContributors: sortedUsers.length,
         totalPoints: sortedUsers.reduce((sum, user) => sum + user.points, 0),
-        avgResolutionRate: sortedUsers.length > 0 
-          ? sortedUsers.reduce((sum, user) => sum + user.resolutionRate, 0) / sortedUsers.length 
-          : 0,
-        activeThisMonth: sortedUsers.filter(u => {
+        avgResolutionRate:
+          sortedUsers.length > 0
+            ? sortedUsers.reduce((sum, user) => sum + user.resolutionRate, 0) /
+              sortedUsers.length
+            : 0,
+        activeThisMonth: sortedUsers.filter((u) => {
           const lastActive = new Date(u.lastActivity);
           const thirtyDaysAgo = new Date();
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
           return lastActive >= thirtyDaysAgo;
         }).length,
-        totalIssuesReported: sortedUsers.reduce((sum, user) => sum + user.issuesReported, 0),
-        totalIssuesResolved: sortedUsers.reduce((sum, user) => sum + user.issuesResolved, 0),
-        avgEngagementScore: sortedUsers.length > 0
-          ? sortedUsers.reduce((sum, user) => sum + user.engagementScore, 0) / sortedUsers.length
-          : 0
+        totalIssuesReported: sortedUsers.reduce(
+          (sum, user) => sum + user.issuesReported,
+          0,
+        ),
+        totalIssuesResolved: sortedUsers.reduce(
+          (sum, user) => sum + user.issuesResolved,
+          0,
+        ),
+        avgEngagementScore:
+          sortedUsers.length > 0
+            ? sortedUsers.reduce((sum, user) => sum + user.engagementScore, 0) /
+              sortedUsers.length
+            : 0,
       },
       categories: categoryDistribution,
       trends,
       userDistribution,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     });
 
     // Generate recent activity
     const recentIssues = issues
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 10)
-      .map(issue => {
-        let category = issue.category || 'other';
+      .map((issue) => {
+        let category = issue.category || "other";
         // Normalize category for display
-        if (category.toLowerCase().includes('road') || category.toLowerCase().includes('infrastructure')) {
-          category = 'road_infrastructure';
-        } else if (category.toLowerCase().includes('sanitation') || category.toLowerCase().includes('waste')) {
-          category = 'sanitation_waste';
-        } else if (category.toLowerCase().includes('water')) {
-          category = 'water_supply';
-        } else if (category.toLowerCase().includes('electric')) {
-          category = 'electricity';
-        } else if (category.toLowerCase().includes('security')) {
-          category = 'security';
-        } else if (category.toLowerCase().includes('transport')) {
-          category = 'transport';
+        if (
+          category.toLowerCase().includes("road") ||
+          category.toLowerCase().includes("infrastructure")
+        ) {
+          category = "road_infrastructure";
+        } else if (
+          category.toLowerCase().includes("sanitation") ||
+          category.toLowerCase().includes("waste")
+        ) {
+          category = "sanitation_waste";
+        } else if (category.toLowerCase().includes("water")) {
+          category = "water_supply";
+        } else if (category.toLowerCase().includes("electric")) {
+          category = "electricity";
+        } else if (category.toLowerCase().includes("security")) {
+          category = "security";
+        } else if (category.toLowerCase().includes("transport")) {
+          category = "transport";
         }
-        
+
         return {
           id: issue._id,
-          user: issue.user?.name || 'Anonymous',
-          action: `reported a ${CATEGORIES.find(c => c.id === category)?.name?.toLowerCase() || 'community'} issue`,
-          title: issue.title || 'Untitled Issue',
+          user: issue.user?.name || "Anonymous",
+          action: `reported a ${CATEGORIES.find((c) => c.id === category)?.name?.toLowerCase() || "community"} issue`,
+          title: issue.title || "Untitled Issue",
           time: issue.createdAt,
-          category: category
+          category: category,
         };
       });
-    
+
     setRecentActivity(recentIssues);
   };
 
   // Auto-refresh effect
   useEffect(() => {
     fetchLiveData();
-    
+
     if (autoRefresh) {
       const interval = setInterval(fetchLiveData, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
@@ -582,30 +730,32 @@ const Leaderboard = ({ currentUser }) => {
   // Filter contributors based on search and category
   const filteredContributors = useMemo(() => {
     let filtered = leaderboardData.topContributors;
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(query) ||
-        user.location.toLowerCase().includes(query) ||
-        user.level.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (user) =>
+          user.name.toLowerCase().includes(query) ||
+          user.location.toLowerCase().includes(query) ||
+          user.level.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query),
       );
     }
-    
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(user => 
-        user.topCategory === selectedCategory || 
-        user.categories?.[selectedCategory] > 0
+
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(
+        (user) =>
+          user.topCategory === selectedCategory ||
+          user.categories?.[selectedCategory] > 0,
       );
     }
-    
+
     return filtered;
   }, [leaderboardData.topContributors, searchQuery, selectedCategory]);
 
   // Format numbers
   const formatNumber = (num) => {
-    if (!num && num !== 0) return '0';
+    if (!num && num !== 0) return "0";
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toLocaleString();
@@ -614,22 +764,25 @@ const Leaderboard = ({ currentUser }) => {
   // Get trend icon
   const getTrendIcon = (trend) => {
     switch (trend) {
-      case 'up': return <ChevronUp className="w-4 h-4 text-green-500" />;
-      case 'down': return <ChevronDown className="w-4 h-4 text-red-500" />;
-      default: return <TrendingUpIcon className="w-4 h-4 text-gray-500" />;
+      case "up":
+        return <ChevronUp className="w-4 h-4 text-green-500" />;
+      case "down":
+        return <ChevronDown className="w-4 h-4 text-red-500" />;
+      default:
+        return <TrendingUpIcon className="w-4 h-4 text-gray-500" />;
     }
   };
 
   // Format time ago
   const formatTimeAgo = (dateString) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return "Never";
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
@@ -638,13 +791,13 @@ const Leaderboard = ({ currentUser }) => {
 
   // Get user badge
   const getUserBadge = (user) => {
-    if (user.rank === 1) return '🏆 Community Champion';
-    if (user.rank === 2) return '🥈 Elite Contributor';
-    if (user.rank === 3) return '🥉 Rising Star';
-    if (user.rank <= 10) return '⭐ Top Contributor';
-    if (user.rank <= 50) return '✨ Active Member';
-    if (user.impactScore >= 80) return '🔥 High Impact';
-    return '👋 Contributor';
+    if (user.rank === 1) return "🏆 Community Champion";
+    if (user.rank === 2) return "🥈 Elite Contributor";
+    if (user.rank === 3) return "🥉 Rising Star";
+    if (user.rank <= 10) return "⭐ Top Contributor";
+    if (user.rank <= 50) return "✨ Active Member";
+    if (user.impactScore >= 80) return "🔥 High Impact";
+    return "👋 Contributor";
   };
 
   // Animation variants
@@ -653,17 +806,17 @@ const Leaderboard = ({ currentUser }) => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
-      opacity: 1
-    }
+      opacity: 1,
+    },
   };
 
   if (loading) {
@@ -673,7 +826,9 @@ const Leaderboard = ({ currentUser }) => {
           <div className="flex flex-col items-center justify-center h-96 space-y-4">
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
             <p className="text-gray-600">Loading live leaderboard data...</p>
-            <p className="text-sm text-gray-500">Fetching real-time community statistics</p>
+            <p className="text-sm text-gray-500">
+              Fetching real-time community statistics
+            </p>
           </div>
         </div>
       </div>
@@ -691,12 +846,17 @@ const Leaderboard = ({ currentUser }) => {
         >
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Community Leaderboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Community Leaderboard
+              </h1>
               <p className="text-gray-600 mt-2">
                 Real-time rankings based on your actual complaint categories
                 <span className="block text-sm text-gray-500">
-                  Last updated: {leaderboardData.lastUpdated.toLocaleTimeString()}
-                  {refreshing && <span className="ml-2 text-blue-600">🔄 Updating...</span>}
+                  Last updated:{" "}
+                  {leaderboardData.lastUpdated.toLocaleTimeString()}
+                  {refreshing && (
+                    <span className="ml-2 text-blue-600">🔄 Updating...</span>
+                  )}
                 </span>
               </p>
             </div>
@@ -706,15 +866,17 @@ const Leaderboard = ({ currentUser }) => {
                 className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
               >
                 <BarChart3 className="w-4 h-4" />
-                {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+                {showAnalytics ? "Hide Analytics" : "Show Analytics"}
               </button>
               <button
                 onClick={fetchLiveData}
                 disabled={refreshing}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                {refreshing ? 'Refreshing...' : 'Refresh Now'}
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                />
+                {refreshing ? "Refreshing..." : "Refresh Now"}
               </button>
             </div>
           </div>
@@ -722,34 +884,34 @@ const Leaderboard = ({ currentUser }) => {
           {/* Real-time Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[
-              { 
-                label: 'Total Contributors', 
-                value: leaderboardData.stats.totalContributors, 
-                icon: <Users className="w-5 h-5" />, 
-                color: 'bg-blue-500',
-                change: '+12%' 
+              {
+                label: "Total Contributors",
+                value: leaderboardData.stats.totalContributors,
+                icon: <Users className="w-5 h-5" />,
+                color: "bg-blue-500",
+                change: "+12%",
               },
-              { 
-                label: 'Total Points', 
-                value: formatNumber(leaderboardData.stats.totalPoints), 
-                icon: <Trophy className="w-5 h-5" />, 
-                color: 'bg-amber-500',
-                change: '+8%' 
+              {
+                label: "Total Points",
+                value: formatNumber(leaderboardData.stats.totalPoints),
+                icon: <Trophy className="w-5 h-5" />,
+                color: "bg-amber-500",
+                change: "+8%",
               },
-              { 
-                label: 'Avg Resolution Rate', 
-                value: `${leaderboardData.stats.avgResolutionRate.toFixed(1)}%`, 
-                icon: <CheckCircle className="w-5 h-5" />, 
-                color: 'bg-emerald-500',
-                change: '+5%' 
+              {
+                label: "Avg Resolution Rate",
+                value: `${leaderboardData.stats.avgResolutionRate.toFixed(1)}%`,
+                icon: <CheckCircle className="w-5 h-5" />,
+                color: "bg-emerald-500",
+                change: "+5%",
               },
-              { 
-                label: 'Active This Month', 
-                value: leaderboardData.stats.activeThisMonth, 
-                icon: <Activity className="w-5 h-5" />, 
-                color: 'bg-purple-500',
-                change: '+15%' 
-              }
+              {
+                label: "Active This Month",
+                value: leaderboardData.stats.activeThisMonth,
+                icon: <Activity className="w-5 h-5" />,
+                color: "bg-purple-500",
+                change: "+15%",
+              },
             ].map((stat, index) => (
               <motion.div
                 key={index}
@@ -761,13 +923,19 @@ const Leaderboard = ({ currentUser }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {stat.value}
+                    </p>
                     <div className="flex items-center gap-1 mt-1">
                       <TrendingUpIcon className="w-4 h-4 text-green-500" />
-                      <span className="text-xs text-green-600">{stat.change}</span>
+                      <span className="text-xs text-green-600">
+                        {stat.change}
+                      </span>
                     </div>
                   </div>
-                  <div className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center`}>
+                  <div
+                    className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center`}
+                  >
                     <div className="text-white">{stat.icon}</div>
                   </div>
                 </div>
@@ -778,22 +946,24 @@ const Leaderboard = ({ currentUser }) => {
           {/* Category Filters - YOUR ACTUAL CATEGORIES */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Filter by Complaint Category</h3>
+              <h3 className="font-semibold text-gray-900">
+                Filter by Complaint Category
+              </h3>
               <span className="text-sm text-gray-500">
-                {selectedCategory === 'all' 
-                  ? 'Showing all categories' 
-                  : `Showing: ${CATEGORIES.find(c => c.id === selectedCategory)?.name}`}
+                {selectedCategory === "all"
+                  ? "Showing all categories"
+                  : `Showing: ${CATEGORIES.find((c) => c.id === selectedCategory)?.name}`}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(cat => (
+              {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
                     selectedCategory === cat.id
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? "bg-blue-100 text-blue-700 border border-blue-300"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={cat.description}
                 >
@@ -828,7 +998,7 @@ const Leaderboard = ({ currentUser }) => {
                   onChange={(e) => setTimeRange(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                 >
-                  {TIME_RANGES.map(range => (
+                  {TIME_RANGES.map((range) => (
                     <option key={range.value} value={range.value}>
                       {range.label}
                     </option>
@@ -842,7 +1012,10 @@ const Leaderboard = ({ currentUser }) => {
                     onChange={(e) => setAutoRefresh(e.target.checked)}
                     className="w-4 h-4 text-blue-600 rounded"
                   />
-                  <label htmlFor="autoRefresh" className="text-sm text-gray-700">
+                  <label
+                    htmlFor="autoRefresh"
+                    className="text-sm text-gray-700"
+                  >
                     Auto-refresh
                   </label>
                 </div>
@@ -863,8 +1036,12 @@ const Leaderboard = ({ currentUser }) => {
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Monthly Activity Trends</h3>
-                    <p className="text-sm text-gray-600">Based on your actual complaint data</p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Monthly Activity Trends
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Based on your actual complaint data
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="flex items-center gap-1 text-sm">
@@ -878,26 +1055,26 @@ const Leaderboard = ({ currentUser }) => {
                   </div>
                 </div>
                 <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={leaderboardData.trends}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Area 
-                        type="monotone" 
-                        dataKey="issues" 
-                        stroke="#3B82F6" 
-                        fill="#3B82F6" 
-                        fillOpacity={0.1} 
+                      <Area
+                        type="monotone"
+                        dataKey="issues"
+                        stroke="#3B82F6"
+                        fill="#3B82F6"
+                        fillOpacity={0.1}
                         name="Issues Reported"
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="resolved" 
-                        stroke="#10B981" 
-                        fill="#10B981" 
-                        fillOpacity={0.1} 
+                      <Area
+                        type="monotone"
+                        dataKey="resolved"
+                        stroke="#10B981"
+                        fill="#10B981"
+                        fillOpacity={0.1}
                         name="Issues Resolved"
                       />
                     </AreaChart>
@@ -908,18 +1085,25 @@ const Leaderboard = ({ currentUser }) => {
               {/* Category Distribution - YOUR CATEGORIES */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Complaint Categories Distribution</h3>
-                  <p className="text-sm text-gray-600">Based on {leaderboardData.stats.totalIssuesReported} total reports</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Complaint Categories Distribution
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Based on {leaderboardData.stats.totalIssuesReported} total
+                    reports
+                  </p>
                 </div>
                 <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
                         data={leaderboardData.categories}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
@@ -928,10 +1112,10 @@ const Leaderboard = ({ currentUser }) => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value, name, props) => [
                           `${value} reports (${props.payload.resolutionRate?.toFixed(1) || 0}% resolved)`,
-                          props.payload.name
+                          props.payload.name,
                         ]}
                       />
                       <Legend />
@@ -943,7 +1127,9 @@ const Leaderboard = ({ currentUser }) => {
 
             {/* Recent Activity */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Recent Community Activity</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Recent Community Activity
+              </h3>
               <div className="space-y-3">
                 {recentActivity.map((activity, index) => (
                   <motion.div
@@ -959,17 +1145,26 @@ const Leaderboard = ({ currentUser }) => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          <span className="font-semibold">{activity.user}</span> {activity.action}
+                          <span className="font-semibold">{activity.user}</span>{" "}
+                          {activity.action}
                         </p>
-                        <p className="text-sm text-gray-600">{activity.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {activity.title}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-sm text-gray-500 flex items-center gap-1">
-                        {CATEGORIES.find(c => c.id === activity.category)?.icon}
-                        {CATEGORIES.find(c => c.id === activity.category)?.name || 'Other'}
+                        {
+                          CATEGORIES.find((c) => c.id === activity.category)
+                            ?.icon
+                        }
+                        {CATEGORIES.find((c) => c.id === activity.category)
+                          ?.name || "Other"}
                       </span>
-                      <span className="text-sm text-gray-500">{formatTimeAgo(activity.time)}</span>
+                      <span className="text-sm text-gray-500">
+                        {formatTimeAgo(activity.time)}
+                      </span>
                     </div>
                   </motion.div>
                 ))}
@@ -991,11 +1186,11 @@ const Leaderboard = ({ currentUser }) => {
                 key={user.id}
                 variants={itemVariants}
                 className={`relative rounded-2xl p-6 ${
-                  index === 0 ? 'md:mt-0' : 'md:mt-12'
+                  index === 0 ? "md:mt-0" : "md:mt-12"
                 }`}
                 style={{
-                  background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}20, white)`,
-                  border: `2px solid ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}40`
+                  background: `linear-gradient(135deg, ${index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : "#CD7F32"}20, white)`,
+                  border: `2px solid ${index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : "#CD7F32"}40`,
                 }}
               >
                 {/* Rank Badge */}
@@ -1003,9 +1198,13 @@ const Leaderboard = ({ currentUser }) => {
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
                     style={{
-                      background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}, ${
-                        index === 0 ? '#FFA500' : index === 1 ? '#A0A0A0' : '#B87333'
-                      })`
+                      background: `linear-gradient(135deg, ${index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : "#CD7F32"}, ${
+                        index === 0
+                          ? "#FFA500"
+                          : index === 1
+                            ? "#A0A0A0"
+                            : "#B87333"
+                      })`,
                     }}
                   >
                     {index + 1}
@@ -1017,9 +1216,12 @@ const Leaderboard = ({ currentUser }) => {
                   <div className="w-20 h-20 mx-auto mb-4 relative">
                     <div
                       className="w-full h-full rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                      style={{ 
-                        backgroundColor: user.avatarColor || 
-                        CATEGORIES.find(c => c.id === user.topCategory)?.color || '#3B82F6' 
+                      style={{
+                        backgroundColor:
+                          user.avatarColor ||
+                          CATEGORIES.find((c) => c.id === user.topCategory)
+                            ?.color ||
+                          "#3B82F6",
                       }}
                     >
                       {user.name.charAt(0)}
@@ -1031,43 +1233,70 @@ const Leaderboard = ({ currentUser }) => {
                     )}
                   </div>
 
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">{user.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                    {user.name}
+                  </h3>
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      user.level === 'Legend' ? 'bg-purple-100 text-purple-800' :
-                      user.level === 'Expert' ? 'bg-red-100 text-red-800' :
-                      user.level === 'Advanced' ? 'bg-amber-100 text-amber-800' :
-                      user.level === 'Intermediate' ? 'bg-emerald-100 text-emerald-800' :
-                      user.level === 'Beginner' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        user.level === "Legend"
+                          ? "bg-purple-100 text-purple-800"
+                          : user.level === "Expert"
+                            ? "bg-red-100 text-red-800"
+                            : user.level === "Advanced"
+                              ? "bg-amber-100 text-amber-800"
+                              : user.level === "Intermediate"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : user.level === "Beginner"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
                       {user.level}
                     </span>
-                    <span className="text-xs text-gray-500">{user.location}</span>
+                    <span className="text-xs text-gray-500">
+                      {user.location}
+                    </span>
                   </div>
 
                   {/* Category Expertise */}
-                  {user.topCategory !== 'none' && user.topCategory !== 'other' && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                        {CATEGORIES.find(c => c.id === user.topCategory)?.icon}
-                        <span>Expert in {CATEGORIES.find(c => c.id === user.topCategory)?.name}</span>
+                  {user.topCategory !== "none" &&
+                    user.topCategory !== "other" && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                          {
+                            CATEGORIES.find((c) => c.id === user.topCategory)
+                              ?.icon
+                          }
+                          <span>
+                            Expert in{" "}
+                            {
+                              CATEGORIES.find((c) => c.id === user.topCategory)
+                                ?.name
+                            }
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">{user.issuesReported}</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {user.issuesReported}
+                      </div>
                       <div className="text-xs text-gray-600">Reports</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">{user.resolutionRate.toFixed(0)}%</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {user.resolutionRate.toFixed(0)}%
+                      </div>
                       <div className="text-xs text-gray-600">Resolved</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">{formatNumber(user.points)}</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {formatNumber(user.points)}
+                      </div>
                       <div className="text-xs text-gray-600">Points</div>
                     </div>
                   </div>
@@ -1102,15 +1331,18 @@ const Leaderboard = ({ currentUser }) => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Top Contributors</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Top Contributors
+                </h3>
                 <p className="text-sm text-gray-600">
-                  {filteredContributors.length} contributors found • 
+                  {filteredContributors.length} contributors found •
                   <span className="text-green-600 ml-2">Live Data</span>
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-sm text-gray-600">
-                  Showing {Math.min(filteredContributors.length, 50)} of {leaderboardData.stats.totalContributors}
+                  Showing {Math.min(filteredContributors.length, 50)} of{" "}
+                  {leaderboardData.stats.totalContributors}
                 </div>
                 <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                   <Download className="w-4 h-4" />
@@ -1160,19 +1392,32 @@ const Leaderboard = ({ currentUser }) => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                            user.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                            user.rank === 2 ? 'bg-gray-100 text-gray-800' :
-                            user.rank === 3 ? 'bg-orange-100 text-orange-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                              user.rank === 1
+                                ? "bg-yellow-100 text-yellow-800"
+                                : user.rank === 2
+                                  ? "bg-gray-100 text-gray-800"
+                                  : user.rank === 3
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
                             {user.rank}
                           </div>
                           {user.rankChange !== 0 && (
-                            <div className={`flex items-center gap-1 text-sm ${
-                              user.rankChange > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {user.rankChange > 0 ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            <div
+                              className={`flex items-center gap-1 text-sm ${
+                                user.rankChange > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {user.rankChange > 0 ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
                               {Math.abs(user.rankChange)}
                             </div>
                           )}
@@ -1183,9 +1428,13 @@ const Leaderboard = ({ currentUser }) => {
                           <div className="relative">
                             <div
                               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
-                              style={{ 
-                                backgroundColor: user.avatarColor || 
-                                CATEGORIES.find(c => c.id === user.topCategory)?.color || '#3B82F6' 
+                              style={{
+                                backgroundColor:
+                                  user.avatarColor ||
+                                  CATEGORIES.find(
+                                    (c) => c.id === user.topCategory,
+                                  )?.color ||
+                                  "#3B82F6",
                               }}
                             >
                               {user.name.charAt(0)}
@@ -1195,46 +1444,72 @@ const Leaderboard = ({ currentUser }) => {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">{user.name}</div>
+                            <div className="font-medium text-gray-900">
+                              {user.name}
+                            </div>
                             <div className="text-sm text-gray-500 flex items-center gap-2">
                               <MapPin className="w-3 h-3" />
-                              {user.location}
+                              {typeof user.location === "object"
+                                ? user.location?.address || "Unknown"
+                                : user.location || "Unknown"}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            user.level === 'Legend' ? 'bg-purple-500' :
-                            user.level === 'Expert' ? 'bg-red-500' :
-                            user.level === 'Advanced' ? 'bg-amber-500' :
-                            user.level === 'Intermediate' ? 'bg-emerald-500' :
-                            user.level === 'Beginner' ? 'bg-blue-500' :
-                            'bg-gray-500'
-                          }`}></div>
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              user.level === "Legend"
+                                ? "bg-purple-500"
+                                : user.level === "Expert"
+                                  ? "bg-red-500"
+                                  : user.level === "Advanced"
+                                    ? "bg-amber-500"
+                                    : user.level === "Intermediate"
+                                      ? "bg-emerald-500"
+                                      : user.level === "Beginner"
+                                        ? "bg-blue-500"
+                                        : "bg-gray-500"
+                            }`}
+                          ></div>
                           <span className="font-medium">{user.level}</span>
                         </div>
-                        {user.topCategory !== 'none' && user.topCategory !== 'other' && (
-                          <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                            {CATEGORIES.find(c => c.id === user.topCategory)?.icon}
-                            {CATEGORIES.find(c => c.id === user.topCategory)?.name}
-                          </div>
-                        )}
+                        {user.topCategory !== "none" &&
+                          user.topCategory !== "other" && (
+                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                              {
+                                CATEGORIES.find(
+                                  (c) => c.id === user.topCategory,
+                                )?.icon
+                              }
+                              {
+                                CATEGORIES.find(
+                                  (c) => c.id === user.topCategory,
+                                )?.name
+                              }
+                            </div>
+                          )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Reports:</span>
-                            <span className="font-medium">{user.issuesReported}</span>
+                            <span className="font-medium">
+                              {user.issuesReported}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Resolved:</span>
-                            <span className="font-medium text-green-600">{user.issuesResolved}</span>
+                            <span className="font-medium text-green-600">
+                              {user.issuesResolved}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Rate:</span>
-                            <span className="font-medium">{user.resolutionRate.toFixed(1)}%</span>
+                            <span className="font-medium">
+                              {user.resolutionRate.toFixed(1)}%
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -1242,20 +1517,28 @@ const Leaderboard = ({ currentUser }) => {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <ThumbsUp className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm">{formatNumber(user.totalVotes)} votes</span>
+                            <span className="text-sm">
+                              {formatNumber(user.totalVotes)} votes
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MessageSquare className="w-4 h-4 text-green-500" />
-                            <span className="text-sm">{formatNumber(user.totalComments)} comments</span>
+                            <span className="text-sm">
+                              {formatNumber(user.totalComments)} comments
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Eye className="w-4 h-4 text-purple-500" />
-                            <span className="text-sm">{formatNumber(user.totalViews)} views</span>
+                            <span className="text-sm">
+                              {formatNumber(user.totalViews)} views
+                            </span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900 text-lg">{formatNumber(user.points)}</div>
+                        <div className="font-bold text-gray-900 text-lg">
+                          {formatNumber(user.points)}
+                        </div>
                         <div className="text-sm text-gray-500">
                           {user.streak > 0 && (
                             <span className="flex items-center gap-1 text-amber-600">
@@ -1274,7 +1557,9 @@ const Leaderboard = ({ currentUser }) => {
                                 style={{ width: `${user.impactScore}%` }}
                               ></div>
                             </div>
-                            <div className="text-xs text-gray-600 mt-1">{user.impactScore}/100</div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              {user.impactScore}/100
+                            </div>
                           </div>
                           <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded">
                             <MoreVertical className="w-4 h-4 text-gray-500" />
@@ -1291,8 +1576,12 @@ const Leaderboard = ({ currentUser }) => {
           {filteredContributors.length === 0 && (
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No contributors found</h3>
-              <p className="text-gray-600">Try adjusting your search or category filters</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No contributors found
+              </h3>
+              <p className="text-gray-600">
+                Try adjusting your search or category filters
+              </p>
             </div>
           )}
         </motion.div>
@@ -1312,21 +1601,46 @@ const Leaderboard = ({ currentUser }) => {
                       {leaderboardData.userRank.name.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold">Your Community Ranking</h3>
-                      <p className="text-blue-100">Real-time position based on your contributions</p>
+                      <h3 className="text-xl font-bold">
+                        Your Community Ranking
+                      </h3>
+                      <p className="text-blue-100">
+                        Real-time position based on your contributions
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label: 'Your Rank', value: `#${leaderboardData.userRank.rank}`, icon: <Trophy className="w-5 h-5" /> },
-                      { label: 'Your Points', value: formatNumber(leaderboardData.userRank.points), icon: <Star className="w-5 h-5" /> },
-                      { label: 'Impact Score', value: `${leaderboardData.userRank.impactScore || 0}/100`, icon: <Target className="w-5 h-5" /> },
-                      { label: 'Active Streak', value: `${leaderboardData.userRank.streak || 0} days`, icon: <Flame className="w-5 h-5" /> }
+                      {
+                        label: "Your Rank",
+                        value: `#${leaderboardData.userRank.rank}`,
+                        icon: <Trophy className="w-5 h-5" />,
+                      },
+                      {
+                        label: "Your Points",
+                        value: formatNumber(leaderboardData.userRank.points),
+                        icon: <Star className="w-5 h-5" />,
+                      },
+                      {
+                        label: "Impact Score",
+                        value: `${leaderboardData.userRank.impactScore || 0}/100`,
+                        icon: <Target className="w-5 h-5" />,
+                      },
+                      {
+                        label: "Active Streak",
+                        value: `${leaderboardData.userRank.streak || 0} days`,
+                        icon: <Flame className="w-5 h-5" />,
+                      },
                     ].map((stat, index) => (
-                      <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                      <div
+                        key={index}
+                        className="bg-white/10 backdrop-blur-sm rounded-lg p-4"
+                      >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-blue-100">{stat.label}</span>
+                          <span className="text-sm text-blue-100">
+                            {stat.label}
+                          </span>
                           {stat.icon}
                         </div>
                         <div className="text-2xl font-bold">{stat.value}</div>
@@ -1334,12 +1648,20 @@ const Leaderboard = ({ currentUser }) => {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="text-center">
-                  <div className="text-5xl font-bold mb-2">#{leaderboardData.userRank.rank}</div>
+                  <div className="text-5xl font-bold mb-2">
+                    #{leaderboardData.userRank.rank}
+                  </div>
                   <div className="text-blue-200">
-                    Top {Math.round((leaderboardData.userRank.rank / leaderboardData.stats.totalContributors) * 100)}% •
-                    {leaderboardData.stats.totalContributors} total contributors
+                    Top{" "}
+                    {Math.round(
+                      (leaderboardData.userRank.rank /
+                        leaderboardData.stats.totalContributors) *
+                        100,
+                    )}
+                    % •{leaderboardData.stats.totalContributors} total
+                    contributors
                   </div>
                   <div className="mt-4">
                     {leaderboardData.userRank.rank <= 10 ? (
@@ -1350,7 +1672,9 @@ const Leaderboard = ({ currentUser }) => {
                     ) : leaderboardData.userRank.rank <= 50 ? (
                       <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg">
                         <TrendingUp className="w-5 h-5" />
-                        <span>#{leaderboardData.userRank.rank - 10} spots to Top 10</span>
+                        <span>
+                          #{leaderboardData.userRank.rank - 10} spots to Top 10
+                        </span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg">
@@ -1374,10 +1698,11 @@ const Leaderboard = ({ currentUser }) => {
             </span>
           </p>
           <p className="mt-1">
-            Last full refresh: {leaderboardData.lastUpdated.toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: '2-digit'
+            Last full refresh:{" "}
+            {leaderboardData.lastUpdated.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
             })}
           </p>
           <p className="mt-1">Data source: Your actual complaint system API</p>

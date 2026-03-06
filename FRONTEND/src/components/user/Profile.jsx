@@ -71,35 +71,37 @@ const Profile = ({ currentUser }) => {
     }
   }, [currentUser]);
 
-  const loadUserData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("accessToken");
+const loadUserData = async () => {
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("accessToken");
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
 
-      // Load user's profile
-      const profileRes = await axios.get(`${BASE_URL}/api/users/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    // Load user's profile
+    const profileRes = await axios.get(`${BASE_URL}/api/users/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (profileRes.data.success) {
-        setUserData(profileRes.data.data);
-      }
-
-      // Load user's complaints
-      const complaintsRes = await axios.get(`${BASE_URL}/api/user_issues/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (complaintsRes.data.success) {
-        setUserComplaints(complaintsRes.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-      toast.error("Failed to load user data");
-    } finally {
-      setLoading(false);
+    if (profileRes.data.success) {
+      setUserData(profileRes.data.data);
     }
-  };
+
+    // Load user's complaints - filtered by current workspace
+    const workspaceParam = currentWorkspace?.id ? `?workspaceId=${currentWorkspace.id}` : '';
+    const complaintsRes = await axios.get(`${BASE_URL}/api/user_issues/my${workspaceParam}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (complaintsRes.data.success) {
+      setUserComplaints(complaintsRes.data.data || []);
+    }
+  } catch (error) {
+    console.error("Error loading user data:", error);
+    toast.error("Failed to load user data");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadUserWorkspaces = async () => {
     try {
@@ -804,6 +806,9 @@ const Profile = ({ currentUser }) => {
                   Issue
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Workspace 
+    </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -821,87 +826,89 @@ const Profile = ({ currentUser }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {userComplaints.slice(0, 10).map((complaint) => (
-                <tr key={complaint._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {complaint.title}
-                      </p>
-                      <p className="text-sm text-gray-500 truncate max-w-xs">
-                        {complaint.description}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(complaint.status)}`}
-                    >
-                      {complaint.status
-                        ? complaint.status.charAt(0).toUpperCase() +
-                          complaint.status.slice(1).replace("_", "-")
-                        : "Unknown"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">
-                      {complaint.category || "Uncategorized"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {formatDate(complaint.createdAt)}
-                    </div>
-                    {complaint.updatedAt &&
-                      complaint.updatedAt !== complaint.createdAt && (
-                        <div className="text-xs text-gray-500">
-                          Updated {formatDate(complaint.updatedAt)}
-                        </div>
-                      )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">
-                          {complaint.voteCount || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircle className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
-                          {complaint.comments?.length || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          navigate(`/user/issues/${complaint._id}`)
-                        }
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const url = `${window.location.origin}/issue/${complaint._id}`;
-                          navigator.clipboard.writeText(url);
-                          toast.success("Link copied to clipboard!");
-                        }}
-                        className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                        title="Copy link"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+  {userComplaints.slice(0, 10).map((complaint) => (
+    <tr key={complaint._id} className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <div>
+          <p className="font-medium text-gray-900">{complaint.title}</p>
+          <p className="text-sm text-gray-500 truncate max-w-xs">
+            {complaint.description}
+          </p>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        {/* NEW: Workspace column */}
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-sm font-medium text-gray-900">
+              {complaint.adminId?.organizationName || complaint.adminId?.name || 'Unknown Workspace'}
+            </span>
+            {complaint.adminId?.workspaceCode && (
+              <div className="text-xs text-gray-500">
+                Code: {complaint.adminId.workspaceCode}
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(complaint.status)}`}>
+          {complaint.status ? complaint.status.charAt(0).toUpperCase() + complaint.status.slice(1).replace("_", "-") : "Unknown"}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <span className="text-sm text-gray-900 capitalize">
+          {complaint.category || "Uncategorized"}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <div className="text-sm text-gray-900">
+          {formatDate(complaint.createdAt)}
+        </div>
+        {complaint.updatedAt && complaint.updatedAt !== complaint.createdAt && (
+          <div className="text-xs text-gray-500">
+            Updated {formatDate(complaint.updatedAt)}
+          </div>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <ThumbsUp className="w-4 h-4 text-blue-500" />
+            <span className="font-medium">{complaint.voteCount || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <MessageCircle className="w-4 h-4 text-gray-400" />
+            <span className="text-sm">{complaint.comments?.length || 0}</span>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/user/issues/${complaint._id}`)}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/issue/${complaint._id}`;
+              navigator.clipboard.writeText(url);
+              toast.success("Link copied to clipboard!");
+            }}
+            className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            title="Copy link"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
 
