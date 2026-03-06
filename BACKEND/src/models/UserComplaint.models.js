@@ -120,7 +120,7 @@
 import mongoose from "mongoose";
 
 const userComplaintSchema = new mongoose.Schema({
-  // 🚀 NEW: Strict Workspace Boundary
+  // 🚀 Strict Workspace Boundary
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Admin",
@@ -137,7 +137,7 @@ const userComplaintSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: true, // Removed strict enum so dynamic custom departments don't crash it
+    required: true, 
   },
   status: {
     type: String,
@@ -206,7 +206,7 @@ const userComplaintSchema = new mongoose.Schema({
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Staff", // This will fuel your auto-assignment Load Balancer!
+    ref: "Staff", 
   },
   comments: [
     {
@@ -221,6 +221,11 @@ const userComplaintSchema = new mongoose.Schema({
       },
     },
   ],
+  // 🚀 NEW: Added to track exactly when a staff member finishes the job!
+  resolvedAt: {
+    type: Date,
+    default: null,
+  }
 }, { timestamps: true });
 
 userComplaintSchema.index({"location.latitude":1,"location.longitude":1});

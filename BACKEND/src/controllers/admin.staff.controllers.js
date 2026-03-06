@@ -477,12 +477,20 @@ export const updateStaff = async (req, res) => {
         }
 
         // 2. Validate and update Department
-        if (department) {
-            // 🚀 THE FIX: Use findById because the frontend sends the ObjectId
+        // 🚀 THE FIX: Check if they actually provided a department AND if it's different from the current one
+        if (department && staffMember.department.toString() !== department.toString()) {
             const dept = await Department.findById(department);
             if (!dept) {
                 return res.status(400).json({ success: false, message: 'Invalid department specified' });
             }
+
+            // 🚀 THE DB HOOK: Unassign all active tickets from this staff member!
+            // This ensures they don't take their old department's tickets to their new department.
+            await UserComplaint.updateMany(
+                { assignedTo: staffMember._id, status: { $in: ['pending', 'in-progress'] } },
+                { $set: { assignedTo: null, status: 'pending' } }
+            );
+
             staffMember.department = dept._id;
         }
 
@@ -532,13 +540,16 @@ export const deleteStaff = async (req, res) => {
             });
         }
         
-        // Check if staff has assigned complaints
-        const assignedComplaints = await UserComplaint.countDocuments({ assignedTo: id });
+        // 🚀 THE FIX: Only count complaints that are "pending" or "in-progress"
+        const activeComplaints = await UserComplaint.countDocuments({ 
+            assignedTo: id,
+            status: { $in: ['pending', 'in-progress'] }
+        });
         
-        if (assignedComplaints > 0) {
+        if (activeComplaints > 0) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot delete staff member with ${assignedComplaints} assigned complaints. Reassign complaints first.`
+                message: `Cannot delete: Staff member has ${activeComplaints} active complaint(s). Reassign them first.`
             });
         }
         

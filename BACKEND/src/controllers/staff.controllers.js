@@ -367,7 +367,7 @@ export const staffLogin = async (req, res) => {
         const { staffIdOrEmail, password } = req.body; 
         
         if (!staffIdOrEmail || !password) {
-            return res.status(400).json({ success: false, message: "Staff ID/Email and password are required" });
+            return res.status(400).json({ success: false, message: "Email and password are required" });
         }
         
         const staff = await Staff.findOne({
@@ -383,13 +383,8 @@ export const staffLogin = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Credentials" });
         } 
 
-        // 🚀 NEW: The Bouncer! Block login if they aren't approved yet.
-        if (!staff.isApproved) {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Your account is pending Admin approval. You cannot log in yet." 
-            });
-        }
+        // 🚀 REMOVED THE BOUNCER!
+        // We let them log in so the frontend can redirect them to the beautiful "Waiting Room" screen.
         
         const payload = { id: staff._id, role: staff.role || "staff" };
         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
@@ -413,7 +408,8 @@ export const staffLogin = async (req, res) => {
                 staffId: staff.staffId,
                 email: staff.email,
                 department: staff.department,
-                phone: staff.phone
+                phone: staff.phone,
+                isApproved: staff.isApproved // 🚀 CRITICAL: Send this so StaffDashboard knows to show the waiting room!
             }
         });
         
@@ -423,6 +419,34 @@ export const staffLogin = async (req, res) => {
     }
 };
 
+export const getStaffProfile = async (req, res) => {
+    try {
+        // Grab ID from the auth middleware token
+        const staffId = req.user?.id || req.staff?.id || req.user?._id; 
+        
+        const staff = await Staff.findById(staffId).populate('department', 'name category');
+        
+        if (!staff) {
+            return res.status(404).json({ success: false, message: "Staff not found" });
+        }
+        
+        res.status(200).json({ 
+            success: true, 
+            staff: {
+                _id: staff._id,
+                name: staff.name,
+                role: staff.role,
+                staffId: staff.staffId,
+                email: staff.email,
+                department: staff.department,
+                phone: staff.phone,
+                isApproved: staff.isApproved // 🚀 This is the magic flag we need!
+            } 
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server Error fetching profile." });
+    }
+};
 
 // ==================== PROTECTED ADMIN ROUTES ====================
 
