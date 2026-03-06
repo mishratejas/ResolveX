@@ -1,21 +1,26 @@
-// TODO: Update with proper error handling and token refresh logic
-import axios from '../api/axios';
-import { API_ENDPOINTS, STORAGE_KEYS } from '../constants';
+import axios from "../api/axios";
+import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
 
 const authService = {
   // User Signup
   userSignup: async (data) => {
     try {
       const response = await axios.post(API_ENDPOINTS.USER_SIGNUP, data);
-      
+
       if (response.data.accessToken) {
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.accessToken);
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+        localStorage.setItem(
+          STORAGE_KEYS.ACCESS_TOKEN,
+          response.data.accessToken,
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.USER_DATA,
+          JSON.stringify(response.data.user),
+        );
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('User signup error:', error);
+      console.error("User signup error:", error);
       throw error;
     }
   },
@@ -23,20 +28,33 @@ const authService = {
   // User Login
   userLogin: async (email, password) => {
     try {
-      const response = await axios.post(API_ENDPOINTS.USER_LOGIN, { email, password });
-      
+      const response = await axios.post(API_ENDPOINTS.USER_LOGIN, {
+        email,
+        password,
+      });
+
       if (response.data.accessToken) {
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.accessToken);
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
-        
-        window.dispatchEvent(new CustomEvent('userLogin', { 
-          detail: { role: 'user', data: response.data.user } 
-        }));
+        localStorage.setItem(
+          STORAGE_KEYS.ACCESS_TOKEN,
+          response.data.accessToken,
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.USER_DATA,
+          JSON.stringify(response.data.user),
+        );
+
+        window.dispatchEvent(
+          new CustomEvent("userLogin", {
+            detail: { role: "user", data: response.data.user },
+          }),
+        );
+
+        window.location.href = "/user/profile";
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('User login error:', error);
+      console.error("User login error:", error);
       throw error;
     }
   },
@@ -44,23 +62,31 @@ const authService = {
   // Staff Login
   staffLogin: async (staffIdOrEmail, password) => {
     try {
-      const response = await axios.post(API_ENDPOINTS.STAFF_LOGIN, { 
-        staffIdOrEmail, 
-        password 
+      const response = await axios.post(API_ENDPOINTS.STAFF_LOGIN, {
+        staffIdOrEmail,
+        password,
       });
-      
+
       if (response.data.accessToken) {
-        localStorage.setItem(STORAGE_KEYS.STAFF_TOKEN, response.data.accessToken);
-        localStorage.setItem(STORAGE_KEYS.STAFF_DATA, JSON.stringify(response.data.staff));
-        
-        window.dispatchEvent(new CustomEvent('userLogin', { 
-          detail: { role: 'staff', data: response.data.staff } 
-        }));
+        localStorage.setItem(
+          STORAGE_KEYS.STAFF_TOKEN,
+          response.data.accessToken,
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.STAFF_DATA,
+          JSON.stringify(response.data.staff),
+        );
+
+        window.dispatchEvent(
+          new CustomEvent("userLogin", {
+            detail: { role: "staff", data: response.data.staff },
+          }),
+        );
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('Staff login error:', error);
+      console.error("Staff login error:", error);
       throw error;
     }
   },
@@ -69,15 +95,21 @@ const authService = {
   staffRegister: async (data) => {
     try {
       const response = await axios.post(API_ENDPOINTS.STAFF_REGISTER, data);
-      
+
       if (response.data.accessToken) {
-        localStorage.setItem(STORAGE_KEYS.STAFF_TOKEN, response.data.accessToken);
-        localStorage.setItem(STORAGE_KEYS.STAFF_DATA, JSON.stringify(response.data.staff));
+        localStorage.setItem(
+          STORAGE_KEYS.STAFF_TOKEN,
+          response.data.accessToken,
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.STAFF_DATA,
+          JSON.stringify(response.data.staff),
+        );
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('Staff register error:', error);
+      console.error("Staff register error:", error);
       throw error;
     }
   },
@@ -85,23 +117,31 @@ const authService = {
   // Admin Login
   adminLogin: async (adminId, password) => {
     try {
-      const response = await axios.post(API_ENDPOINTS.ADMIN_LOGIN, { 
-        adminId, 
-        password 
+      const response = await axios.post(API_ENDPOINTS.ADMIN_LOGIN, {
+        adminId,
+        password,
       });
-      
+
       if (response.data.accessToken) {
-        localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, response.data.accessToken);
-        localStorage.setItem(STORAGE_KEYS.ADMIN_DATA, JSON.stringify(response.data.admin));
-        
-        window.dispatchEvent(new CustomEvent('adminLogin', { 
-          detail: { role: 'admin', data: response.data.admin } 
-        }));
+        localStorage.setItem(
+          STORAGE_KEYS.ADMIN_TOKEN,
+          response.data.accessToken,
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.ADMIN_DATA,
+          JSON.stringify(response.data.admin),
+        );
+
+        window.dispatchEvent(
+          new CustomEvent("adminLogin", {
+            detail: { role: "admin", data: response.data.admin },
+          }),
+        );
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('Admin login error:', error);
+      console.error("Admin login error:", error);
       throw error;
     }
   },
@@ -114,9 +154,9 @@ const authService = {
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
     localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
     localStorage.removeItem(STORAGE_KEYS.STAFF_DATA);
-    
-    window.dispatchEvent(new Event('userLogout'));
-    window.location.href = '/';
+
+    window.dispatchEvent(new Event("userLogout"));
+    window.location.href = "/";
   },
 
   // Request OTP
@@ -126,11 +166,11 @@ const authService = {
         identifier,
         purpose,
         userType,
-        type: 'email'
+        type: "email",
       });
       return response.data;
     } catch (error) {
-      console.error('OTP request error:', error);
+      console.error("OTP request error:", error);
       throw error;
     }
   },
@@ -141,11 +181,11 @@ const authService = {
       const response = await axios.post(API_ENDPOINTS.OTP_VERIFY, {
         identifier,
         otp,
-        purpose
+        purpose,
       });
       return response.data;
     } catch (error) {
-      console.error('OTP verify error:', error);
+      console.error("OTP verify error:", error);
       throw error;
     }
   },
@@ -153,23 +193,32 @@ const authService = {
   // Refresh Token
   refreshToken: async () => {
     try {
-      const response = await axios.post('/api/auth/refresh');
-      
+      const response = await axios.post("/api/auth/refresh");
+
       if (response.data.accessToken) {
         // Update the appropriate token based on user role
         const role = response.data.role;
-        if (role === 'admin') {
-          localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, response.data.accessToken);
-        } else if (role === 'staff') {
-          localStorage.setItem(STORAGE_KEYS.STAFF_TOKEN, response.data.accessToken);
+        if (role === "admin") {
+          localStorage.setItem(
+            STORAGE_KEYS.ADMIN_TOKEN,
+            response.data.accessToken,
+          );
+        } else if (role === "staff") {
+          localStorage.setItem(
+            STORAGE_KEYS.STAFF_TOKEN,
+            response.data.accessToken,
+          );
         } else {
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.accessToken);
+          localStorage.setItem(
+            STORAGE_KEYS.ACCESS_TOKEN,
+            response.data.accessToken,
+          );
         }
       }
-      
+
       return response.data;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error("Token refresh error:", error);
       authService.logout();
       throw error;
     }
@@ -180,11 +229,11 @@ const authService = {
     const adminData = localStorage.getItem(STORAGE_KEYS.ADMIN_DATA);
     const staffData = localStorage.getItem(STORAGE_KEYS.STAFF_DATA);
     const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    
-    if (adminData) return { ...JSON.parse(adminData), role: 'admin' };
-    if (staffData) return { ...JSON.parse(staffData), role: 'staff' };
-    if (userData) return { ...JSON.parse(userData), role: 'user' };
-    
+
+    if (adminData) return { ...JSON.parse(adminData), role: "admin" };
+    if (staffData) return { ...JSON.parse(staffData), role: "staff" };
+    if (userData) return { ...JSON.parse(userData), role: "user" };
+
     return null;
   },
 
@@ -193,9 +242,9 @@ const authService = {
     const adminToken = localStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN);
     const staffToken = localStorage.getItem(STORAGE_KEYS.STAFF_TOKEN);
     const userToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    
+
     return !!(adminToken || staffToken || userToken);
-  }
+  },
 };
 
 export default authService;

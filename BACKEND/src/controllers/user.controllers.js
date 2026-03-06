@@ -333,3 +333,172 @@ export const updateUserProfile = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error while updating profile" });
     }
 };
+// 🚀 NEW: Join a workspace using workspace code
+export const joinWorkspace = async (req, res) => {
+    try {
+        const { workspaceCode } = req.body;
+        const userId = req.user._id;
+
+        console.log('🔑 Join Workspace Request:', { workspaceCode, userId });
+
+        if (!workspaceCode) {
+            return res.status(400).json({
+                success: false,
+                message: "Workspace code is required"
+            });
+        }
+
+        // Find admin/workspace by code
+        const Admin = (await import("../models/Admin.models.js")).default;
+        const admin = await Admin.findOne({ 
+            workspaceCode: workspaceCode.toUpperCase() 
+        }).select('organizationName workspaceCode email');
+
+        if (!admin) {
+            console.log('❌ Workspace not found:', workspaceCode);
+            return res.status(404).json({
+                success: false,
+                message: "Invalid workspace code. Please check and try again."
+            });
+        }
+
+        // Get user
+        const user = await User.findById(userId);
+
+        // Check if already joined
+        if (user.joinedWorkspaces.includes(admin._id)) {
+            return res.status(400).json({
+                success: false,
+                message: "You are already a member of this workspace"
+            });
+        }
+
+        // Add workspace to user
+        user.joinedWorkspaces.push(admin._id);
+        await user.save();
+
+        console.log('✅ User joined workspace:', {
+            userId,
+            workspace: admin.organizationName,
+            code: admin.workspaceCode
+        });
+
+        // Return updated user with populated workspaces
+        const updatedUser = await User.findById(userId)
+            .select("-password")
+            .populate({
+                path: 'joinedWorkspaces',
+                select: 'organizationName workspaceCode email profileImage'
+            });
+
+        res.status(200).json({
+            success: true,
+            message: `Successfully joined ${admin.organizationName}!`,
+            data: {
+                joinedWorkspaces: updatedUser.joinedWorkspaces,
+                newWorkspace: {
+                    id: admin._id,
+                    name: admin.organizationName,
+                    code: admin.workspaceCode
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("❌ Join Workspace Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error joining workspace. Please try again."
+        });
+    }
+};
+
+// 🚀 NEW: Leave a workspace
+export const leaveWorkspace = async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const userId = req.user._id;
+
+        console.log('👋 Leave Workspace Request:', { workspaceId, userId });
+
+        const user = await User.findById(userId);
+
+        // Check if user is in this workspace
+        if (!user.joinedWorkspaces.includes(workspaceId)) {
+            return res.status(400).json({
+                success: false,
+                message: "You are not a member of this workspace"
+            });
+        }
+
+        // Prevent leaving if it's the only workspace
+        if (user.joinedWorkspaces.length === 1) {
+            return res.status(400).json({
+                success: false,
+                message: "You must be in at least one workspace. Join another workspace before leaving this one."
+            });
+        }
+
+        // Remove workspace
+        user.joinedWorkspaces = user.joinedWorkspaces.filter(
+            id => id.toString() !== workspaceId
+        );
+        await user.save();
+
+        console.log('✅ User left workspace:', { userId, workspaceId });
+
+        // Return updated workspaces
+        const updatedUser = await User.findById(userId)
+            .select("-password")
+            .populate({
+                path: 'joinedWorkspaces',
+                select: 'organizationName workspaceCode email profileImage'
+            });
+
+        res.status(200).json({
+            success: true,
+            message: "Successfully left workspace",
+            data: {
+                joinedWorkspaces: updatedUser.joinedWorkspaces
+            }
+        });
+
+    } catch (error) {
+        console.error("❌ Leave Workspace Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error leaving workspace"
+        });
+    }
+};
+
+// 🚀 NEW: Get user's workspaces
+export const getMyWorkspaces = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const user = await User.findById(userId)
+            .select("joinedWorkspaces")
+            .populate({
+                path: 'joinedWorkspaces',
+                select: 'organizationName workspaceCode email phone profileImage createdAt',
+                populate: {
+                    path: 'permissions',
+                    select: 'canAssign canResolve canDelete'
+                }
+            });
+
+        res.status(200).json({
+            success: true,
+            count: user.joinedWorkspaces.length,
+            data: user.joinedWorkspaces
+        });
+
+    } catch (error) {
+        console.error("❌ Get Workspaces Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching workspaces"
+        });
+    }
+};

@@ -18,8 +18,13 @@ export const auth = async (req, res, next) => {
         // Verify access token
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         
-        // Find user
-        const user = await User.findById(decoded.id).select("-password");
+        // 🔧 FIX: Populate joinedWorkspaces with Admin details
+        const user = await User.findById(decoded.id)
+            .select("-password")
+            .populate({
+                path: 'joinedWorkspaces',
+                select: 'organizationName workspaceCode email profileImage'
+            });
         
         if (!user) {
             return res.status(401).json({
@@ -63,7 +68,14 @@ export const optionalAuth = async (req, res, next) => {
         if (authHeader && authHeader.startsWith("Bearer ")) {
             const token = authHeader.replace("Bearer ", "");
             const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-            const user = await User.findById(decoded.id).select("-password");
+            
+            // 🔧 FIX: Populate joinedWorkspaces
+            const user = await User.findById(decoded.id)
+                .select("-password")
+                .populate({
+                    path: 'joinedWorkspaces',
+                    select: 'organizationName workspaceCode email'
+                });
             
             if (user) {
                 req.user = user;

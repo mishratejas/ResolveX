@@ -5,7 +5,10 @@ import {
   refreshToken,
   logout,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  joinWorkspace,        // ← NEW
+  leaveWorkspace,       // ← NEW
+  getMyWorkspaces       // ← NEW
 } from "../controllers/user.controllers.js";
 import { auth } from "../middleware/auth.js";
 
@@ -20,6 +23,11 @@ router.post("/logout", logout);
 // Protected routes
 router.get("/profile", auth, getUserProfile);
 router.put("/profile", auth, updateUserProfile);
+
+// 🚀 NEW: Workspace management routes
+router.post("/join-workspace", auth, joinWorkspace);
+router.post("/leave-workspace/:workspaceId", auth, leaveWorkspace);
+router.get("/my-workspaces", auth, getMyWorkspaces);
 
 // Debug route
 router.get("/debug/all-users", async (req, res) => {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LandingPage from './pages/public/LandingPage';
 import Home from './pages/user/Home';
+import Profile from './components/user/Profile'; // Import Profile
+import WorkspaceSelector from './components/user/WorkspaceSelector'; // Import WorkspaceSelector
 import AuthModal from './components/auth/AuthModal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminIssuesPage from './pages/admin/AdminIssuesPage';
@@ -13,7 +15,6 @@ import StaffIssuesPage from './pages/staff/StaffIssuesPage';
 import AuditLogsPage from './pages/admin/AuditLogsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminDepartmentsPage from './pages/admin/AdminDepartmentsPage';
-
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
@@ -33,11 +34,25 @@ const RouteDebugger = () => {
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const [authStatus, setAuthStatus] = useState({
     isAuthenticated: false,
     userRole: '',
     userName: ''
   });
+
+  // Load current workspace on mount
+  useEffect(() => {
+    const savedWorkspace = localStorage.getItem('currentWorkspace');
+    if (savedWorkspace) {
+      try {
+        setCurrentWorkspace(JSON.parse(savedWorkspace));
+      } catch (error) {
+        console.error('Error parsing workspace:', error);
+        localStorage.removeItem('currentWorkspace');
+      }
+    }
+  }, []);
 
   // Check authentication on mount
   useEffect(() => {
@@ -133,6 +148,15 @@ function App() {
   const handleAuthSuccess = (role) => {
     console.log('✅ Auth success, role:', role);
     checkAuth();
+    
+    // 🚀 After successful login, redirect to profile for workspace selection
+    if (role === 'user') {
+      window.location.href = '/user/profile';
+    }
+  };
+
+  const handleWorkspaceSelect = (workspace) => {
+    setCurrentWorkspace(workspace);
   };
 
   const handleLogout = () => {
@@ -144,7 +168,9 @@ function App() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentWorkspace'); // Clear workspace on logout
     
+    setCurrentWorkspace(null);
     setAuthStatus({
       isAuthenticated: false,
       userRole: '',
@@ -209,12 +235,40 @@ function App() {
           } 
         />
 
-        {/* User Routes */}
+        {/* 🚀 NEW: User Profile Route - Entry point after login */}
+        <Route 
+          path="/user/profile" 
+          element={
+            <ProtectedRoute requiredRole="user" authStatus={authStatus}>
+              <Profile currentUser={authStatus} />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 🚀 NEW: Workspace Selector Route */}
+        <Route 
+          path="/user/select-workspace" 
+          element={
+            <ProtectedRoute requiredRole="user" authStatus={authStatus}>
+              <WorkspaceSelector onWorkspaceSelect={handleWorkspaceSelect} />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 🚀 UPDATED: User Home/Dashboard Route - Requires workspace */}
         <Route 
           path="/home/*" 
           element={
             <ProtectedRoute requiredRole="user" authStatus={authStatus}>
-              <Home authStatus={authStatus} onLogout={handleLogout} />
+              {currentWorkspace ? (
+                <Home 
+                  authStatus={authStatus} 
+                  onLogout={handleLogout}
+                  currentWorkspace={currentWorkspace}
+                />
+              ) : (
+                <Navigate to="/user/select-workspace" replace />
+              )}
             </ProtectedRoute>
           } 
         />
@@ -310,7 +364,6 @@ function App() {
           } 
         />
 
-
         {/* Fallback Routes */}
         <Route 
           path="/admin/*" 
@@ -326,6 +379,20 @@ function App() {
           element={
             <ProtectedRoute requiredRole="staff" authStatus={authStatus}>
               <Navigate to="/staff/dashboard" />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* User fallback - redirect to profile if no workspace, otherwise home */}
+        <Route 
+          path="/user/*" 
+          element={
+            <ProtectedRoute requiredRole="user" authStatus={authStatus}>
+              {currentWorkspace ? (
+                <Navigate to="/home" replace />
+              ) : (
+                <Navigate to="/user/profile" replace />
+              )}
             </ProtectedRoute>
           } 
         />
@@ -361,7 +428,7 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
     } else if (authStatus.userRole === 'staff') {
       redirectTo = '/staff/dashboard';
     } else if (authStatus.userRole === 'user') {
-      redirectTo = '/home';
+      redirectTo = '/user/profile'; // Changed from /home to /user/profile
     }
     
     console.log(`   Redirecting to: ${redirectTo}`);
