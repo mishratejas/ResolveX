@@ -106,6 +106,11 @@ const WorkspaceSelector = ({ onWorkspaceSelect }) => {
 
       if (response.data.success) {
         toast.success(response.data.message);
+        // Clear current workspace if leaving the active one
+        const currentWorkspace = JSON.parse(localStorage.getItem("currentWorkspace") || "{}");
+        if (currentWorkspace.id === workspaceId) {
+          localStorage.removeItem("currentWorkspace");
+        }
         await loadUserWorkspaces();
       }
     } catch (error) {
@@ -114,18 +119,19 @@ const WorkspaceSelector = ({ onWorkspaceSelect }) => {
     }
   };
 
-  // Update handleSelectWorkspace function:
-// Update handleSelectWorkspace function
+  // 🔧 FIXED: Save workspace with workspaceCode property
 const handleSelectWorkspace = (workspace) => {
-  // Save to localStorage as object with all necessary info
+  // Save to localStorage with proper structure
   const workspaceData = {
     id: workspace._id,
     name: workspace.organizationName,
-    code: workspace.workspaceCode,
+    workspaceCode: workspace.workspaceCode, // ← FIXED: Use workspaceCode, not code
     email: workspace.email,
+    phone: workspace.phone || '',
     joinedAt: new Date().toISOString()
   };
 
+  console.log('🏢 Selecting workspace:', workspaceData);
   localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
 
   // Notify parent
@@ -204,14 +210,14 @@ const handleSelectWorkspace = (workspace) => {
                             <img
                               src={workspace.profileImage}
                               alt={workspace.organizationName}
-                              className="w-full h-full rounded-xl object-cover"
+                              className="w-full h-full object-cover rounded-xl"
                             />
                           ) : (
                             <Building2 className="w-8 h-8 text-blue-600" />
                           )}
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
                             {workspace.organizationName}
                           </h3>
                           <div className="space-y-2 text-sm text-gray-600">

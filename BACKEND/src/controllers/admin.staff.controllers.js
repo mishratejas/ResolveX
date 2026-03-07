@@ -1,13 +1,15 @@
+import mongoose from "mongoose"; // 🚀 Added to support aggregation matching
 import Staff from "../models/Staff.models.js";
 import Department from "../models/Department.model.js";
 import UserComplaint from "../models/UserComplaint.models.js";
 
-// Get all staff with stats
+// Get all staff with stats (WORKSPACE LOCKED)
 export const getAllStaff = async (req, res) => {
     try {
+        const currentAdminId = req.admin?._id || req.admin?.id;
         const { page = 1, limit = 20, search = '', department = '', status = '' } = req.query;
         
-        const query = {};
+        const query = { adminId: currentAdminId };
         
         if (search) {
             query.$or = [
@@ -18,10 +20,8 @@ export const getAllStaff = async (req, res) => {
         }
         
         if (department) {
-            const dept = await Department.findOne({ name: department });
-            if (dept) {
-                query.department = dept._id;
-            }
+            const dept = await Department.findOne({ name: department, adminId: currentAdminId });
+            if (dept) query.department = dept._id;
         }
         
         if (status === 'active') {
@@ -40,10 +40,12 @@ export const getAllStaff = async (req, res) => {
         
         const total = await Staff.countDocuments(query);
         
-        // Get performance stats for each staff
         const staffWithStats = await Promise.all(
             staff.map(async (staffMember) => {
-                const assignedComplaints = await UserComplaint.find({ assignedTo: staffMember._id });
+                const assignedComplaints = await UserComplaint.find({ 
+                    assignedTo: staffMember._id,
+                    adminId: currentAdminId 
+                });
                 const resolvedComplaints = assignedComplaints.filter(c => c.status === 'resolved');
                 
                 let resolutionRate = 0;
@@ -51,7 +53,6 @@ export const getAllStaff = async (req, res) => {
                     resolutionRate = Math.round((resolvedComplaints.length / assignedComplaints.length) * 100);
                 }
                 
-                // Calculate average resolution time
                 let avgResolutionTime = 0;
                 if (resolvedComplaints.length > 0) {
                     const totalTime = resolvedComplaints.reduce((sum, complaint) => {
@@ -81,34 +82,29 @@ export const getAllStaff = async (req, res) => {
             message: 'Staff list retrieved successfully',
             data: {
                 staff: staffWithStats,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total,
-                    totalPages: Math.ceil(total / limit)
-                }
+                pagination: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) }
             }
         });
         
     } catch (error) {
         console.error('Error fetching staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching staff data'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching staff data' });
     }
 };
 
-// Get staff statistics
-// ✅ ADD THIS FUNCTION - It was missing but referenced in routes
+// Get staff statistics (WORKSPACE LOCKED)
 export const getStaffStats = async (req, res) => {
     try {
-        const totalStaff = await Staff.countDocuments();
-        const activeStaff = await Staff.countDocuments({ isActive: true });
-        const inactiveStaff = await Staff.countDocuments({ isActive: false });
+        const adminId = req.admin?._id || req.admin?.id;
+
+        // 🚀 THE FIX: Pass adminId to all countDocuments
+        const totalStaff = await Staff.countDocuments({ adminId });
+        const activeStaff = await Staff.countDocuments({ adminId, isActive: true });
+        const inactiveStaff = await Staff.countDocuments({ adminId, isActive: false });
         
         // Department distribution
         const departmentStats = await Staff.aggregate([
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId) } }, // 🚀 THE FIX
             {
                 $lookup: {
                     from: 'departments',
@@ -118,25 +114,18 @@ export const getStaffStats = async (req, res) => {
                 }
             },
             { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
-            {
-                $group: {
-                    _id: '$dept.name',
-                    count: { $sum: 1 }
-                }
-            },
+            { $group: { _id: '$dept.name', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
         
         // Performance distribution
         const performanceStats = await UserComplaint.aggregate([
-            { $match: { assignedTo: { $exists: true, $ne: null } } },
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, // 🚀 THE FIX
             {
                 $group: {
                     _id: '$assignedTo',
                     total: { $sum: 1 },
-                    resolved: {
-                        $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] }
-                    }
+                    resolved: { $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] } }
                 }
             },
             {
@@ -154,89 +143,61 @@ export const getStaffStats = async (req, res) => {
                 $group: {
                     _id: null,
                     avgResolutionRate: { $avg: '$resolutionRate' },
-                    highPerformers: {
-                        $sum: { $cond: [{ $gte: ['$resolutionRate', 80] }, 1, 0] }
-                    },
+                    highPerformers: { $sum: { $cond: [{ $gte: ['$resolutionRate', 80] }, 1, 0] } },
                     mediumPerformers: {
                         $sum: { $cond: [
-                            { $and: [
-                                { $lt: ['$resolutionRate', 80] },
-                                { $gte: ['$resolutionRate', 50] }
-                            ]},
-                            1,
-                            0
+                            { $and: [ { $lt: ['$resolutionRate', 80] }, { $gte: ['$resolutionRate', 50] } ]}, 1, 0
                         ]}
                     },
-                    lowPerformers: {
-                        $sum: { $cond: [{ $lt: ['$resolutionRate', 50] }, 1, 0] }
-                    }
+                    lowPerformers: { $sum: { $cond: [{ $lt: ['$resolutionRate', 50] }, 1, 0] } }
                 }
             }
         ]);
         
-        // Get department names list
-        const departments = await Department.find().select('name');
+        // 🚀 THE FIX: Only fetch departments for this admin
+        const departments = await Department.find({ adminId }).select('name');
         
         const stats = {
-            total: totalStaff,
-            active: activeStaff,
-            inactive: inactiveStaff,
-            departments: departmentStats,
-            departmentList: departments,
-            performance: performanceStats[0] || {
-                avgResolutionRate: 0,
-                highPerformers: 0,
-                mediumPerformers: 0,
-                lowPerformers: 0
-            }
+            total: totalStaff, active: activeStaff, inactive: inactiveStaff,
+            departments: departmentStats, departmentList: departments,
+            performance: performanceStats[0] || { avgResolutionRate: 0, highPerformers: 0, mediumPerformers: 0, lowPerformers: 0 }
         };
         
-        res.status(200).json({
-            success: true,
-            message: 'Staff statistics retrieved successfully',
-            data: stats
-        });
+        res.status(200).json({ success: true, message: 'Staff statistics retrieved successfully', data: stats });
         
     } catch (error) {
         console.error('Error fetching staff stats:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching staff statistics',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Error fetching staff statistics', error: error.message });
     }
 };
 
-// ✅ NEW: Get single staff member details
+// Get single staff member details (WORKSPACE LOCKED)
 export const getStaffDetails = async (req, res) => {
     try {
         const { id } = req.params;
+        const adminId = req.admin?._id || req.admin?.id;
         
-        const staff = await Staff.findById(id)
+        // 🚀 THE FIX: Ensure the staff member belongs to this admin
+        const staff = await Staff.findOne({ _id: id, adminId })
             .populate('department', 'name category')
             .select('-password');
         
         if (!staff) {
-            return res.status(404).json({
-                success: false,
-                message: 'Staff member not found'
-            });
+            return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
         }
         
-        // Get staff's complaint history
-        const complaints = await UserComplaint.find({ assignedTo: id })
+        // 🚀 THE FIX: Ensure complaints belong to this admin
+        const complaints = await UserComplaint.find({ assignedTo: id, adminId })
             .populate('user', 'name email')
             .populate('department', 'name')
             .sort({ createdAt: -1 })
             .limit(20);
         
-        // Calculate detailed stats
         const totalAssigned = complaints.length;
         const resolved = complaints.filter(c => c.status === 'resolved').length;
         const pending = complaints.filter(c => c.status === 'pending').length;
         const inProgress = complaints.filter(c => c.status === 'in-progress').length;
         
-        // Calculate average resolution time
         const resolvedComplaints = complaints.filter(c => c.status === 'resolved');
         let avgResolutionTime = 0;
         if (resolvedComplaints.length > 0) {
@@ -252,297 +213,119 @@ export const getStaffDetails = async (req, res) => {
             ...staff.toObject(),
             recentComplaints: complaints.slice(0, 10),
             stats: {
-                totalAssigned,
-                resolved,
-                pending,
-                inProgress,
+                totalAssigned, resolved, pending, inProgress,
                 resolutionRate: totalAssigned > 0 ? Math.round((resolved / totalAssigned) * 100) : 0,
                 avgResolutionTime,
                 performanceScore: totalAssigned > 0 ? Math.round(((resolved / totalAssigned) * 70) + ((avgResolutionTime < 7 ? 30 : 15))) : 0
             }
         };
         
-        res.status(200).json({
-            success: true,
-            message: 'Staff details retrieved successfully',
-            data: staffDetails
-        });
+        res.status(200).json({ success: true, message: 'Staff details retrieved successfully', data: staffDetails });
         
     } catch (error) {
         console.error('Error fetching staff details:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching staff details'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching staff details' });
     }
 };
 
-// Create new staff (admin only)
-// export const createStaff = async (req, res) => {
-//     try {
-//         const { name, email, password, phone, staffId, department, role = 'staff' } = req.body;
-        
-//         // Check if staff already exists
-//         const existingStaff = await Staff.findOne({
-//             $or: [{ email }, { staffId }]
-//         });
-        
-//         if (existingStaff) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Staff member with this email or ID already exists'
-//             });
-//         }
-        
-//         // Validate department
-//         let departmentId = null;
-//         if (department) {
-//             const dept = await Department.findOne({ name: department });
-//             if (!dept) {
-//                 return res.status(400).json({
-//                     success: false,
-//                     message: 'Invalid department specified'
-//                 });
-//             }
-//             departmentId = dept._id;
-//         }
-        
-//         const newStaff = new Staff({
-//             name,
-//             email,
-//             password, // Note: Password should be hashed in the model's pre-save hook
-//             phone,
-//             staffId,
-//             department: departmentId,
-//             role,
-//             isActive: true
-//         });
-        
-//         await newStaff.save();
-        
-//         const populatedStaff = await Staff.findById(newStaff._id)
-//             .populate('department', 'name category');
-        
-//         res.status(201).json({
-//             success: true,
-//             message: 'Staff member created successfully',
-//             data: populatedStaff
-//         });
-        
-//     } catch (error) {
-//         console.error('Error creating staff:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Error creating staff member'
-//         });
-//     }
-// };
-
 export const createStaff = async (req, res) => {
     try {
-        // 🚀 Grab the admin's ID from the auth token
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
-
         const { name, email, password, phone, staffId, department, role = 'staff', isActive } = req.body;
         
-        // Check if staff already exists
-        const existingStaff = await Staff.findOne({
-            $or: [{ email }, { staffId }]
-        });
+        const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
         
         if (existingStaff) {
-            return res.status(400).json({
-                success: false,
-                message: 'Staff member with this email or ID already exists'
-            });
+            return res.status(400).json({ success: false, message: 'Staff member with this email or ID already exists' });
         }
         
-        // Validate department
         let departmentId = null;
         if (department) {
-            // 🚀 FIX: Use findById because your frontend sends the department ID, not the name
-            const dept = await Department.findById(department);
+            // 🚀 THE FIX: Ensure the department belongs to this admin!
+            const dept = await Department.findOne({ _id: department, adminId: currentAdminId });
             if (!dept) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid department specified'
-                });
+                return res.status(400).json({ success: false, message: 'Invalid department specified for your workspace' });
             }
             departmentId = dept._id;
         }
         
         const newStaff = new Staff({
-            name,
-            email,
-            password, // Note: Password should be hashed in the model's pre-save hook
-            phone,
-            staffId,
-            department: departmentId,
-            role,
+            name, email, password, phone, staffId, department: departmentId, role,
             isActive: isActive !== undefined ? isActive : true,
-            adminId: currentAdminId, // 🚀 ADDED: Required to prevent database crash
-            isApproved: true         // 🚀 ADDED: Bypasses the "Pending" tab!
+            adminId: currentAdminId, 
+            isApproved: true 
         });
         
         await newStaff.save();
         
-        const populatedStaff = await Staff.findById(newStaff._id)
-            .populate('department', 'name category');
-        
-        res.status(201).json({
-            success: true,
-            message: 'Staff member created and approved successfully',
-            data: populatedStaff
-        });
+        const populatedStaff = await Staff.findById(newStaff._id).populate('department', 'name category');
+        res.status(201).json({ success: true, message: 'Staff member created and approved successfully', data: populatedStaff });
         
     } catch (error) {
         console.error('Error creating staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error creating staff member'
-        });
+        res.status(500).json({ success: false, message: 'Error creating staff member' });
     }
 };
 
-// Update staff
-// export const updateStaff = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const updates = req.body;
-        
-//         const staff = await Staff.findById(id);
-        
-//         if (!staff) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: 'Staff member not found'
-//             });
-//         }
-        
-//         // Handle department update
-//         if (updates.department) {
-//             const dept = await Department.findOne({ name: updates.department });
-//             if (dept) {
-//                 updates.department = dept._id;
-//             } else {
-//                 return res.status(400).json({
-//                     success: false,
-//                     message: 'Invalid department specified'
-//                 });
-//             }
-//         }
-        
-//         // Update staff
-//         Object.keys(updates).forEach(key => {
-//             if (key !== 'password') {
-//                 staff[key] = updates[key];
-//             }
-//         });
-        
-//         // Handle password update separately
-//         if (updates.password) {
-//             staff.password = updates.password;
-//         }
-        
-//         await staff.save();
-        
-//         const updatedStaff = await Staff.findById(id)
-//             .populate('department', 'name category')
-//             .select('-password');
-        
-//         res.status(200).json({
-//             success: true,
-//             message: 'Staff member updated successfully',
-//             data: updatedStaff
-//         });
-        
-//     } catch (error) {
-//         console.error('Error updating staff:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Error updating staff member'
-//         });
-//     }
-// };
-
 export const updateStaff = async (req, res) => {
     try {
-        const { id } = req.params; // The staff member's ID from the URL
+        const { id } = req.params;
+        const adminId = req.admin?._id || req.admin?.id;
         const { name, email, phone, department, password, isActive } = req.body;
 
-        // 1. Find the existing staff member
-        const staffMember = await Staff.findById(id);
+        // 🚀 THE FIX: Ensure admin owns this staff member
+        const staffMember = await Staff.findOne({ _id: id, adminId });
         if (!staffMember) {
-            return res.status(404).json({ success: false, message: 'Staff member not found' });
+            return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
         }
 
-        // 2. Validate and update Department
-        // 🚀 THE FIX: Check if they actually provided a department AND if it's different from the current one
-        if (department && staffMember.department.toString() !== department.toString()) {
-            const dept = await Department.findById(department);
+        if (department && staffMember.department?.toString() !== department.toString()) {
+            // 🚀 THE FIX: Ensure department belongs to admin
+            const dept = await Department.findOne({ _id: department, adminId });
             if (!dept) {
                 return res.status(400).json({ success: false, message: 'Invalid department specified' });
             }
 
-            // 🚀 THE DB HOOK: Unassign all active tickets from this staff member!
-            // This ensures they don't take their old department's tickets to their new department.
             await UserComplaint.updateMany(
-                { assignedTo: staffMember._id, status: { $in: ['pending', 'in-progress'] } },
+                { assignedTo: staffMember._id, adminId, status: { $in: ['pending', 'in-progress'] } },
                 { $set: { assignedTo: null, status: 'pending' } }
             );
-
             staffMember.department = dept._id;
         }
 
-        // 3. Update the rest of the fields
         if (name) staffMember.name = name;
         if (email) staffMember.email = email;
         if (phone !== undefined) staffMember.phone = phone;
         if (isActive !== undefined) staffMember.isActive = isActive;
         
-        // 4. Update password ONLY if the admin typed a new one
         if (password && password.trim() !== '') {
-            staffMember.password = password; // Your Mongoose pre-save hook will hash this automatically!
+            staffMember.password = password; 
         }
 
-        // Save the updates
         await staffMember.save();
-
-        // Fetch the updated staff member with populated department data to return
         const updatedStaff = await Staff.findById(id).populate('department', 'name category');
 
-        res.status(200).json({
-            success: true,
-            message: 'Staff member updated successfully',
-            data: updatedStaff
-        });
+        res.status(200).json({ success: true, message: 'Staff member updated successfully', data: updatedStaff });
 
     } catch (error) {
         console.error('Error updating staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error while updating staff member'
-        });
+        res.status(500).json({ success: false, message: 'Server error while updating staff member' });
     }
 };
 
-// Delete staff
 export const deleteStaff = async (req, res) => {
     try {
         const { id } = req.params;
+        const adminId = req.admin?._id || req.admin?.id;
         
-        const staff = await Staff.findById(id);
+        // 🚀 THE FIX: Find by ID AND adminId
+        const staff = await Staff.findOne({ _id: id, adminId });
         
-        if (!staff) {
-            return res.status(404).json({
-                success: false,
-                message: 'Staff member not found'
-            });
-        }
+        if (!staff) return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
         
-        // 🚀 THE FIX: Only count complaints that are "pending" or "in-progress"
         const activeComplaints = await UserComplaint.countDocuments({ 
             assignedTo: id,
+            adminId,
             status: { $in: ['pending', 'in-progress'] }
         });
         
@@ -554,80 +337,57 @@ export const deleteStaff = async (req, res) => {
         }
         
         await Staff.findByIdAndDelete(id);
-        
-        res.status(200).json({
-            success: true,
-            message: 'Staff member deleted successfully'
-        });
+        res.status(200).json({ success: true, message: 'Staff member deleted successfully' });
         
     } catch (error) {
         console.error('Error deleting staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error deleting staff member'
-        });
+        res.status(500).json({ success: false, message: 'Error deleting staff member' });
     }
 };
 
-// Bulk operations
+// Bulk operations (WORKSPACE LOCKED)
 export const bulkActivateStaff = async (req, res) => {
     try {
         const { staffIds } = req.body;
+        const adminId = req.admin?._id || req.admin?.id;
         
         await Staff.updateMany(
-            { _id: { $in: staffIds } },
+            { _id: { $in: staffIds }, adminId }, // 🚀 THE FIX
             { isActive: true }
         );
-        
-        res.status(200).json({
-            success: true,
-            message: 'Staff members activated successfully'
-        });
-        
+        res.status(200).json({ success: true, message: 'Staff members activated successfully' });
     } catch (error) {
-        console.error('Error activating staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error activating staff members'
-        });
+        res.status(500).json({ success: false, message: 'Error activating staff members' });
     }
 };
 
 export const bulkDeactivateStaff = async (req, res) => {
     try {
         const { staffIds } = req.body;
+        const adminId = req.admin?._id || req.admin?.id;
         
         await Staff.updateMany(
-            { _id: { $in: staffIds } },
+            { _id: { $in: staffIds }, adminId }, // 🚀 THE FIX
             { isActive: false }
         );
-        
-        res.status(200).json({
-            success: true,
-            message: 'Staff members deactivated successfully'
-        });
-        
+        res.status(200).json({ success: true, message: 'Staff members deactivated successfully' });
     } catch (error) {
-        console.error('Error deactivating staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error deactivating staff members'
-        });
+        res.status(500).json({ success: false, message: 'Error deactivating staff members' });
     }
 };
 
-// Get top performers
+// Get top performers (WORKSPACE LOCKED)
 export const getTopPerformers = async (req, res) => {
     try {
+        const adminId = req.admin?._id || req.admin?.id;
+
         const topPerformers = await UserComplaint.aggregate([
-            { $match: { assignedTo: { $exists: true, $ne: null } } },
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, // 🚀 THE FIX
             {
                 $group: {
                     _id: '$assignedTo',
                     totalAssigned: { $sum: 1 },
-                    resolved: {
-                        $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] }
-                    }
+                    resolved: { $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] } }
                 }
             },
             {
@@ -635,8 +395,7 @@ export const getTopPerformers = async (req, res) => {
                     resolutionRate: {
                         $cond: [
                             { $gt: ['$totalAssigned', 0] },
-                            { $multiply: [{ $divide: ['$resolved', '$totalAssigned'] }, 100] },
-                            0
+                            { $multiply: [{ $divide: ['$resolved', '$totalAssigned'] }, 100] }, 0
                         ]
                     }
                 }
@@ -666,31 +425,20 @@ export const getTopPerformers = async (req, res) => {
             }
         ]);
         
-        // Populate department names
         const performersWithDept = await Promise.all(
             topPerformers.map(async (performer) => {
                 if (performer.department) {
                     const dept = await Department.findById(performer.department);
-                    return {
-                        ...performer,
-                        department: dept ? dept.name : 'N/A'
-                    };
+                    return { ...performer, department: dept ? dept.name : 'N/A' };
                 }
                 return performer;
             })
         );
         
-        res.status(200).json({
-            success: true,
-            message: 'Top performers retrieved successfully',
-            data: performersWithDept
-        });
+        res.status(200).json({ success: true, message: 'Top performers retrieved successfully', data: performersWithDept });
         
     } catch (error) {
         console.error('Error fetching top performers:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching top performers'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching top performers' });
     }
 };

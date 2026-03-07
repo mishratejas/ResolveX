@@ -1,33 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import LandingPage from './pages/public/LandingPage';
-import Home from './pages/user/Home';
-import Profile from './components/user/Profile'; // Import Profile
-import WorkspaceSelector from './components/user/WorkspaceSelector'; // Import WorkspaceSelector
-import AuthModal from './components/auth/AuthModal';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminIssuesPage from './pages/admin/AdminIssuesPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminStaffPage from './pages/admin/AdminStaffPage';
-import AnalyticsPage from './pages/admin/AnalyticsPage';
-import StaffDashboard from './pages/staff/StaffDashboard';
-import StaffIssuesPage from './pages/staff/StaffIssuesPage';
-import AuditLogsPage from './pages/admin/AuditLogsPage';
-import AdminSettingsPage from './pages/admin/AdminSettingsPage';
-import AdminDepartmentsPage from './pages/admin/AdminDepartmentsPage';
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import LandingPage from "./pages/public/LandingPage";
+import Home from "./pages/user/Home";
+import Profile from "./components/user/Profile"; // Import Profile
+import WorkspaceSelector from "./components/user/WorkspaceSelector"; // Import WorkspaceSelector
+import AuthModal from "./components/auth/AuthModal";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminIssuesPage from "./pages/admin/AdminIssuesPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminStaffPage from "./pages/admin/AdminStaffPage";
+import AnalyticsPage from "./pages/admin/AnalyticsPage";
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffIssuesPage from "./pages/staff/StaffIssuesPage";
+import AuditLogsPage from "./pages/admin/AuditLogsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
 // Debug Component to see current route
 const RouteDebugger = () => {
   const location = useLocation();
-  
+
   useEffect(() => {
-    console.log('📍 Current Route:', location.pathname);
-    console.log('📋 Route State:', location.state);
-    console.log('🔍 Query Params:', new URLSearchParams(location.search).toString());
+    console.log("📍 Current Route:", location.pathname);
+    console.log("📋 Route State:", location.state);
+    console.log(
+      "🔍 Query Params:",
+      new URLSearchParams(location.search).toString(),
+    );
   }, [location]);
-  
+
   return null;
 };
 
@@ -37,19 +47,19 @@ function App() {
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const [authStatus, setAuthStatus] = useState({
     isAuthenticated: false,
-    userRole: '',
-    userName: ''
+    userRole: "",
+    userName: "",
   });
 
   // Load current workspace on mount
   useEffect(() => {
-    const savedWorkspace = localStorage.getItem('currentWorkspace');
+    const savedWorkspace = localStorage.getItem("currentWorkspace");
     if (savedWorkspace) {
       try {
         setCurrentWorkspace(JSON.parse(savedWorkspace));
       } catch (error) {
-        console.error('Error parsing workspace:', error);
-        localStorage.removeItem('currentWorkspace');
+        console.error("Error parsing workspace:", error);
+        localStorage.removeItem("currentWorkspace");
       }
     }
   }, []);
@@ -57,44 +67,44 @@ function App() {
   // Check authentication on mount
   useEffect(() => {
     checkAuth();
-    
+
     // Also check when window gains focus
     const handleFocus = () => {
       checkAuth();
     };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   const checkAuth = () => {
-    console.log('🔐 Checking authentication...');
-    
-    const adminToken = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
-    const staffToken = localStorage.getItem('staffToken');
-    const staffData = localStorage.getItem('staffData');
-    const userToken = localStorage.getItem('accessToken');
-    const userData = localStorage.getItem('user');
-    
-    console.log('📊 Auth check results:', {
-      adminToken: adminToken ? '✅ Present' : '❌ Missing',
-      adminData: adminData ? '✅ Present' : '❌ Missing',
-      staffToken: staffToken ? '✅ Present' : '❌ Missing',
-      userToken: userToken ? '✅ Present' : '❌ Missing'
+    console.log("🔐 Checking authentication...");
+
+    const adminToken = localStorage.getItem("adminToken");
+    const adminData = localStorage.getItem("adminData");
+    const staffToken = localStorage.getItem("staffToken");
+    const staffData = localStorage.getItem("staffData");
+    const userToken = localStorage.getItem("accessToken");
+    const userData = localStorage.getItem("user");
+
+    console.log("📊 Auth check results:", {
+      adminToken: adminToken ? "✅ Present" : "❌ Missing",
+      adminData: adminData ? "✅ Present" : "❌ Missing",
+      staffToken: staffToken ? "✅ Present" : "❌ Missing",
+      userToken: userToken ? "✅ Present" : "❌ Missing",
     });
 
     if (adminToken && adminData) {
       try {
         const parsedData = JSON.parse(adminData);
-        console.log('👑 Admin data:', parsedData);
+        console.log("👑 Admin data:", parsedData);
         setAuthStatus({
           isAuthenticated: true,
-          userRole: 'admin',
-          userName: parsedData.name || parsedData.email || 'Admin'
+          userRole: "admin",
+          userName: parsedData.name || parsedData.email || "Admin",
         });
       } catch (error) {
-        console.error('Error parsing admin data:', error);
+        console.error("Error parsing admin data:", error);
         clearAuth();
       }
     } else if (staffToken && staffData) {
@@ -102,11 +112,11 @@ function App() {
         const parsedData = JSON.parse(staffData);
         setAuthStatus({
           isAuthenticated: true,
-          userRole: 'staff',
-          userName: parsedData.name || parsedData.email || 'Staff'
+          userRole: "staff",
+          userName: parsedData.name || parsedData.email || "Staff",
         });
       } catch (error) {
-        console.error('Error parsing staff data:', error);
+        console.error("Error parsing staff data:", error);
         clearAuth();
       }
     } else if (userToken && userData) {
@@ -114,30 +124,30 @@ function App() {
         const parsedData = JSON.parse(userData);
         setAuthStatus({
           isAuthenticated: true,
-          userRole: 'user',
-          userName: parsedData.name || parsedData.email || 'User'
+          userRole: "user",
+          userName: parsedData.name || parsedData.email || "User",
         });
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error("Error parsing user data:", error);
         clearAuth();
       }
     } else {
       clearAuth();
     }
-    
+
     setIsLoading(false);
   };
 
   const clearAuth = () => {
     setAuthStatus({
       isAuthenticated: false,
-      userRole: '',
-      userName: ''
+      userRole: "",
+      userName: "",
     });
   };
 
-  const openAuthModal = (type = 'user') => {
-    console.log('Opening auth modal for:', type);
+  const openAuthModal = (type = "user") => {
+    console.log("Opening auth modal for:", type);
     setShowAuthModal(true);
   };
 
@@ -146,12 +156,12 @@ function App() {
   };
 
   const handleAuthSuccess = (role) => {
-    console.log('✅ Auth success, role:', role);
+    console.log("✅ Auth success, role:", role);
     checkAuth();
-    
+
     // 🚀 After successful login, redirect to profile for workspace selection
-    if (role === 'user') {
-      window.location.href = '/user/profile';
+    if (role === "user") {
+      window.location.href = "/user/profile";
     }
   };
 
@@ -160,39 +170,39 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log('🚪 Logging out...');
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
-    localStorage.removeItem('staffToken');
-    localStorage.removeItem('staffData');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('currentWorkspace'); // Clear workspace on logout
-    
+    console.log("🚪 Logging out...");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminData");
+    localStorage.removeItem("staffToken");
+    localStorage.removeItem("staffData");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("currentWorkspace"); // Clear workspace on logout
+
     setCurrentWorkspace(null);
     setAuthStatus({
       isAuthenticated: false,
-      userRole: '',
-      userName: ''
+      userRole: "",
+      userName: "",
     });
-    
-    window.location.href = '/';
+
+    window.location.href = "/";
   };
 
   // Listen for auth events
   useEffect(() => {
     const handleAuthEvent = (e) => {
-      console.log('📡 Auth event received:', e.detail);
+      console.log("📡 Auth event received:", e.detail);
       checkAuth();
     };
 
-    window.addEventListener('userLogin', handleAuthEvent);
-    window.addEventListener('userLogout', handleAuthEvent);
-    
+    window.addEventListener("userLogin", handleAuthEvent);
+    window.addEventListener("userLogout", handleAuthEvent);
+
     return () => {
-      window.removeEventListener('userLogin', handleAuthEvent);
-      window.removeEventListener('userLogout', handleAuthEvent);
+      window.removeEventListener("userLogin", handleAuthEvent);
+      window.removeEventListener("userLogout", handleAuthEvent);
     };
   }, []);
 
@@ -211,10 +221,10 @@ function App() {
     <Router>
       {/* Debug route info */}
       <RouteDebugger />
-      
+
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal 
+        <AuthModal
           isOpen={showAuthModal}
           onClose={closeAuthModal}
           baseUrl={BASE_URL}
@@ -224,45 +234,45 @@ function App() {
 
       <Routes>
         {/* Public Route - Landing Page */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
-            <LandingPage 
+            <LandingPage
               openAuthModal={openAuthModal}
               authStatus={authStatus}
               onLogout={handleLogout}
             />
-          } 
+          }
         />
 
         {/* 🚀 NEW: User Profile Route - Entry point after login */}
-        <Route 
-          path="/user/profile" 
+        <Route
+          path="/user/profile"
           element={
             <ProtectedRoute requiredRole="user" authStatus={authStatus}>
               <Profile currentUser={authStatus} />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* 🚀 NEW: Workspace Selector Route */}
-        <Route 
-          path="/user/select-workspace" 
+        <Route
+          path="/user/select-workspace"
           element={
             <ProtectedRoute requiredRole="user" authStatus={authStatus}>
               <WorkspaceSelector onWorkspaceSelect={handleWorkspaceSelect} />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* 🚀 UPDATED: User Home/Dashboard Route - Requires workspace */}
-        <Route 
-          path="/home/*" 
+        <Route
+          path="/home/*"
           element={
             <ProtectedRoute requiredRole="user" authStatus={authStatus}>
               {currentWorkspace ? (
-                <Home 
-                  authStatus={authStatus} 
+                <Home
+                  authStatus={authStatus}
                   onLogout={handleLogout}
                   currentWorkspace={currentWorkspace}
                 />
@@ -270,122 +280,130 @@ function App() {
                 <Navigate to="/user/select-workspace" replace />
               )}
             </ProtectedRoute>
-          } 
-        />
+          }
+        >
+          {/* Nested routes inside Home */}
+          <Route
+            path="profile"
+            element={<Profile currentUser={authStatus} />}
+          />
+        </Route>
 
         {/* Admin Routes */}
-        <Route 
-          path="/admin/dashboard" 
+        <Route
+          path="/admin/dashboard"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminDashboard authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/admin/departments" 
-          element={
-          <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
-            <AdminDepartmentsPage />
-          </ProtectedRoute>
           }
         />
 
-        <Route 
-          path="/admin/issues" 
+        <Route
+          path="/admin/departments"
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminDepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/issues"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminIssuesPage authStatus={authStatus} />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/admin/analytics" 
+        <Route
+          path="/admin/analytics"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AnalyticsPage authStatus={authStatus} />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/admin/users" 
+        <Route
+          path="/admin/users"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminUsersPage authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/audit" 
+        <Route
+          path="/admin/audit"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AuditLogsPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/staff" 
+        <Route
+          path="/admin/staff"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminStaffPage authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/admin/settings" 
-          element={
-            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
-              <AdminSettingsPage authStatus={authStatus} onLogout={handleLogout} />
-            </ProtectedRoute>
-          } 
+          }
         />
 
-        
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminSettingsPage
+                authStatus={authStatus}
+                onLogout={handleLogout}
+              />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Staff Routes */}
-        <Route 
-          path="/staff/dashboard" 
+        <Route
+          path="/staff/dashboard"
           element={
             <ProtectedRoute requiredRole="staff" authStatus={authStatus}>
               <StaffDashboard authStatus={authStatus} onLogout={handleLogout} />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/staff/issues" 
+        <Route
+          path="/staff/issues"
           element={
             <ProtectedRoute requiredRole="staff" authStatus={authStatus}>
               <StaffIssuesPage authStatus={authStatus} />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Fallback Routes */}
-        <Route 
-          path="/admin/*" 
+        <Route
+          path="/admin/*"
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <Navigate to="/admin/dashboard" />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/staff/*" 
+        <Route
+          path="/staff/*"
           element={
             <ProtectedRoute requiredRole="staff" authStatus={authStatus}>
               <Navigate to="/staff/dashboard" />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* User fallback - redirect to profile if no workspace, otherwise home */}
-        <Route 
-          path="/user/*" 
+        <Route
+          path="/user/*"
           element={
             <ProtectedRoute requiredRole="user" authStatus={authStatus}>
               {currentWorkspace ? (
@@ -394,7 +412,7 @@ function App() {
                 <Navigate to="/user/profile" replace />
               )}
             </ProtectedRoute>
-          } 
+          }
         />
 
         <Route path="*" element={<Navigate to="/" />} />
@@ -406,7 +424,7 @@ function App() {
 // Updated ProtectedRoute component
 const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
   const location = useLocation();
-  
+
   console.log(`🛡️ ProtectedRoute check:`);
   console.log(`   Required Role: ${requiredRole}`);
   console.log(`   Current Auth:`, authStatus);
@@ -414,38 +432,42 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
 
   // If not authenticated, redirect to login
   if (!authStatus.isAuthenticated) {
-    console.log('❌ Not authenticated, redirecting to /');
+    console.log("❌ Not authenticated, redirecting to /");
     return <Navigate to="/" state={{ from: location.pathname }} />;
   }
 
   // If authenticated but wrong role, redirect to appropriate dashboard
   if (requiredRole && authStatus.userRole !== requiredRole) {
-    console.log(`⚠️ Role mismatch: User is ${authStatus.userRole}, but route requires ${requiredRole}`);
-    
-    let redirectTo = '/';
-    if (authStatus.userRole === 'admin') {
-      redirectTo = '/admin/dashboard';
-    } else if (authStatus.userRole === 'staff') {
-      redirectTo = '/staff/dashboard';
-    } else if (authStatus.userRole === 'user') {
-      redirectTo = '/user/profile'; // Changed from /home to /user/profile
+    console.log(
+      `⚠️ Role mismatch: User is ${authStatus.userRole}, but route requires ${requiredRole}`,
+    );
+
+    let redirectTo = "/";
+    if (authStatus.userRole === "admin") {
+      redirectTo = "/admin/dashboard";
+    } else if (authStatus.userRole === "staff") {
+      redirectTo = "/staff/dashboard";
+    } else if (authStatus.userRole === "user") {
+      redirectTo = "/user/profile"; // ← FIX: Changed from /home to /user/profile
     }
-    
+
     console.log(`   Redirecting to: ${redirectTo}`);
     return <Navigate to={redirectTo} />;
   }
 
-  console.log(`✅ Access granted for ${authStatus.userRole} to ${requiredRole} route`);
-  
+  console.log(
+    `✅ Access granted for ${authStatus.userRole} to ${requiredRole} route`,
+  );
+
   // Clone children and pass authStatus as prop
-  const childrenWithProps = React.Children.map(children, child => {
+  const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child, { 
+      return React.cloneElement(child, {
         authStatus,
         onLogout: () => {
           localStorage.clear();
-          window.location.href = '/';
-        }
+          window.location.href = "/";
+        },
       });
     }
     return child;
@@ -457,20 +479,26 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
 // Token validation helper
 const validateToken = (token) => {
   if (!token) return false;
-  
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const isExpired = Date.now() >= payload.exp * 1000;
-    
+
     if (isExpired) {
-      console.log('Token expired:', new Date(payload.exp * 1000).toLocaleString());
+      console.log(
+        "Token expired:",
+        new Date(payload.exp * 1000).toLocaleString(),
+      );
       return false;
     }
-    
-    console.log('Token valid until:', new Date(payload.exp * 1000).toLocaleString());
+
+    console.log(
+      "Token valid until:",
+      new Date(payload.exp * 1000).toLocaleString(),
+    );
     return true;
   } catch (error) {
-    console.error('Error validating token:', error);
+    console.error("Error validating token:", error);
     return false;
   }
 };

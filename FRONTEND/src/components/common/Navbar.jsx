@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, User, LogOut, Home, UserCircle, ChevronDown, Globe, Bell } from 'lucide-react';
+import WorkspaceSwitcher from '../user/WorkspaceSwitcher';
 
 const Navbar = ({ 
   isScrolled, 
@@ -91,6 +92,7 @@ const Navbar = ({
     localStorage.removeItem('user');
     localStorage.removeItem('admin');
     localStorage.removeItem('staff');
+    localStorage.removeItem('currentWorkspace'); // 🔧 Clear workspace on logout
     
     setIsAuthenticated(false);
     setCurrentUser(null);
@@ -161,63 +163,68 @@ const Navbar = ({
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  isScrolled 
-                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' 
-                    : 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm">
-                  {currentUser?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
-                <span className="font-medium">
-                  {currentUser?.name?.split(' ')[0] || 'User'}
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {/* User Dropdown Menu */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="font-medium text-gray-900">{currentUser?.name}</p>
-                    <p className="text-xs text-gray-500">{currentUser?.email}</p>
-                    <div className="inline-flex items-center gap-1 mt-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs">
-                      <Globe className="w-3 h-3" />
-                      {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                    </div>
+            <div className="flex items-center gap-3">
+              {/* 🔧 FIXED: Added WorkspaceSwitcher only for user role */}
+              {userRole === 'user' && <WorkspaceSwitcher />}
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    isScrolled 
+                      ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' 
+                      : 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm">
+                    {currentUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
-                  
-                  <a
-                    href={getDashboardPath()}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    <Home className="w-4 h-4" />
-                    Dashboard
-                  </a>
-                  
-                  <a
-                    href={getProfilePath()}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    <UserCircle className="w-4 h-4" />
-                    Profile
-                  </a>
-                  
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors border-t border-gray-100 mt-2"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
-                </div>
-              )}
+                  <span className="font-medium">
+                    {currentUser?.name?.split(' ')[0] || 'User'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="font-medium text-gray-900">{currentUser?.name}</p>
+                      <p className="text-xs text-gray-500">{currentUser?.email}</p>
+                      <div className="inline-flex items-center gap-1 mt-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs">
+                        <Globe className="w-3 h-3" />
+                        {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                      </div>
+                    </div>
+                    
+                    <a
+                      href={getDashboardPath()}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <Home className="w-4 h-4" />
+                      Dashboard
+                    </a>
+                    
+                    <a
+                      href={getProfilePath()}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <UserCircle className="w-4 h-4" />
+                      Profile
+                    </a>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors border-t border-gray-100 mt-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <>

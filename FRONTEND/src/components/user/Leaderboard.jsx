@@ -289,60 +289,45 @@ const Leaderboard = ({ currentUser }) => {
   ];
 
   // Fetch live data from API
-  const fetchLiveData = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      setError(null);
+const fetchLiveData = useCallback(async () => {
+  try {
+    setRefreshing(true);
+    setError(null);
 
-      // Fetch all complaints/user_issues
-      const response = await axios.get(`${BASE_URL}/api/user_issues`, {
-        params: {
-          includeUser: true,
-          includeStats: true,
-          timeRange: timeRange,
-        },
-        headers: {
-          Authorization: `Bearer ${
-            localStorage.getItem("userToken") ||
-            localStorage.getItem("adminToken") ||
-            localStorage.getItem("staffToken")
-          }`,
-        },
-      });
-
-      if (response.data.success) {
-        const issues = response.data.data || [];
-        processRealTimeData(issues);
-      } else {
-        throw new Error("Failed to fetch issues");
-      }
-    } catch (error) {
-      console.error("Error fetching live data:", error);
-      setError("Failed to load real-time data. Please try again.");
-
-      // Try fallback to user_issues endpoint
-      try {
-        const fallbackResponse = await axios.get(
-          `${BASE_URL}/api/user_issues`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          },
-        );
-
-        if (fallbackResponse.data.success) {
-          const issues = fallbackResponse.data.data || [];
-          processRealTimeData(issues);
-        }
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-      }
-    } finally {
+    // Get current workspace
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+    
+    if (!currentWorkspace) {
+      toast.error('Please select a workspace first');
       setLoading(false);
-      setRefreshing(false);
+      return;
     }
-  }, [BASE_URL, timeRange]);
+
+    // Fetch complaints with workspace filter
+    const response = await axios.get(`${BASE_URL}/api/user_issues`, {
+      params: {
+        workspaceId: currentWorkspace.id,
+        includeUser: true,
+        includeStats: true,
+        timeRange: timeRange,
+      },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+    });
+
+    if (response.data.success) {
+      const issues = response.data.data || [];
+      processRealTimeData(issues);
+    }
+  } catch (error) {
+    console.error("Error fetching live data:", error);
+    setError("Failed to load real-time data. Please try again.");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, [BASE_URL, timeRange]);
 
   // Process real-time data from API
   const processRealTimeData = (issues) => {
@@ -1689,24 +1674,22 @@ const Leaderboard = ({ currentUser }) => {
           </motion.div>
         )}
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>
-            <span className="inline-flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Live Data • Updates every 30 seconds when auto-refresh is enabled
-            </span>
-          </p>
-          <p className="mt-1">
-            Last full refresh:{" "}
-            {leaderboardData.lastUpdated.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })}
-          </p>
-          <p className="mt-1">Data source: Your actual complaint system API</p>
-        </div>
+        {/* Footer - REPLACE THIS SECTION */}
+<div className="mt-8 text-center text-gray-500 text-sm">
+  <div className="flex items-center justify-center gap-1">
+    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+    <span>Live Data • Updates every 30 seconds when auto-refresh is enabled</span>
+  </div>
+  <p className="mt-1">
+    Last full refresh:{" "}
+    {leaderboardData.lastUpdated.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })}
+  </p>
+  <p className="mt-1">Data source: Your actual complaint system API</p>
+</div>
 
         {/* Error Display */}
         {error && (

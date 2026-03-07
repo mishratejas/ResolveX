@@ -57,44 +57,79 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 /**
  * Check if two complaints are similar based on location and content
  */
-export const areComplaintsSimilar = (complaint1, complaint2, options = {}) => {
+export const areComplaintsSimilar = (newComplaint, existingComplaint, options = {}) => {
   const {
-    maxDistance = 150, // meters
-    titleSimilarityThreshold = 0.7,
-    sameCategoryRequired = true
+    maxDistance = 150,
+    titleSimilarityThreshold = 0.3,  // Lower = more sensitive
+    sameCategoryRequired = false
   } = options;
 
-  // Check if they have valid coordinates
-  if (!complaint1.location?.latitude || !complaint1.location?.longitude ||
-      !complaint2.location?.latitude || !complaint2.location?.longitude) {
-    return false;
-  }
-
-  // Calculate distance
+  // 1. Distance check (must be within radius)
   const distance = calculateDistance(
-    complaint1.location.latitude,
-    complaint1.location.longitude,
-    complaint2.location.latitude,
-    complaint2.location.longitude
+    newComplaint.location.latitude,
+    newComplaint.location.longitude,
+    existingComplaint.location.latitude,
+    existingComplaint.location.longitude
   );
-
+  
   if (distance > maxDistance) return false;
 
-  // Check category if required
-  if (sameCategoryRequired && complaint1.category !== complaint2.category) {
-    return false;
+  // 2. Category/Department check
+  if (sameCategoryRequired) {
+    if (newComplaint.category !== existingComplaint.category) return false;
   }
 
-  // Simple title similarity (basic implementation)
-  const title1 = complaint1.title.toLowerCase();
-  const title2 = complaint2.title.toLowerCase();
-  
-  // Check if titles share significant words
-  const words1 = new Set(title1.split(/\s+/));
-  const words2 = new Set(title2.split(/\s+/));
-  const commonWords = [...words1].filter(word => words2.has(word) && word.length > 3);
-  
-  const similarity = commonWords.length / Math.min(words1.size, words2.size);
+  // 3. Title similarity using Levenshtein distance
+  const similarity = calculateStringSimilarity(
+    newComplaint.title.toLowerCase(),
+    existingComplaint.title.toLowerCase()
+  );
 
-  return similarity >= titleSimilarityThreshold;
+  // 4. Description keyword matching (optional enhancement)
+  const descriptionSimilarity = calculateKeywordOverlap(
+    newComplaint.description,
+    existingComplaint.description
+  );
+
+  return similarity >= titleSimilarityThreshold || descriptionSimilarity > 0.4;
 };
+
+// Helper function for string similarity
+function calculateStringSimilarity(str1, str2) {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+// Levenshtein distance algorithm
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}

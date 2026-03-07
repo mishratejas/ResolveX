@@ -770,10 +770,11 @@ import {
 // 🚀 NEW: Import our Load Balancer!
 import { getLeastLoadedStaff } from "../utils/loadBalancer.js";
 
-// GET all issues - PUBLIC (with workspace filtering)
 export const handleAllIssueFetch = async (req, res) => {
   try {
     const { status, workspaceId } = req.query;
+
+    console.log('📥 Fetching complaints with filters:', { status, workspaceId });
 
     const statusMap = {
       Open: "pending",
@@ -783,9 +784,16 @@ export const handleAllIssueFetch = async (req, res) => {
 
     let filter = {};
 
-    if (workspaceId) {
-      filter.adminId = workspaceId;
+    // 🔥 CRITICAL FIX: Always require workspaceId
+    if (!workspaceId) {
+      return res.status(400).json({
+        success: false,
+        message: "workspaceId is required",
+        data: []
+      });
     }
+
+    filter.adminId = workspaceId;
 
     if (status && status !== "All") {
       if (status === "Closed") {
@@ -798,7 +806,20 @@ export const handleAllIssueFetch = async (req, res) => {
     const complaints = await UserComplaint.find(filter)
       .sort({ createdAt: -1 })
       .populate("user", "name email")
-      .populate("adminId", "workspaceCode name"); 
+      .populate("adminId", "workspaceCode organizationName name");
+
+    // 🔥 DEBUG: Log location data for first few complaints
+    console.log('📍 Location data check:');
+    complaints.slice(0, 3).forEach((c, i) => {
+      console.log(`Complaint ${i + 1}:`, {
+        id: c._id,
+        title: c.title,
+        location: c.location,
+        address: c.location?.address,
+        lat: c.location?.latitude,
+        lng: c.location?.longitude
+      });
+    });
 
     res.json({
       success: true,
@@ -942,7 +963,8 @@ export const handleIssueGeneration = async (req, res) => {
         longitude: location.longitude || null,
       };
     }
-
+    console.log('📍 Saving location:', locationData);
+    
     if (!locationData.address || locationData.address.trim() === "") {
       return res.status(400).json({ success: false, message: "Location is required" });
     }

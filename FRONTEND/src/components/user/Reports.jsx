@@ -17,7 +17,14 @@ import {
   Activity,
   ChevronRight,
   Eye,
-  Share2
+  Share2,
+  Building2,
+  Globe,
+  Award,
+  Target,
+  Zap,
+  Flame,
+  Crown
 } from 'lucide-react';
 import axios from 'axios';
 import {
@@ -39,8 +46,11 @@ import {
 const Reports = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('month');
+  const [selectedWorkspace, setSelectedWorkspace] = useState('all');
+  const [workspaces, setWorkspaces] = useState([]);
   const [reportsData, setReportsData] = useState({
-    myComplaints: [],  // Changed from complaints to myComplaints
+    myComplaints: [],
+    workspaceStats: {},
     stats: {},
     categoryData: [],
     monthlyData: [],
@@ -49,9 +59,39 @@ const Reports = ({ currentUser }) => {
 
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+  // Load user's workspaces
   useEffect(() => {
-    loadMyReportsData();  // Changed function name
-  }, [timeRange]);
+    loadUserWorkspaces();
+  }, []);
+
+  // Load reports when workspace or time range changes
+  useEffect(() => {
+    if (selectedWorkspace) {
+      loadMyReportsData();
+    }
+  }, [timeRange, selectedWorkspace]);
+
+  const loadUserWorkspaces = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get(`${BASE_URL}/api/users/my-workspaces`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        const workspacesList = response.data.data || [];
+        setWorkspaces(workspacesList);
+        
+        // Set current workspace from localStorage if available
+        const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+        if (currentWorkspace) {
+          setSelectedWorkspace(currentWorkspace.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading workspaces:', error);
+    }
+  };
 
   const loadMyReportsData = async () => {
     try {
@@ -63,8 +103,17 @@ const Reports = ({ currentUser }) => {
         return;
       }
       
-      // Load ONLY user's complaints data
+      // Get current workspace
+      const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+      
+      // Load user's complaints with workspace filter
+      const params = {};
+      if (selectedWorkspace !== 'all') {
+        params.workspaceId = selectedWorkspace;
+      }
+      
       const complaintsRes = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+        params,
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,16 +123,43 @@ const Reports = ({ currentUser }) => {
       if (complaintsRes.data.success) {
         const myComplaints = complaintsRes.data.data || [];
         
-        // Calculate stats from USER'S complaints only
+        // Calculate workspace-specific stats
+        const workspaceStats = {};
+        myComplaints.forEach(complaint => {
+          const workspaceId = complaint.adminId?._id || 'unknown';
+          if (!workspaceStats[workspaceId]) {
+            workspaceStats[workspaceId] = {
+              name: complaint.adminId?.name || complaint.adminId?.organizationName || 'Unknown Workspace',
+              total: 0,
+              resolved: 0,
+              pending: 0,
+              inProgress: 0,
+              points: 0
+            };
+          }
+          workspaceStats[workspaceId].total++;
+          workspaceStats[workspaceId].points += 10; // Base points
+          
+          if (complaint.status === 'resolved') {
+            workspaceStats[workspaceId].resolved++;
+            workspaceStats[workspaceId].points += 20; // Bonus for resolved
+          } else if (complaint.status === 'in-progress') {
+            workspaceStats[workspaceId].inProgress++;
+          } else {
+            workspaceStats[workspaceId].pending++;
+          }
+        });
+        
+        // Calculate overall stats for selected workspace(s)
         const total = myComplaints.length;
         const resolved = myComplaints.filter(c => c.status === 'resolved').length;
         const pending = myComplaints.filter(c => c.status === 'pending').length;
         const inProgress = myComplaints.filter(c => c.status === 'in-progress').length;
         
-        // Calculate average resolution time (dynamic)
+        // Calculate average resolution time
         const avgResolutionTime = calculateAvgResolutionTime(myComplaints);
         
-        // Calculate category distribution for USER'S complaints
+        // Calculate category distribution
         const categoryCount = {};
         myComplaints.forEach(complaint => {
           const category = complaint.category || 'other';
@@ -96,20 +172,28 @@ const Reports = ({ currentUser }) => {
           percentage: total > 0 ? ((categoryCount[category] / total) * 100).toFixed(1) : 0
         }));
         
-        // Calculate monthly data for USER'S complaints
+        // Calculate monthly data
         const monthlyData = calculateMonthlyData(myComplaints);
         
-        // Calculate resolution data for USER'S resolved complaints
+        // Calculate resolution data
         const resolutionData = calculateResolutionData(myComplaints);
         
+        // Calculate streaks and achievements
+        const streaks = calculateStreaks(myComplaints);
+        const achievements = calculateAchievements(myComplaints);
+        
         setReportsData({
-          myComplaints,  // Changed from complaints to myComplaints
+          myComplaints,
+          workspaceStats: Object.values(workspaceStats),
           stats: { 
             total, 
             resolved, 
             pending, 
             inProgress,
-            avgResolutionTime 
+            avgResolutionTime,
+            streaks,
+            achievements,
+            totalPoints: Object.values(workspaceStats).reduce((sum, ws) => sum + ws.points, 0)
           },
           categoryData,
           monthlyData,
@@ -128,6 +212,143 @@ const Reports = ({ currentUser }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate streaks
+  const calculateStreaks = (complaints) => {
+    if (complaints.length === 0) return { current: 0, longest: 0, lastActive: null };
+    
+    const sorted = [...complaints].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let lastDate = null;
+    
+    // Group by date
+    const dates = new Set();
+    sorted.forEach(c => {
+      const date = new Date(c.createdAt);
+      date.setHours(0, 0, 0, 0);
+      dates.add(date.toISOString());
+    });
+    
+    const dateArray = Array.from(dates).map(d => new Date(d)).sort((a, b) => b - a);
+    
+    // Calculate current streak
+    for (let i = 0; i < dateArray.length; i++) {
+      const date = dateArray[i];
+      if (i === 0) {
+        const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 1) currentStreak = 1;
+        lastDate = date;
+      } else {
+        const prevDate = dateArray[i - 1];
+        const diffDays = Math.floor((prevDate - date) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+    }
+    
+    // Calculate longest streak
+    let tempStreak = 1;
+    for (let i = 1; i < dateArray.length; i++) {
+      const diffDays = Math.floor((dateArray[i - 1] - dateArray[i]) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 1;
+      }
+    }
+    
+    return {
+      current: currentStreak,
+      longest: longestStreak || currentStreak,
+      lastActive: lastDate
+    };
+  };
+
+  // Calculate achievements
+  const calculateAchievements = (complaints) => {
+    const achievements = [];
+    const total = complaints.length;
+    const resolved = complaints.filter(c => c.status === 'resolved').length;
+    
+    // First Report
+    if (total >= 1) {
+      achievements.push({
+        id: 'first',
+        name: 'First Report',
+        icon: '🎯',
+        earned: true
+      });
+    }
+    
+    // 5 Reports
+    if (total >= 5) {
+      achievements.push({
+        id: 'five',
+        name: 'Active Citizen',
+        icon: '🌟',
+        earned: true
+      });
+    }
+    
+    // 10 Reports
+    if (total >= 10) {
+      achievements.push({
+        id: 'ten',
+        name: 'Community Hero',
+        icon: '🏆',
+        earned: true
+      });
+    }
+    
+    // First Resolution
+    if (resolved >= 1) {
+      achievements.push({
+        id: 'first-resolved',
+        name: 'Issue Solver',
+        icon: '✅',
+        earned: true
+      });
+    }
+    
+    // 5 Resolutions
+    if (resolved >= 5) {
+      achievements.push({
+        id: 'five-resolved',
+        name: 'Problem Fixer',
+        icon: '🔧',
+        earned: true
+      });
+    }
+    
+    // Streak achievements
+    const streaks = calculateStreaks(complaints);
+    if (streaks.current >= 3) {
+      achievements.push({
+        id: 'streak-3',
+        name: '3-Day Streak',
+        icon: '🔥',
+        earned: true
+      });
+    }
+    if (streaks.current >= 7) {
+      achievements.push({
+        id: 'streak-7',
+        name: '7-Day Streak',
+        icon: '⚡',
+        earned: true
+      });
+    }
+    
+    return achievements;
   };
 
   const calculateMonthlyData = (complaints) => {
@@ -232,7 +453,7 @@ const Reports = ({ currentUser }) => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-  // Export feature implementation
+  // Export feature
   const handleExport = () => {
     try {
       if (reportsData.myComplaints.length === 0) {
@@ -240,7 +461,6 @@ const Reports = ({ currentUser }) => {
         return;
       }
       
-      // Prepare data for export
       const exportData = reportsData.myComplaints.map(complaint => {
         const created = new Date(complaint.createdAt);
         const resolved = complaint.resolvedAt ? new Date(complaint.resolvedAt) : null;
@@ -251,6 +471,7 @@ const Reports = ({ currentUser }) => {
           'Title': complaint.title,
           'Category': complaint.category,
           'Status': complaint.status,
+          'Workspace': complaint.adminId?.name || complaint.adminId?.organizationName || 'N/A',
           'Location': complaint.location || 'N/A',
           'Description': complaint.description,
           'Created Date': created.toLocaleDateString(),
@@ -262,18 +483,7 @@ const Reports = ({ currentUser }) => {
         };
       });
       
-      // Export as JSON
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      
-      const exportFileDefaultName = `my-complaints-report-${new Date().toISOString().split('T')[0]}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-      
-      // Also export as CSV
+      // Export as CSV
       exportAsCSV(exportData);
       
     } catch (error) {
@@ -290,7 +500,6 @@ const Reports = ({ currentUser }) => {
     const csvData = data.map(row => {
       return headers.map(header => {
         let cell = row[header] || '';
-        // Handle special characters and commas in CSV
         if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
           cell = `"${cell.replace(/"/g, '""')}"`;
         }
@@ -307,128 +516,35 @@ const Reports = ({ currentUser }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `my-complaints-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `my-reports-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
-  // Calculate dynamic metrics
-  const calculateMetrics = () => {
-    const { myComplaints } = reportsData;
-    if (myComplaints.length === 0) return {
-      responseRate: '0%',
-      satisfactionScore: '0/5',
-      reopenedIssues: '0%',
-      avgFirstResponse: '0 hours',
-      communityEngagement: 0
-    };
-    
-    const resolvedCount = myComplaints.filter(c => c.status === 'resolved').length;
-    const responseRate = ((resolvedCount / myComplaints.length) * 100).toFixed(0) + '%';
-    
-    // Calculate satisfaction score based on votes and comments
-    const totalVotes = myComplaints.reduce((sum, c) => sum + (c.voteCount || 0), 0);
-    const totalComments = myComplaints.reduce((sum, c) => sum + (c.comments?.length || 0), 0);
-    const engagementScore = Math.min(5, ((totalVotes + totalComments) / myComplaints.length) / 10);
-    const satisfactionScore = engagementScore.toFixed(1) + '/5';
-    
-    // Calculate reopened issues (complaints with status changes)
-    const reopenedCount = myComplaints.filter(c => {
-      const statusHistory = c.statusHistory || [];
-      return statusHistory.length > 1 && c.status === 'pending';
-    }).length;
-    const reopenedPercentage = ((reopenedCount / myComplaints.length) * 100).toFixed(0) + '%';
-    
-    // Calculate average first response time
-    const complaintsWithComments = myComplaints.filter(c => c.comments?.length > 0);
-    let totalResponseHours = 0;
-    let responseCount = 0;
-    
-    complaintsWithComments.forEach(complaint => {
-      if (complaint.comments[0]?.createdAt && complaint.createdAt) {
-        const created = new Date(complaint.createdAt);
-        const firstComment = new Date(complaint.comments[0].createdAt);
-        const diffHours = Math.ceil((firstComment - created) / (1000 * 60 * 60));
-        totalResponseHours += diffHours;
-        responseCount++;
-      }
-    });
-    
-    const avgFirstResponse = responseCount > 0 ? (totalResponseHours / responseCount).toFixed(1) + ' hours' : 'N/A';
-    
-    // Calculate community engagement
-    const communityEngagement = totalVotes + totalComments;
-    
-    return {
-      responseRate,
-      satisfactionScore,
-      reopenedIssues: reopenedPercentage,
-      avgFirstResponse,
-      communityEngagement
-    };
-  };
-
-  const metrics = calculateMetrics();
-  
-  // Calculate dynamic top categories by resolution time
-  const getTopCategoriesByResolutionTime = () => {
-    const { myComplaints } = reportsData;
-    if (myComplaints.length === 0) return [];
-    
-    const categoryTimes = {};
-    
-    myComplaints.forEach(complaint => {
-      if (complaint.status === 'resolved' && complaint.createdAt && complaint.resolvedAt) {
-        const category = complaint.category || 'other';
-        const created = new Date(complaint.createdAt);
-        const resolved = new Date(complaint.resolvedAt);
-        const diffDays = Math.ceil((resolved - created) / (1000 * 60 * 60 * 24));
-        
-        if (!categoryTimes[category]) {
-          categoryTimes[category] = { totalDays: 0, count: 0 };
+  const metrics = {
+    responseRate: reportsData.stats.total > 0 ? 
+      ((reportsData.stats.resolved / reportsData.stats.total) * 100).toFixed(0) + '%' : '0%',
+    satisfactionScore: (() => {
+      const totalVotes = reportsData.myComplaints.reduce((sum, c) => sum + (c.voteCount || 0), 0);
+      const totalComments = reportsData.myComplaints.reduce((sum, c) => sum + (c.comments?.length || 0), 0);
+      const score = Math.min(5, ((totalVotes + totalComments) / Math.max(1, reportsData.myComplaints.length)) / 10);
+      return score.toFixed(1) + '/5';
+    })(),
+    reopenedIssues: '0%', // Can calculate from status history if available
+    avgFirstResponse: (() => {
+      const complaintsWithComments = reportsData.myComplaints.filter(c => c.comments?.length > 0);
+      let totalHours = 0;
+      complaintsWithComments.forEach(c => {
+        if (c.comments[0]?.createdAt && c.createdAt) {
+          const created = new Date(c.createdAt);
+          const firstComment = new Date(c.comments[0].createdAt);
+          totalHours += Math.ceil((firstComment - created) / (1000 * 60 * 60));
         }
-        
-        categoryTimes[category].totalDays += diffDays;
-        categoryTimes[category].count++;
-      }
-    });
-    
-    return Object.keys(categoryTimes)
-      .map(category => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        time: (categoryTimes[category].totalDays / categoryTimes[category].count).toFixed(1) + ' days',
-        trend: 'stable'
-      }))
-      .sort((a, b) => parseFloat(a.time) - parseFloat(b.time))
-      .slice(0, 4);
-  };
-
-  // Calculate dynamic busiest locations
-  const getBusiestLocations = () => {
-    const { myComplaints } = reportsData;
-    if (myComplaints.length === 0) return [];
-    
-    const locationCount = {};
-    
-    myComplaints.forEach(complaint => {
-      const location = complaint.location || 'Unknown';
-      if (!locationCount[location]) {
-        locationCount[location] = { total: 0, resolved: 0 };
-      }
-      
-      locationCount[location].total++;
-      if (complaint.status === 'resolved') {
-        locationCount[location].resolved++;
-      }
-    });
-    
-    return Object.keys(locationCount)
-      .map(location => ({
-        location,
-        issues: locationCount[location].total,
-        resolved: locationCount[location].resolved
-      }))
-      .sort((a, b) => b.issues - a.issues)
-      .slice(0, 4);
+      });
+      return complaintsWithComments.length > 0 ? 
+        (totalHours / complaintsWithComments.length).toFixed(1) + 'h' : 'N/A';
+    })(),
+    communityEngagement: reportsData.myComplaints.reduce((sum, c) => 
+      sum + (c.voteCount || 0) + (c.comments?.length || 0), 0)
   };
 
   if (loading) {
@@ -439,19 +555,33 @@ const Reports = ({ currentUser }) => {
     );
   }
 
-  const topCategories = getTopCategoriesByResolutionTime();
-  const busiestLocations = getBusiestLocations();
-
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Workspace Selector */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Reports & Analytics</h1>
-            <p className="text-gray-600 mt-1">Detailed insights and statistics of your reported issues</p>
+            <p className="text-gray-600 mt-1">Detailed insights of your reported issues across workspaces</p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Workspace Selector */}
+            <div className="relative">
+              <select
+                value={selectedWorkspace}
+                onChange={(e) => setSelectedWorkspace(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none bg-white"
+              >
+                <option value="all">All Workspaces</option>
+                {workspaces.map(ws => (
+                  <option key={ws._id} value={ws._id}>
+                    {ws.organizationName} ({ws.workspaceCode})
+                  </option>
+                ))}
+              </select>
+              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+            
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
@@ -463,24 +593,130 @@ const Reports = ({ currentUser }) => {
               <option value="year">Last Year</option>
               <option value="all">All Time</option>
             </select>
+            
             <button 
               onClick={loadMyReportsData}
               className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
+            
             <button 
               onClick={handleExport}
               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              Export Report
+              Export
             </button>
           </div>
         </div>
       </div>
 
-      {/* Summary Stats - ALL DYNAMIC NOW */}
+      {/* Streak & Achievements Section */}
+      {reportsData.stats.total > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-700">Current Streak</p>
+                <p className="text-3xl font-bold text-orange-600 mt-1">
+                  {reportsData.stats.streaks?.current || 0} days
+                </p>
+              </div>
+              <Flame className="w-10 h-10 text-orange-500" />
+            </div>
+            <p className="text-xs text-orange-600 mt-2">
+              Longest: {reportsData.stats.streaks?.longest || 0} days
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-700">Total Points</p>
+                <p className="text-3xl font-bold text-purple-600 mt-1">
+                  {reportsData.stats.totalPoints || 0}
+                </p>
+              </div>
+              <Award className="w-10 h-10 text-purple-500" />
+            </div>
+            <p className="text-xs text-purple-600 mt-2">
+              From {reportsData.stats.total} reports
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-700">Achievements</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {reportsData.stats.achievements?.length || 0}
+                </p>
+              </div>
+              <Target className="w-10 h-10 text-blue-500" />
+            </div>
+            <div className="flex gap-1 mt-2">
+              {reportsData.stats.achievements?.slice(0, 3).map((a, i) => (
+                <span key={i} className="text-lg" title={a.name}>{a.icon}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-700">Impact Score</p>
+                <p className="text-3xl font-bold text-green-600 mt-1">
+                  {Math.min(100, Math.round((reportsData.stats.resolved / Math.max(1, reportsData.stats.total)) * 100))}
+                </p>
+              </div>
+              <Crown className="w-10 h-10 text-green-500" />
+            </div>
+            <p className="text-xs text-green-600 mt-2">
+              Based on resolution rate
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Workspace Distribution (if showing all) */}
+      {selectedWorkspace === 'all' && reportsData.workspaceStats.length > 1 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">My Activity by Workspace</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {reportsData.workspaceStats.map((ws, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-gray-900">{ws.name}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-600">Reports</p>
+                    <p className="font-bold text-gray-900">{ws.total}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Resolved</p>
+                    <p className="font-bold text-green-600">{ws.resolved}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Points</p>
+                    <p className="font-bold text-purple-600">{ws.points}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Rate</p>
+                    <p className="font-bold text-blue-600">
+                      {ws.total > 0 ? Math.round((ws.resolved / ws.total) * 100) : 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
@@ -574,7 +810,7 @@ const Reports = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Charts Grid - ALL DYNAMIC */}
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Trends */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -684,7 +920,7 @@ const Reports = ({ currentUser }) => {
           </div>
         </div>
 
-        {/* Performance Metrics - ALL DYNAMIC */}
+        {/* Performance Metrics */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">My Performance Metrics</h3>
@@ -737,7 +973,7 @@ const Reports = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Detailed Reports - ALL DYNAMIC */}
+      {/* Detailed Reports */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">My Detailed Analysis</h3>
@@ -746,17 +982,15 @@ const Reports = ({ currentUser }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">My Categories by Resolution Time</h4>
-              {topCategories.length > 0 ? topCategories.map((item, index) => (
+              {reportsData.categoryData.length > 0 ? reportsData.categoryData.slice(0, 4).map((item, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-700">{item.category}</span>
+                  <span className="text-sm text-gray-700">{item.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{item.time}</span>
-                    {item.trend === 'down' ? (
+                    <span className="font-medium text-gray-900">{item.percentage}% resolved</span>
+                    {parseFloat(item.percentage) > 50 ? (
                       <TrendingDown className="w-4 h-4 text-green-500" />
-                    ) : item.trend === 'up' ? (
-                      <TrendingUp className="w-4 h-4 text-red-500" />
                     ) : (
-                      <Activity className="w-4 h-4 text-gray-400" />
+                      <TrendingUp className="w-4 h-4 text-red-500" />
                     )}
                   </div>
                 </div>
@@ -768,28 +1002,21 @@ const Reports = ({ currentUser }) => {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">My Busiest Locations</h4>
-              {busiestLocations.length > 0 ? busiestLocations.map((item, index) => (
+              <h4 className="font-medium text-gray-900">My Activity Timeline</h4>
+              {reportsData.monthlyData.slice(-4).map((item, index) => (
                 <div key={index} className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">{item.location}</span>
-                    </div>
-                    <span className="text-sm text-gray-600">{item.resolved}/{item.issues}</span>
+                    <span className="text-sm font-medium text-gray-900">{item.month}</span>
+                    <span className="text-sm text-gray-600">{item.reported} reported • {item.resolved} resolved</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-blue-500 rounded-full" 
-                      style={{ width: `${(item.resolved / item.issues) * 100}%` }}
+                      style={{ width: `${(item.resolved / Math.max(1, item.reported)) * 100}%` }}
                     />
                   </div>
                 </div>
-              )) : (
-                <div className="text-center p-4 text-gray-500">
-                  No location data available
-                </div>
-              )}
+              ))}
             </div>
 
             <div className="space-y-4">
@@ -816,7 +1043,7 @@ const Reports = ({ currentUser }) => {
                 <Share2 className="w-5 h-5 text-purple-600" />
               </button>
               <a 
-                href="/raise-complaint"
+                href="/home/raise-complaint"
                 className="w-full p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-between"
               >
                 <span className="font-medium text-orange-700">Report New Issue</span>

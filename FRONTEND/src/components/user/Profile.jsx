@@ -119,60 +119,191 @@ const loadUserData = async () => {
     }
   };
 
-  const loadUserActivity = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      // You'll need to create this endpoint
-      const response = await axios.get(
-        `${BASE_URL}/api/users/activity/monthly`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (response.data.success) {
-        setMonthlyActivity(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading activity:", error);
-      // Don't show toast for this as it's not critical
-      setMonthlyActivity([]);
+  // Replace the loadUserActivity function (around line 126)
+const loadUserActivity = async () => {
+  try {
+    setActivityLoading(true);
+    
+    // Get current workspace
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+    
+    if (!currentWorkspace) {
+      setActivityData([]);
+      return;
     }
-  };
 
-  const loadUserAchievements = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      // You'll need to create this endpoint
-      const response = await axios.get(`${BASE_URL}/api/users/achievements`, {
-        headers: { Authorization: `Bearer ${token}` },
+    // Fetch user's complaints to calculate activity
+    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+      params: { workspaceId: currentWorkspace.id },
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+    });
+    
+    if (response.data.success) {
+      const complaints = response.data.data || [];
+      // Process complaints into monthly activity
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlyCounts = Array(12).fill(0);
+      
+      complaints.forEach(complaint => {
+        const date = new Date(complaint.createdAt);
+        const month = date.getMonth();
+        monthlyCounts[month]++;
       });
+      
+      const activityData = monthlyCounts.map((count, index) => ({
+        month: months[index],
+        complaints: count
+      }));
+      
+      setActivityData(activityData);
+    }
+  } catch (error) {
+    console.error('Error loading activity:', error);
+    setActivityData([]);
+  } finally {
+    setActivityLoading(false);
+  }
+};
 
-      if (response.data.success) {
-        setAchievements(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading achievements:", error);
+// Replace loadUserAchievements function
+const loadUserAchievements = async () => {
+  try {
+    setAchievementsLoading(true);
+    
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+    
+    if (!currentWorkspace) {
       setAchievements([]);
+      return;
     }
-  };
 
-  const loadUserRank = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      // You'll need to create this endpoint
-      const response = await axios.get(`${BASE_URL}/api/users/rank`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data.success) {
-        setUserRank(response.data.data);
+    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+      params: { workspaceId: currentWorkspace.id },
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+    });
+    
+    if (response.data.success) {
+      const complaints = response.data.data || [];
+      
+      // Calculate achievements from complaints
+      const achievements = [];
+      const total = complaints.length;
+      const resolved = complaints.filter(c => c.status === 'resolved').length;
+      
+      // First Complaint
+      if (total >= 1) {
+        achievements.push({
+          id: 'first',
+          name: 'First Report',
+          description: 'Submitted your first complaint',
+          icon: '🎯',
+          earnedAt: complaints[0]?.createdAt,
+          color: 'blue'
+        });
       }
-    } catch (error) {
-      console.error("Error loading rank:", error);
-      setUserRank(null);
+      
+      // 5 Complaints
+      if (total >= 5) {
+        achievements.push({
+          id: 'five',
+          name: 'Active Citizen',
+          description: 'Submitted 5 complaints',
+          icon: '🌟',
+          color: 'green'
+        });
+      }
+      
+      // First Resolution
+      if (resolved >= 1) {
+        achievements.push({
+          id: 'first-resolved',
+          name: 'Issue Solver',
+          description: 'Got your first complaint resolved',
+          icon: '✅',
+          color: 'green'
+        });
+      }
+      
+      setAchievements(achievements);
     }
-  };
+  } catch (error) {
+    console.error('Error loading achievements:', error);
+    setAchievements([]);
+  } finally {
+    setAchievementsLoading(false);
+  }
+};
+
+// Replace loadUserRank function
+const loadUserRank = async () => {
+  try {
+    setRankLoading(true);
+    
+    const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
+    
+    if (!currentWorkspace) {
+      setRankData(null);
+      return;
+    }
+
+    // Fetch user's complaints
+    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+      params: { workspaceId: currentWorkspace.id },
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+    });
+    
+    if (response.data.success) {
+      const complaints = response.data.data || [];
+      
+      // Calculate rank based on complaints
+      const total = complaints.length;
+      const resolved = complaints.filter(c => c.status === 'resolved').length;
+      
+      // Calculate points
+      const points = (total * 10) + (resolved * 20);
+      
+      // Determine rank
+      let rank = 'Bronze';
+      let rankColor = 'orange';
+      let nextRank = 'Silver';
+      let pointsToNext = 50;
+      
+      if (points >= 200) {
+        rank = 'Gold';
+        rankColor = 'yellow';
+        nextRank = 'Platinum';
+        pointsToNext = 300 - points;
+      } else if (points >= 100) {
+        rank = 'Silver';
+        rankColor = 'gray';
+        nextRank = 'Gold';
+        pointsToNext = 200 - points;
+      } else if (points >= 50) {
+        rank = 'Bronze';
+        rankColor = 'orange';
+        nextRank = 'Silver';
+        pointsToNext = 100 - points;
+      }
+      
+      setRankData({
+        rank,
+        rankColor,
+        points,
+        total,
+        resolved,
+        pending: complaints.filter(c => c.status === 'pending').length,
+        inProgress: complaints.filter(c => c.status === 'in-progress').length,
+        nextRank,
+        pointsToNext: Math.max(0, pointsToNext)
+      });
+    }
+  } catch (error) {
+    console.error('Error loading rank:', error);
+    setRankData(null);
+  } finally {
+    setRankLoading(false);
+  }
+};
 
   const handleJoinWorkspace = async (e) => {
     e.preventDefault();
