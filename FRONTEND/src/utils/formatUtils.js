@@ -1,5 +1,3 @@
-// TODO: Update with proper formatting and localization
-
 // Format Date
 export const formatDate = (date, format = 'short') => {
   if (!date) return 'N/A';
@@ -125,7 +123,6 @@ export const formatAddress = (address) => {
   
   return parts.join(', ') || 'No address';
 };
-// Add these functions
 
 // Format coordinates to readable string
 export const formatCoordinates = (latitude, longitude, precision = 6) => {
@@ -135,11 +132,127 @@ export const formatCoordinates = (latitude, longitude, precision = 6) => {
 
 // Format distance in meters to readable string
 export const formatDistance = (meters) => {
-  if (!meters) return '';
+  if (!meters && meters !== 0) return 'Unknown distance';
   if (meters < 1000) {
-    return `${Math.round(meters)} m away`;
+    return `${Math.round(meters)}m away`;
   }
-  return `${(meters / 1000).toFixed(1)} km away`;
+  return `${(meters / 1000).toFixed(1)}km away`;
+};
+
+/**
+ * Calculate keyword overlap percentage between two strings
+ * This is used for duplicate detection
+ * @param {string} text1 - First text to compare
+ * @param {string} text2 - Second text to compare
+ * @returns {number} Overlap percentage (0-100)
+ */
+export const calculateKeywordOverlap = (text1, text2) => {
+  if (!text1 || !text2) return 0;
+  
+  // Convert to lowercase and split into words
+  const words1 = text1.toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length > 2); // Ignore short words
+  
+  const words2 = text2.toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 2);
+  
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  // Find common words
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
+  const commonWords = [...set1].filter(word => set2.has(word));
+  
+  // Calculate percentage based on the smaller set
+  const smallerSetSize = Math.min(set1.size, set2.size);
+  const overlapPercentage = (commonWords.length / smallerSetSize) * 100;
+  
+  return Math.round(overlapPercentage);
+};
+
+/**
+ * Calculate similarity score between two complaints
+ * Combines location proximity and text similarity
+ * @param {Object} complaint1 - First complaint
+ * @param {Object} complaint2 - Second complaint
+ * @returns {Object} Similarity score and details
+ */
+export const calculateComplaintSimilarity = (complaint1, complaint2) => {
+  let score = 0;
+  const details = {};
+  
+  // Check location proximity (if both have coordinates)
+  if (complaint1.location?.latitude && complaint1.location?.longitude &&
+      complaint2.location?.latitude && complaint2.location?.longitude) {
+    
+    const distance = calculateDistance(
+      complaint1.location.latitude,
+      complaint1.location.longitude,
+      complaint2.location.latitude,
+      complaint2.location.longitude
+    );
+    
+    details.distance = distance;
+    
+    // Score based on distance (closer = higher score)
+    if (distance < 50) score += 40;
+    else if (distance < 100) score += 30;
+    else if (distance < 200) score += 20;
+    else if (distance < 500) score += 10;
+  }
+  
+  // Check title similarity
+  if (complaint1.title && complaint2.title) {
+    const titleOverlap = calculateKeywordOverlap(complaint1.title, complaint2.title);
+    details.titleOverlap = titleOverlap;
+    score += titleOverlap * 0.3; // 30% weight
+  }
+  
+  // Check description similarity
+  if (complaint1.description && complaint2.description) {
+    const descOverlap = calculateKeywordOverlap(complaint1.description, complaint2.description);
+    details.descriptionOverlap = descOverlap;
+    score += descOverlap * 0.3; // 30% weight
+  }
+  
+  // Check category match
+  if (complaint1.category && complaint2.category && 
+      complaint1.category === complaint2.category) {
+    details.categoryMatch = true;
+    score += 20;
+  }
+  
+  return {
+    score: Math.min(100, Math.round(score)),
+    details
+  };
+};
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * @param {number} lat1 - Latitude of first point
+ * @param {number} lon1 - Longitude of first point
+ * @param {number} lat2 - Latitude of second point
+ * @param {number} lon2 - Longitude of second point
+ * @returns {number} Distance in meters
+ */
+export const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
 };
 
 export default {
@@ -155,5 +268,8 @@ export default {
   formatStatus,
   formatAddress,
   formatCoordinates,
-  formatDistance
+  formatDistance,
+  calculateKeywordOverlap,
+  calculateComplaintSimilarity,
+  calculateDistance
 };

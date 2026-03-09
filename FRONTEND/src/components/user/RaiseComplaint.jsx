@@ -413,82 +413,108 @@ const RaiseComplaint = ({ currentUser }) => {
     }
   };
 
-  // 🔧 IMPROVED: Better similarity detection
-  const checkForDuplicates = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        setError("Please login to submit complaint");
-        return false;
-      }
+const checkForDuplicates = async () => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setError("Please login to submit complaint");
+      return false;
+    }
 
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user) {
-        setError("User data not found. Please login again.");
-        return false;
-      }
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) {
+      setError("User data not found. Please login again.");
+      return false;
+    }
 
-      const currentWorkspace = JSON.parse(
-        localStorage.getItem("currentWorkspace"),
-      );
-      if (!currentWorkspace) {
-        setError("Please select a workspace before submitting a complaint");
-        return false;
-      }
+    const currentWorkspace = JSON.parse(
+      localStorage.getItem("currentWorkspace"),
+    );
+    if (!currentWorkskspace) {
+      setError("Please select a workspace before submitting a complaint");
+      return false;
+    }
 
-      if (
-        !formData.location.address ||
-        formData.location.address.trim() === ""
-      ) {
-        setError("Please provide a location for the complaint");
-        return false;
-      }
+    if (
+      !formData.location.address ||
+      formData.location.address.trim() === ""
+    ) {
+      setError("Please provide a location for the complaint");
+      return false;
+    }
 
-      // Only check duplicates if we have coordinates
-      if (formData.location.latitude && formData.location.longitude) {
-        const checkData = {
-          title: formData.title,
-          category: formData.category,
-          description: formData.description,
-          location: {
-            address: formData.location.address,
-            latitude: formData.location.latitude,
-            longitude: formData.location.longitude,
-          },
-          workspaceId: currentWorkspace.id,
-        };
+    // Only check duplicates if we have coordinates
+    if (formData.location.latitude && formData.location.longitude) {
+      const checkData = {
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+        location: {
+          address: formData.location.address,
+          latitude: formData.location.latitude,
+          longitude: formData.location.longitude,
+        },
+        workspaceId: currentWorkspace.id,
+      };
 
-        console.log("🔍 Checking for duplicates with:", checkData);
+      console.log("🔍 Checking for duplicates with:", checkData);
 
+      try {
         const response = await complaintService.checkDuplicate(checkData);
-
+        
         if (response.success && response.hasDuplicates) {
           console.log("⚠️ Found similar complaints:", response.duplicates);
           setDuplicateComplaints(response.duplicates);
           setShowDuplicateModal(true);
           return false;
         }
+      } catch (error) {
+        // If duplicate check fails (500 error), log it but allow submission
+        console.error("Duplicate check failed (server error), proceeding with submission:", error);
+        // Don't set error here, just proceed
+        return true;
       }
-
-      return true;
-    } catch (error) {
-      console.error("Error checking duplicates:", error);
-      return true; // Allow submission if duplicate check fails
     }
-  };
 
-  const handleUpvoteDuplicate = async (complaintId) => {
-    try {
-      await complaintService.upvoteComplaint(complaintId);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate("/home/my-complaints");
-      }, 2000);
-    } catch (error) {
-      console.error("Error upvoting:", error);
-      setError("Failed to upvote complaint. Please try again.");
+    return true;
+  } catch (error) {
+    console.error("Error in duplicate check process:", error);
+    // Allow submission if duplicate check fails
+    return true;
+  }
+};
+
+
+const handleUpvoteDuplicate = async (complaintId) => {
+  try {
+    console.log('🖱️ handleUpvoteDuplicate called with ID:', complaintId);
+    
+    if (!complaintId) {
+      setError("Invalid complaint ID");
+      return;
     }
-  };
+    
+    setLoading(true);
+    const response = await complaintService.upvoteComplaint(complaintId);
+    console.log('✅ Upvote successful:', response);
+    
+    // Close the modal
+    setShowDuplicateModal(false);
+    
+    // Show success message
+    setSuccess(true);
+    
+    // Navigate after a delay
+    setTimeout(() => {
+      navigate("/home/my-complaints");
+    }, 2000);
+  } catch (error) {
+    console.error("❌ Error upvoting:", error);
+    setError(error.response?.data?.message || "Failed to upvote complaint. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleProceedAnyway = () => {
     setShowDuplicateModal(false);

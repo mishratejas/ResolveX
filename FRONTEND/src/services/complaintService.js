@@ -29,7 +29,7 @@ const complaintService = {
     }
   },
 
-getMyComplaints: async (workspaceId = null) => {
+  getMyComplaints: async (workspaceId = null) => {
     try {
       let url = API_ENDPOINTS.MY_COMPLAINTS;
       if (workspaceId) {
@@ -62,14 +62,16 @@ getMyComplaints: async (workspaceId = null) => {
   create: async (complaintData) => {
     try {
       // Get current workspace from localStorage
-      const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
-      
+      const currentWorkspace = JSON.parse(
+        localStorage.getItem("currentWorkspace"),
+      );
+
       // Add adminId (workspace ID) to complaint data
       const dataToSend = {
         ...complaintData,
-        adminId: currentWorkspace?.id
+        adminId: currentWorkspace?.id,
       };
-      
+
       const response = await axios.post("/api/user_issues", dataToSend);
       return response.data;
     } catch (error) {
@@ -119,17 +121,41 @@ getMyComplaints: async (workspaceId = null) => {
       throw error;
     }
   },
-  upvoteComplaint: async (complaintId) => {
-    try {
-      const response = await axios.put(
-        `/api/user_issues/${complaintId}/upvote`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error upvoting complaint:", error);
-      throw error;
+upvoteComplaint: async (complaintId) => {
+  try {
+    console.log("📤 Attempting to upvote complaint ID:", complaintId);
+    
+    // Ensure complaintId is a string and trim any whitespace
+    const id = String(complaintId).trim();
+    
+    if (!id) {
+      throw new Error("Complaint ID is required");
     }
-  },
+    
+    // Make sure the URL is correctly formatted - using :id parameter
+    const url = `/api/user_issues/${id}/upvote`;
+    console.log("📤 Request URL:", url);
+    
+    const response = await axios.put(url);
+    
+    console.log("📥 Upvote response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error upvoting complaint:", error);
+    
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+      throw error; // Throw the original error to preserve status code
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+      throw new Error("No response from server");
+    } else {
+      console.error("Request setup error:", error.message);
+      throw new Error("Request failed: " + error.message);
+    }
+  }
+},
   // Add Comment
   addComment: async (id, comment) => {
     try {

@@ -23,7 +23,9 @@ import RaiseComplaint from "../../components/user/RaiseComplaint";
 import Reports from "../../components/user/Reports";
 import Leaderboard from "../../components/user/Leaderboard";
 import Profile from "../../components/user/Profile";
-import ComplaintDetailPage from '../../components/common/ComplaintDetailPage'
+import ComplaintDetailPage from "../../components/common/ComplaintDetailPage";
+import NotificationBell from "../../components/common/NotificationBell";
+
 const Home = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,22 +72,21 @@ const Home = () => {
   ];
 
   // Load user from localStorage
-useEffect(() => {
-  const user = localStorage.getItem("user");
-  if (user) {
-    try {
-      setCurrentUser(JSON.parse(user));
-    } catch (err) {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        setCurrentUser(JSON.parse(user));
+      } catch (err) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        navigate("/login"); // 🔧 FIX: Use navigate instead of window.location
+      }
+    } else {
       navigate("/login"); // 🔧 FIX: Use navigate instead of window.location
     }
-  } else {
-    navigate("/login"); // 🔧 FIX: Use navigate instead of window.location
-  }
-  setLoading(false);
-}, [navigate]); // Add navigate to dependencies
-
+    setLoading(false);
+  }, [navigate]); // Add navigate to dependencies
 
   const handleLogout = async () => {
     try {
@@ -153,19 +154,23 @@ useEffect(() => {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <button
-  onClick={() => navigate("/home/profile")} // 🔧 FIX: Add /home prefix
-  className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
->
-  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white font-bold">
-    {currentUser?.name?.charAt(0) || "U"}
-  </div>
-  <div className="text-left">
-    <p className="font-medium text-gray-900">
-      {currentUser?.name || "User"}
-    </p>
-    <p className="text-sm text-gray-600">View Profile</p>
-  </div>
-</button>
+                  onClick={() => navigate("/home/profile")}
+                  className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white font-bold">
+                    {currentUser?.name?.charAt(0) || "U"}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">
+                      {currentUser?.name || "User"}
+                    </p>
+                    <p className="text-sm text-gray-600">View Profile</p>
+                  </div>
+                </button>
+
+                {/* Add Notification Bell Here */}
+                <NotificationBell userId={currentUser?._id} userType="User" />
+
                 <button
                   onClick={handleLogout}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"

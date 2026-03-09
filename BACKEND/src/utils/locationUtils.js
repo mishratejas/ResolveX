@@ -55,6 +55,38 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
+ * Calculate keyword overlap percentage between two strings
+ * This function was missing and causing the error
+ */
+export const calculateKeywordOverlap = (text1, text2) => {
+  if (!text1 || !text2) return 0;
+  
+  // Convert to lowercase and split into words
+  const words1 = text1.toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length > 2); // Ignore short words (a, an, the, etc.)
+  
+  const words2 = text2.toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 2);
+  
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  // Find common words
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
+  const commonWords = [...set1].filter(word => set2.has(word));
+  
+  // Calculate percentage based on the smaller set
+  const smallerSetSize = Math.min(set1.size, set2.size);
+  const overlapPercentage = (commonWords.length / smallerSetSize) * 100;
+  
+  return overlapPercentage / 100; // Return as decimal (0-1) for consistency with your other thresholds
+};
+
+/**
  * Check if two complaints are similar based on location and content
  */
 export const areComplaintsSimilar = (newComplaint, existingComplaint, options = {}) => {
@@ -85,10 +117,10 @@ export const areComplaintsSimilar = (newComplaint, existingComplaint, options = 
     existingComplaint.title.toLowerCase()
   );
 
-  // 4. Description keyword matching (optional enhancement)
+  // 4. Description keyword matching using the newly added function
   const descriptionSimilarity = calculateKeywordOverlap(
-    newComplaint.description,
-    existingComplaint.description
+    newComplaint.description || "",
+    existingComplaint.description || ""
   );
 
   return similarity >= titleSimilarityThreshold || descriptionSimilarity > 0.4;
@@ -133,3 +165,14 @@ function levenshteinDistance(str1, str2) {
   
   return matrix[str2.length][str1.length];
 }
+
+// Export all functions as default as well
+export default {
+  truncateCoordinates,
+  getBoundingBox,
+  calculateDistance,
+  calculateKeywordOverlap,
+  areComplaintsSimilar,
+  calculateStringSimilarity,
+  levenshteinDistance
+};

@@ -1,6 +1,8 @@
 import UserComplaint from "../models/UserComplaint.models.js";
 import Staff from "../models/Staff.models.js"; 
 import { logAudit, trackChanges } from "../middleware/auditLogger.js";
+import NotificationService from "../services/notification.service.js";
+import Department from "../models/Department.model.js";
 
 // --- 1. Fetch ALL Complaints for Admin Dashboard (WORKSPACE LOCKED) ---
 export const handleFetchAllUserIssues = async (req, res) => {
@@ -110,20 +112,58 @@ export const handleUpdateIssue = async (req, res) => {
         const oldData = complaint.toObject();
         const updates = {};
         const activityLog = [];
+        const oldStatus = complaint.status;
+        const oldPriority = complaint.priority;
 
         if (status && complaint.status !== status) {
             updates.status = status;
             complaint.status = status;
             activityLog.push(`Status changed to ${status}`);
+
+            // 🔔 Notify user about status change
+            try {
+                await NotificationService.notifyComplaintStatusChange(
+                    complaint,
+                    oldStatus,
+                    status
+                );
+            } catch (notifError) {
+                console.error('Failed to send status change notification:', notifError);
+            }
         }
 
         if (priority && complaint.priority !== priority) {
             updates.priority = priority;
             complaint.priority = priority;
             activityLog.push(`Priority set to ${priority}`);
+
+            // 🔔 Notify user about priority change
+            try {
+                await NotificationService.notifyPriorityChange(
+                    complaint,
+                    oldPriority,
+                    priority,
+                    complaint.user,
+                    'User'
+                );
+
+                // Also notify assigned staff if exists
+                if (complaint.assignedTo) {
+                    await NotificationService.notifyPriorityChange(
+                        complaint,
+                        oldPriority,
+                        priority,
+                        complaint.assignedTo,
+                        'Staff'
+                    );
+                }
+            } catch (notifError) {
+                console.error('Failed to send priority change notification:', notifError);
+            }
         }
 
         if (assignedTo !== undefined) {
+            const previousAssignment = complaint.assignedTo;
             complaint.assignedTo = assignedTo || null;
             updates.assignedTo = assignedTo;
             if (assignedTo) {
@@ -133,6 +173,41 @@ export const handleUpdateIssue = async (req, res) => {
                     updates.status = 'in-progress';
                     activityLog.push('Auto-changed status to in-progress');
                 }
+
+                // 🔔 Notify staff about assignment
+                try {
+                    const staff = await Staff.findById(assignedTo);
+                    if (staff) {
+                        await NotificationService.notifyStaffAssignment(complaint, staff);
+                    }
+                } catch (notifError) {
+                    console.error('Failed to send assignment notification:', notifError);
+                }
+
+                // 🔔 Notify user about assignment if it's a new assignment
+                if (!previousAssignment) {
+                    try {
+                        const staff = await Staff.findById(assignedTo);
+                        if (staff) {
+                            await NotificationService.createNotification({
+                                userId: complaint.user,
+                                recipientType: 'User',
+                                type: 'info',
+                                title: 'Staff Assigned to Your Complaint',
+                                message: `A staff member (${staff.name}) has been assigned to work on your complaint "${complaint.title}".`,
+                                complaintId: complaint._id,
+                                actionType: 'complaint_assigned',
+                                metadata: {
+                                    assignedToName: staff.name,
+                                    complaintTitle: complaint.title
+                                },
+                                actionUrl: `/complaints/${complaint._id}`
+                            });
+                        }
+                    } catch (notifError) {
+                        console.error('Failed to send user assignment notification:', notifError);
+                    }
+                }
             } else {
                 activityLog.push('Assignment removed');
             }
@@ -141,7 +216,19 @@ export const handleUpdateIssue = async (req, res) => {
         if (department !== undefined) {
             complaint.department = department || null;
             updates.department = department;
-            if (department) activityLog.push('Department assigned');
+            if (department) {
+                activityLog.push('Department assigned');
+
+                // 🔔 Notify user about department assignment
+                try {
+                    const dept = await Department.findById(department);
+                    if (dept) {
+                        await NotificationService.notifyDepartmentAssignment(complaint, dept.name);
+                    }
+                } catch (notifError) {
+                    console.error('Failed to send department assignment notification:', notifError);
+                }
+            }
         }
 
         if (category && complaint.category !== category) {
@@ -169,6 +256,26 @@ export const handleUpdateIssue = async (req, res) => {
                 createdAt: new Date()
             });
             activityLog.push('Complaint rejected with reason');
+
+            // 🔔 Notify user about rejection with reason
+            try {
+                await NotificationService.createNotification({
+                    userId: complaint.user,
+                    recipientType: 'User',
+                    type: 'warning',
+                    title: 'Complaint Rejected',
+                    message: `Your complaint "${complaint.title}" has been rejected. Reason: ${rejectionReason}`,
+                    complaintId: complaint._id,
+                    actionType: 'complaint_rejected',
+                    metadata: {
+                        complaintTitle: complaint.title,
+                        reason: rejectionReason
+                    },
+                    actionUrl: `/complaints/${complaint._id}`
+                });
+            } catch (notifError) {
+                console.error('Failed to send rejection notification:', notifError);
+            }
         }
 
         if (comments) {
@@ -179,6 +286,25 @@ export const handleUpdateIssue = async (req, res) => {
             });
             updates.comments = comments;
             activityLog.push('Admin note added');
+
+            // 🔔 Notify user about admin comment
+            try {
+                await NotificationService.createNotification({
+                    userId: complaint.user,
+                    recipientType: 'User',
+                    type: 'update',
+                    title: 'Admin Update on Your Complaint',
+                    message: `An administrator has added a note to your complaint "${complaint.title}": ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
+                    complaintId: complaint._id,
+                    actionType: 'comment_added',
+                    metadata: {
+                        complaintTitle: complaint.title
+                    },
+                    actionUrl: `/complaints/${complaint._id}`
+                });
+            } catch (notifError) {
+                console.error('Failed to send admin comment notification:', notifError);
+            }
         }
 
         complaint.updatedAt = new Date();

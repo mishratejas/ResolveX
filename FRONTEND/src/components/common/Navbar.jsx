@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, User, LogOut, Home, UserCircle, ChevronDown, Globe, Bell } from 'lucide-react';
 import WorkspaceSwitcher from '../user/WorkspaceSwitcher';
+import NotificationBell from './NotificationBell';
 
 const Navbar = ({ 
   isScrolled, 
@@ -166,6 +167,14 @@ const Navbar = ({
             <div className="flex items-center gap-3">
               {/* 🔧 FIXED: Added WorkspaceSwitcher only for user role */}
               {userRole === 'user' && <WorkspaceSwitcher />}
+              
+              {/* 🔧 FIXED: Conditionally render NotificationBell only when user is authenticated and has _id */}
+              {isAuthenticated && currentUser && currentUser._id && (
+                <NotificationBell 
+                  userId={currentUser._id} 
+                  userType={userRole === 'admin' ? 'Admin' : userRole === 'staff' ? 'Staff' : 'User'}
+                />
+              )}
 
               <div className="relative">
                 <button

@@ -1,6 +1,8 @@
 import UserComplaint from "../models/UserComplaint.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import Admin from "../models/Admin.models.js";
+import NotificationService from "../services/notification.service.js";
+
 export const handleGetStaffComplaints=async(req ,res)=>{
     try{
         const staffId=req.staff._id;
@@ -135,6 +137,7 @@ export const handleUpdateStaffComplaint = async (req, res) => {
 
         const updates = {};
         const activityLog = [];
+        const oldStatus = complaint.status;
 
         // Update status
         if (status && complaint.status !== status) {
@@ -145,6 +148,17 @@ export const handleUpdateStaffComplaint = async (req, res) => {
             // 🚀 THE FIX: Record the exact time it was resolved for our Analytics Engine!
             if (status === 'resolved' || status === 'closed') {
                 complaint.resolvedAt = new Date();
+            }
+
+            // 🔔 Send notification to user about status change
+            try {
+                await NotificationService.notifyComplaintStatusChange(
+                    complaint,
+                    oldStatus,
+                    status
+                );
+            } catch (notifError) {
+                console.error('Failed to send status change notification:', notifError);
             }
         }
 
@@ -157,6 +171,18 @@ export const handleUpdateStaffComplaint = async (req, res) => {
             });
             updates.comments = comments;
             activityLog.push('Work notes added');
+
+            // 🔔 Send notification to user about new comment
+            try {
+                const staffDetails = await complaint.populate('assignedTo', 'name');
+                await NotificationService.notifyNewComment(
+                    complaint,
+                    req.staff,
+                    comments
+                );
+            } catch (notifError) {
+                console.error('Failed to send comment notification:', notifError);
+            }
         }
 
         complaint.updatedAt = new Date();

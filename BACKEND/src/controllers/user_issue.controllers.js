@@ -769,6 +769,8 @@ import {
 
 // 🚀 NEW: Import our Load Balancer!
 import { getLeastLoadedStaff } from "../utils/loadBalancer.js";
+import NotificationService from "../services/notification.service.js";
+import Staff from "../models/Staff.models.js";
 
 export const handleAllIssueFetch = async (req, res) => {
   try {
@@ -1060,6 +1062,28 @@ export const handleIssueGeneration = async (req, res) => {
     await complaint.populate("user", "name email");
     await complaint.populate("adminId", "workspaceCode organizationName name"); 
 
+    // 🔔 Send notifications
+    try {
+      // Notify user about complaint creation
+      await NotificationService.notifyUserComplaintCreated(complaint);
+
+      // Notify admin about new complaint (especially if high/critical priority)
+      if (adminId && (priority === 'high' || priority === 'critical')) {
+        await NotificationService.notifyAdminNewComplaint(complaint, adminId);
+      }
+
+      // Notify assigned staff if auto-assigned
+      if (assignedStaffId) {
+        const staff = await Staff.findById(assignedStaffId);
+        if (staff) {
+          await NotificationService.notifyStaffAssignment(complaint, staff);
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send complaint creation notifications:', notifError);
+      // Don't fail the request if notifications fail
+    }
+
     res.status(201).json({
       success: true,
       message: `Complaint submitted successfully with ${prioritySource === "ai" ? "AI-assigned" : "rule-based"} priority`,
@@ -1218,26 +1242,74 @@ export const getComplaintsByPriority = async (req, res) => {
 
 export const handleUpvoteComplaint = async (req, res) => {
   try {
-    const { complaintId } = req.params;
-    const userId = req.user?._id;
+    const { id } = req.params; // Change from complaintId to id
+    const userId = req.user?._id || req.user?.id;
 
-    if (!userId) return res.status(401).json({ success: false, message: "Authentication required" });
+    console.log('📝 Upvote request received:');
+    console.log('   - id from params:', id);
+    console.log('   - userId from auth:', userId);
+    console.log('   - full params:', req.params);
+    console.log('   - full URL:', req.originalUrl);
 
-    const complaint = await UserComplaint.findById(complaintId);
-    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found" });
-
-    if (complaint.voters?.includes(userId)) {
-      return res.status(400).json({ success: false, message: "You have already upvoted this complaint" });
+    if (!id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Complaint ID is required in URL params" 
+      });
     }
 
-    complaint.voteCount = (complaint.voteCount || 0) + 1;
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Authentication required" 
+      });
+    }
+
+    const complaint = await UserComplaint.findById(id);
+    
+    if (!complaint) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Complaint not found" 
+      });
+    }
+
+    // Initialize arrays if they don't exist
     complaint.voters = complaint.voters || [];
+    complaint.voteCount = complaint.voteCount || 0;
+
+    // Check if user already voted
+    if (complaint.voters.includes(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "You have already upvoted this complaint" 
+      });
+    }
+
+    // Add vote
     complaint.voters.push(userId);
+    complaint.voteCount += 1;
 
     await complaint.save();
 
-    res.json({ success: true, message: "Complaint upvoted successfully", data: { voteCount: complaint.voteCount, hasUserVoted: true } });
+    console.log('✅ Upvote successful:', { 
+      id, 
+      newVoteCount: complaint.voteCount 
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Complaint upvoted successfully", 
+      data: { 
+        voteCount: complaint.voteCount, 
+        hasUserVoted: true 
+      } 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error upvoting complaint" });
+    console.error("❌ Error upvoting complaint:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error upvoting complaint: " + error.message 
+    });
   }
 };

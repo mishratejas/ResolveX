@@ -132,18 +132,42 @@ app.use((req, res) => {
     });
 });
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('✅ User connected:', socket.id);
     
+    // Handle 'register' event (what your client sends)
+    socket.on('register', (userId) => {
+        if (userId) {
+            socket.join(userId.toString());
+            console.log(`✅ User ${userId} registered and joined room: ${userId}`);
+            
+            // Send confirmation back to client
+            socket.emit('registered', { 
+                userId, 
+                success: true,
+                message: 'Successfully registered for notifications'
+            });
+        }
+    });
+
+    // Keep 'join' for backward compatibility
     socket.on('join', (userId) => {
-        socket.join(userId.toString());
-        console.log(`User ${userId} joined room`);
+        if (userId) {
+            socket.join(userId.toString());
+            console.log(`User ${userId} joined room (via join event)`);
+            
+            socket.emit('joined', { 
+                userId, 
+                success: true 
+            });
+        }
     });
 
     socket.on('join_complaint', (complaintId) => {
-        socket.join(`complaint_${complaintId}`);
-        console.log(`User ${socket.id} joined complaint room: complaint_${complaintId}`);
+        if (complaintId) {
+            socket.join(`complaint_${complaintId}`);
+            console.log(`User ${socket.id} joined complaint room: complaint_${complaintId}`);
+        }
     });
     
     socket.on('disconnect', () => {

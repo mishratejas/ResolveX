@@ -8,8 +8,8 @@ import {
 } from "react-router-dom";
 import LandingPage from "./pages/public/LandingPage";
 import Home from "./pages/user/Home";
-import Profile from "./components/user/Profile"; // Import Profile
-import WorkspaceSelector from "./components/user/WorkspaceSelector"; // Import WorkspaceSelector
+import Profile from "./components/user/Profile";
+import WorkspaceSelector from "./components/user/WorkspaceSelector";
 import AuthModal from "./components/auth/AuthModal";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminIssuesPage from "./pages/admin/AdminIssuesPage";
@@ -21,9 +21,40 @@ import StaffIssuesPage from "./pages/staff/StaffIssuesPage";
 import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage";
-
+import NotificationsPage from "./pages/public/NotificationPage";
 const BASE_URL =
   import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
+
+  const getUserId = (role) => {
+  try {
+    if (role === 'admin') {
+      // Check both possible storage keys for admin
+      const adminData = localStorage.getItem('adminData') || localStorage.getItem('admin');
+      if (adminData) {
+        const parsed = JSON.parse(adminData);
+        return parsed._id || parsed.id || null;
+      }
+    } else if (role === 'staff') {
+      // Check both possible storage keys for staff
+      const staffData = localStorage.getItem('staffData') || localStorage.getItem('staff');
+      if (staffData) {
+        const parsed = JSON.parse(staffData);
+        return parsed._id || parsed.id || null;
+      }
+    } else if (role === 'user') {
+      // Check both possible storage keys for user
+      const userData = localStorage.getItem('user') || localStorage.getItem('userData');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed._id || parsed.id || null;
+      }
+    }
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return null;
+  }
+  return null;
+};
 
 // Debug Component to see current route
 const RouteDebugger = () => {
@@ -334,6 +365,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/audit"
           element={
@@ -342,6 +374,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/staff"
           element={
@@ -379,6 +412,21 @@ function App() {
             <ProtectedRoute requiredRole="staff" authStatus={authStatus}>
               <StaffIssuesPage authStatus={authStatus} />
             </ProtectedRoute>
+          }
+        />
+
+        {/* 🔔 Notification Page - Available to all authenticated users */}
+        <Route
+          path="/notifications"
+          element={
+            authStatus.isAuthenticated ? (
+              <NotificationsPage 
+                userId={getUserId(authStatus.userRole)} 
+                userType={authStatus.userRole === 'admin' ? 'Admin' : authStatus.userRole === 'staff' ? 'Staff' : 'User'} 
+              />
+            ) : (
+              <Navigate to="/" />
+            )
           }
         />
 
@@ -448,7 +496,7 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
     } else if (authStatus.userRole === "staff") {
       redirectTo = "/staff/dashboard";
     } else if (authStatus.userRole === "user") {
-      redirectTo = "/user/profile"; // ← FIX: Changed from /home to /user/profile
+      redirectTo = "/user/profile";
     }
 
     console.log(`   Redirecting to: ${redirectTo}`);

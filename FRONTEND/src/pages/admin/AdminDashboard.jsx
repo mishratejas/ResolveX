@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import NotificationBell from '../../components/common/NotificationBell.jsx';
 import {
   Copy,
   LogOut, Users, FileText, CheckCircle, Clock, AlertTriangle,
@@ -486,18 +487,11 @@ const [lastUpdated, setLastUpdated] = useState(null);
               </button>
               
               <div className="relative">
-                <button className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 relative group border border-orange-200">
-                  <div className="relative">
-                    <Bell className="w-5 h-5 text-orange-600 group-hover:text-orange-700 transition-colors" />
-                    {unreadNotifications > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-md border border-white">
-                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </div>
-              
+  <NotificationBell 
+    userId={adminInfo._id || localStorage.getItem('adminId')} 
+    userType="Admin"
+  />
+</div>
               <div className="relative group">
                 <button className="flex items-center gap-2 p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 group border border-orange-200">
                   <div className="relative">
