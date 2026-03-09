@@ -1,0 +1,90 @@
+📦BACKEND
+ ┣ 📂seeders
+ ┃ ┗ 📜seedAll.js
+ ┣ 📂src
+ ┃ ┣ 📂config
+ ┃ ┃ ┗ 📜cloudinary.js
+ ┃ ┣ 📂controllers
+ ┃ ┃ ┣ 📜admin.analytics.controllers.js
+ ┃ ┃ ┣ 📜admin.controllers.js
+ ┃ ┃ ┣ 📜admin.staff.controllers.js
+ ┃ ┃ ┣ 📜admin.user.controllers.js
+ ┃ ┃ ┣ 📜admin_chat.controllers.js
+ ┃ ┃ ┣ 📜admin_issue.controllers.js
+ ┃ ┃ ┣ 📜analytics.controllers.js
+ ┃ ┃ ┣ 📜assignment.controllers.js
+ ┃ ┃ ┣ 📜audit.controllers.js
+ ┃ ┃ ┣ 📜chat.controllers.js
+ ┃ ┃ ┣ 📜complaint_chat.controllers.js
+ ┃ ┃ ┣ 📜department.controllers.js
+ ┃ ┃ ┣ 📜notification.controllers.js
+ ┃ ┃ ┣ 📜otp.controllers.js
+ ┃ ┃ ┣ 📜staff.controllers.js
+ ┃ ┃ ┣ 📜staff_chat.controllers.js
+ ┃ ┃ ┣ 📜staff_issue.controllers.js
+ ┃ ┃ ┣ 📜upload.controllers.js
+ ┃ ┃ ┣ 📜user.controllers.js
+ ┃ ┃ ┗ 📜user_issue.controllers.js
+ ┃ ┣ 📂db
+ ┃ ┃ ┗ 📜index.js
+ ┃ ┣ 📂middleware
+ ┃ ┃ ┣ 📜adminAuth.js
+ ┃ ┃ ┣ 📜auditLogger.js
+ ┃ ┃ ┣ 📜auth.js
+ ┃ ┃ ┣ 📜chatAuth.js
+ ┃ ┃ ┣ 📜errorHandler.js
+ ┃ ┃ ┣ 📜roleCheck.js
+ ┃ ┃ ┗ 📜staffAuth.js
+ ┃ ┣ 📂models
+ ┃ ┃ ┣ 📜Admin.models.js
+ ┃ ┃ ┣ 📜AdminComplaint.models.js
+ ┃ ┃ ┣ 📜AuditLog.models.js
+ ┃ ┃ ┣ 📜chat.model.js
+ ┃ ┃ ┣ 📜Department.model.js
+ ┃ ┃ ┣ 📜Notification.models.js
+ ┃ ┃ ┣ 📜otp.model.js
+ ┃ ┃ ┣ 📜Staff.models.js
+ ┃ ┃ ┣ 📜User.models.js
+ ┃ ┃ ┗ 📜UserComplaint.models.js
+ ┃ ┣ 📂routes
+ ┃ ┃ ┣ 📜admin.department.routes.js
+ ┃ ┃ ┣ 📜admin.routes.js
+ ┃ ┃ ┣ 📜admin.staff.routes.js
+ ┃ ┃ ┣ 📜admin.user.routes.js
+ ┃ ┃ ┣ 📜admin_issue.routes.js
+ ┃ ┃ ┣ 📜analytics.routes.js
+ ┃ ┃ ┣ 📜assignment.routes.js
+ ┃ ┃ ┣ 📜audit.routes.js
+ ┃ ┃ ┣ 📜chat.routes.js
+ ┃ ┃ ┣ 📜notification.routes.js
+ ┃ ┃ ┣ 📜otp.routes.js
+ ┃ ┃ ┣ 📜staf.routes.js
+ ┃ ┃ ┣ 📜staff_issue.routes.js
+ ┃ ┃ ┣ 📜upload.routes.js
+ ┃ ┃ ┣ 📜user.routes.js
+ ┃ ┃ ┗ 📜user_issue.routes.js
+ ┃ ┣ 📂scripts
+ ┃ ┃ ┗ 📜seedAnalytics.js
+ ┃ ┣ 📂services
+ ┃ ┃ ┣ 📜notification.service.js
+ ┃ ┃ ┗ 📜priority.service.js
+ ┃ ┣ 📂utils
+ ┃ ┃ ┣ 📜ApiError.js
+ ┃ ┃ ┣ 📜ApiResponse.js
+ ┃ ┃ ┣ 📜asyncHandler.js
+ ┃ ┃ ┣ 📜email.js
+ ┃ ┃ ┣ 📜exportGenerator.js
+ ┃ ┃ ┣ 📜generateToken.js
+ ┃ ┃ ┣ 📜loadBalancer.js
+ ┃ ┃ ┣ 📜locationUtils.js
+ ┃ ┃ ┣ 📜notificationHandler.js
+ ┃ ┃ ┗ 📜sms.js
+ ┃ ┣ 📜app.js
+ ┃ ┣ 📜constants.js
+ ┃ ┗ 📜index.js
+ ┣ 📜.env
+ ┣ 📜.gitignore
+ ┣ 📜.gitkeep
+ ┣ 📜clear-db.js
+ ┣ 📜package-lock.json
+ ┗ 📜package.json
