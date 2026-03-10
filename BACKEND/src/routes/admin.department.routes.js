@@ -5,7 +5,8 @@ import {
   createDepartment,
   getDepartmentStats,
   getDepartmentsByWorkspaceCode,
-  deleteDepartment // 🚀 ADDED THIS IMPORT
+  deleteDepartment,
+  updateDepartment // 🚀 ADDED THIS IMPORT
 } from "../controllers/department.controllers.js";
 
 const router = express.Router();
@@ -23,7 +24,10 @@ router.get("/stats", adminAuth, getDepartmentStats);
 // POST create department (Admin only)
 router.post("/", adminAuth, createDepartment);
 
-// 🚀 NEW: DELETE a department and reassign its data
+// 🚀 NEW: PUT update a department
+router.put("/:id", adminAuth, updateDepartment);
+
+// DELETE a department and reassign its data
 router.delete("/:id", adminAuth, deleteDepartment);
 
 export default router;
