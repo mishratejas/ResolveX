@@ -1,14 +1,18 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-/**
- * Get all notifications for a user
- */
+const getAuthHeaders = () => {
+  const token =
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('staffToken') ||
+    localStorage.getItem('adminToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const getUserNotifications = async (userId, options = {}) => {
   try {
     const { isRead, type, limit = 50, skip = 0 } = options;
-    
     const params = new URLSearchParams();
     if (isRead !== undefined) params.append('isRead', isRead);
     if (type) params.append('type', type);
@@ -16,7 +20,8 @@ export const getUserNotifications = async (userId, options = {}) => {
     params.append('skip', skip);
 
     const response = await axios.get(
-      `${API_URL}/notifications/${userId}?${params.toString()}`
+      `${API_URL}/api/notifications/${userId}?${params.toString()}`,
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {
@@ -25,13 +30,12 @@ export const getUserNotifications = async (userId, options = {}) => {
   }
 };
 
-/**
- * Mark a notification as read
- */
 export const markNotificationAsRead = async (notificationId) => {
   try {
     const response = await axios.patch(
-      `${API_URL}/notifications/${notificationId}/read`
+      `${API_URL}/api/notifications/${notificationId}/read`,
+      {},
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {
@@ -40,13 +44,12 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-/**
- * Mark all notifications as read for a user
- */
 export const markAllNotificationsAsRead = async (userId) => {
   try {
     const response = await axios.patch(
-      `${API_URL}/notifications/${userId}/read-all`
+      `${API_URL}/api/notifications/${userId}/read-all`,
+      {},
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {
@@ -55,13 +58,11 @@ export const markAllNotificationsAsRead = async (userId) => {
   }
 };
 
-/**
- * Delete a notification
- */
 export const deleteNotification = async (notificationId) => {
   try {
     const response = await axios.delete(
-      `${API_URL}/notifications/${notificationId}`
+      `${API_URL}/api/notifications/${notificationId}`,
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {
@@ -70,13 +71,11 @@ export const deleteNotification = async (notificationId) => {
   }
 };
 
-/**
- * Clear all notifications for a user
- */
 export const clearAllNotifications = async (userId) => {
   try {
     const response = await axios.delete(
-      `${API_URL}/notifications/${userId}/clear-all`
+      `${API_URL}/api/notifications/${userId}/clear-all`,
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {
@@ -85,13 +84,11 @@ export const clearAllNotifications = async (userId) => {
   }
 };
 
-/**
- * Get notification statistics
- */
 export const getNotificationStats = async (userId) => {
   try {
     const response = await axios.get(
-      `${API_URL}/notifications/${userId}/stats`
+      `${API_URL}/api/notifications/${userId}/stats`,
+      { headers: getAuthHeaders() }
     );
     return response.data;
   } catch (error) {

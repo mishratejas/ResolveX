@@ -340,6 +340,15 @@ const AuditLogsPage = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
+                            {logs.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-16 text-center">
+                                        <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-gray-500 font-medium">No audit logs found</p>
+                                        <p className="text-gray-400 text-sm mt-1">Try adjusting your filters or refresh the page</p>
+                                    </td>
+                                </tr>
+                            )}
                             {logs.map((log) => (
                                 <tr key={log._id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">

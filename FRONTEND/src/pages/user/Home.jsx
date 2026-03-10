@@ -29,16 +29,10 @@ import NotificationBell from "../../components/common/NotificationBell";
 const Home = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("complaints");
   const navigate = useNavigate();
 
   const tabs = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: <HomeIcon className="w-4 h-4" />,
-      path: "/home",
-    },
     {
       id: "complaints",
       label: "All Complaints",
