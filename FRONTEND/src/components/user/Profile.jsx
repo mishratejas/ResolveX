@@ -44,6 +44,11 @@ const Profile = ({ currentUser }) => {
   const [monthlyActivity, setMonthlyActivity] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [userRank, setUserRank] = useState(null);
+  // Edit Profile
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', bio: '', currentPassword: '', newPassword: '', confirmPassword: '', address: { street: '', city: '', state: '', pincode: '' } });
+  const [editTab, setEditTab] = useState('profile'); // 'profile' | 'password'
+  const [editLoading, setEditLoading] = useState(false);
 
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -305,6 +310,71 @@ const loadUserRank = async () => {
   }
 };
 
+  const handleEditProfile = () => {
+    setEditTab('profile');
+    setEditForm({
+      name: userData?.name || '',
+      phone: userData?.phone || '',
+      bio: userData?.bio || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      address: {
+        street: userData?.address?.street || '',
+        city: userData?.address?.city || '',
+        state: userData?.address?.state || '',
+        pincode: userData?.address?.pincode || '',
+      }
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (editTab === 'profile') {
+      if (!editForm.name.trim()) { toast.error('Name is required'); return; }
+    } else {
+      if (!editForm.currentPassword) { toast.error('Enter current password'); return; }
+      if (editForm.newPassword.length < 6) { toast.error('New password must be at least 6 characters'); return; }
+      if (editForm.newPassword !== editForm.confirmPassword) { toast.error('Passwords do not match'); return; }
+    }
+    setEditLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (editTab === 'profile') {
+        const payload = { name: editForm.name, phone: editForm.phone, bio: editForm.bio, address: editForm.address };
+        const response = await axios.put(`${BASE_URL}/api/users/profile`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
+          toast.success('Profile updated!');
+          const updated = response.data.data || {};
+          setUserData(prev => ({ ...prev, ...updated }));
+          const stored = localStorage.getItem('user');
+          if (stored) localStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), ...updated }));
+          setShowEditModal(false);
+          // Auto-refresh profile data
+          await loadUserData();
+        }
+      } else {
+        const response = await axios.put(`${BASE_URL}/api/users/change-password`, {
+          currentPassword: editForm.currentPassword,
+          newPassword: editForm.newPassword
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        if (response.data.success) {
+          toast.success('Password changed successfully!');
+          setEditForm(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+          setShowEditModal(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const handleJoinWorkspace = async (e) => {
     e.preventDefault();
     if (!workspaceCode.trim()) {
@@ -554,7 +624,7 @@ const loadUserRank = async () => {
               </div>
 
               <button
-                onClick={() => navigate("/user/profile/edit")}
+                onClick={handleEditProfile}
                 className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium flex items-center gap-2"
               >
                 <Edit className="w-4 h-4" />
@@ -1158,6 +1228,168 @@ const loadUserRank = async () => {
             )}
           </div>
         </motion.div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Edit Profile</h2>
+                <p className="text-white/70 text-xs mt-0.5">Update your personal information</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 px-6 pt-4">
+              {['profile', 'password'].map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setEditTab(tab)}
+                  className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors capitalize ${
+                    editTab === tab
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab === 'profile' ? '👤 Profile Info' : '🔒 Change Password'}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              {editTab === 'profile' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Full Name *</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm transition-all"
+                      placeholder="Your full name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm transition-all"
+                      placeholder="+91 XXXXX XXXXX"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Bio</label>
+                    <textarea
+                      value={editForm.bio}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                      rows={3}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm transition-all resize-none"
+                      placeholder="Tell the community a little about yourself..."
+                      maxLength={200}
+                    />
+                    <p className="text-xs text-gray-400 text-right mt-0.5">{editForm.bio.length}/200</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Address</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text" placeholder="Street" value={editForm.address.street}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, address: { ...prev.address, street: e.target.value } }))}
+                        className="col-span-2 px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      />
+                      <input
+                        type="text" placeholder="City" value={editForm.address.city}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, address: { ...prev.address, city: e.target.value } }))}
+                        className="px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      />
+                      <input
+                        type="text" placeholder="State" value={editForm.address.state}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, address: { ...prev.address, state: e.target.value } }))}
+                        className="px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      />
+                      <input
+                        type="text" placeholder="Pincode" value={editForm.address.pincode}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, address: { ...prev.address, pincode: e.target.value } }))}
+                        className="px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    For security, enter your current password before setting a new one.
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Current Password *</label>
+                    <input
+                      type="password" value={editForm.currentPassword}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">New Password *</label>
+                    <input
+                      type="password" value={editForm.newPassword}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                      placeholder="Min. 6 characters"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Confirm New Password *</label>
+                    <input
+                      type="password" value={editForm.confirmPassword}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className={`w-full px-3.5 py-2.5 border rounded-lg focus:ring-2 text-sm transition-all ${
+                        editForm.confirmPassword && editForm.newPassword !== editForm.confirmPassword
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                          : 'border-gray-300 focus:border-blue-500 focus:ring-blue-100'
+                      }`}
+                      placeholder="Repeat new password"
+                    />
+                    {editForm.confirmPassword && editForm.newPassword !== editForm.confirmPassword && (
+                      <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 text-sm font-semibold flex items-center gap-2 disabled:opacity-60 shadow-md"
+                >
+                  {editLoading ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
+                  ) : (
+                    editTab === 'profile' ? 'Save Profile' : 'Change Password'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

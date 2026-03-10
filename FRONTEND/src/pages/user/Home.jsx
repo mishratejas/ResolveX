@@ -53,15 +53,9 @@ const Home = () => {
     },
     {
       id: "reports",
-      label: "Reports",
+      label: "Reports & Leaderboard",
       icon: <BarChart3 className="w-4 h-4" />,
       path: "/home/reports",
-    },
-    {
-      id: "leaderboard",
-      label: "Leaderboard",
-      icon: <Award className="w-4 h-4" />,
-      path: "/home/leaderboard",
     },
   ];
 
@@ -82,25 +76,16 @@ const Home = () => {
     setLoading(false);
   }, [navigate]); // Add navigate to dependencies
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("http://localhost:3000/api/users/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("user");
-        setCurrentUser(null);
-        window.location.href = "/login";
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
-    }
+  const handleLogout = () => {
+    // Clear session immediately - no waiting for API
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("currentWorkspace");
+    setCurrentUser(null);
+    // Fire API logout in background (don't await)
+    const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    fetch(`${BASE}/api/users/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+    window.location.href = "/";
   };
 
   const handleTabClick = (tab) => {
@@ -201,6 +186,7 @@ const Home = () => {
       {/* Main Content */}
       <main className="p-6">
         <Routes>
+          <Route index element={<Navigate to="complaints" replace />} />
           <Route
             path="dashboard"
             element={<Dashboard currentUser={currentUser} />}

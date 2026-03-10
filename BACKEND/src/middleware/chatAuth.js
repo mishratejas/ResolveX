@@ -42,7 +42,10 @@ export const chatAuth = async (req, res, next) => {
         });
 
     } catch (error) {
-        console.error("Chat auth error:", error);
+        // Only log unexpected errors - TokenExpiredError is normal expected behaviour
+        if (error.name !== "TokenExpiredError" && error.name !== "JsonWebTokenError") {
+            console.error("Chat auth error:", error);
+        }
         
         if (error.name === "JsonWebTokenError") {
             return res.status(401).json({

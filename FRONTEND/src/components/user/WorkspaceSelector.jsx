@@ -134,10 +134,11 @@ const handleSelectWorkspace = (workspace) => {
   console.log('🏢 Selecting workspace:', workspaceData);
   localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
 
-  // Notify parent
+  // Notify parent and trigger reload in complaint components
   if (onWorkspaceSelect) {
     onWorkspaceSelect(workspaceData);
   }
+  window.dispatchEvent(new Event("workspaceSelected"));
 
   // Go to home/dashboard
   navigate("/home");

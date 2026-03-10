@@ -120,7 +120,7 @@ const Navbar = ({
   const navLinks = [
     { id: 'home', label: 'Home' },
     { id: 'features', label: 'Features' },
-    { id: 'testimonials', label: 'Testimonials' }
+    { id: 'how-it-works', label: 'How It Works' },
   ];
 
   return (
@@ -238,24 +238,14 @@ const Navbar = ({
           ) : (
             <>
               <button
-                onClick={() => openAuthModal('user', 'signin')}
-                className={`font-medium transition-colors ${
-                  isScrolled 
-                    ? 'text-gray-700 hover:text-blue-600' 
-                    : 'text-white hover:text-cyan-200'
-                }`}
-              >
-                Login
-              </button>
-              <button
                 onClick={() => openAuthModal('user', 'signup')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-5 py-2 rounded-lg font-semibold transition-all shadow-md ${
                   isScrolled 
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90 shadow-md' 
-                    : 'bg-white text-blue-700 hover:bg-gray-100 shadow-md'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90' 
+                    : 'bg-white text-blue-700 hover:bg-blue-50'
                 }`}
               >
-                Register
+                Get Started
               </button>
             </>
           )}
@@ -357,29 +347,16 @@ const Navbar = ({
               <>
                 <button
                   onClick={() => {
-                    openAuthModal('user', 'signin');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`block w-full text-left py-3 px-2 font-medium transition-colors ${
-                    isScrolled 
-                      ? 'text-gray-700 hover:text-blue-600' 
-                      : 'text-white hover:text-cyan-200'
-                  }`}
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => {
                     openAuthModal('user', 'signup');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`block w-full text-center py-3 px-2 mt-2 font-medium rounded-lg transition-all ${
+                  className={`block w-full text-center py-3 px-2 font-semibold rounded-lg transition-all ${
                     isScrolled 
                       ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90' 
                       : 'bg-white text-blue-700 hover:bg-gray-100'
                   }`}
                 >
-                  Register
+                  Get Started
                 </button>
               </>
             )}
