@@ -39,24 +39,24 @@ const AuditLogsPage = () => {
         setLoading(true);
         const token = localStorage.getItem('adminToken');
         
-        console.log('🔑 Token being used:', token ? 'Present' : 'Missing');
-        
         if (!token) {
             console.error('No admin token found - please login again');
-            // Redirect to login or show message
             return;
         }
+
+        // Strip 'all' values — backend does exact-match filtering
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters).filter(([_, v]) => v && v !== 'all' && v !== '')
+        );
         
         const response = await axios.get(`${API_URL}/api/audit`, {
             headers: { Authorization: `Bearer ${token}` },
             params: {
-                ...filters,
+                ...cleanFilters,
                 page: pagination.page,
                 limit: pagination.limit
             }
         });
-
-        console.log('✅ API Response:', response.data);
 
         if (response.data.success) {
             // Check if logs exist in the response
