@@ -62,12 +62,6 @@ const RouteDebugger = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.log("📍 Current Route:", location.pathname);
-    console.log("📋 Route State:", location.state);
-    console.log(
-      "🔍 Query Params:",
-      new URLSearchParams(location.search).toString(),
-    );
   }, [location]);
 
   return null;
@@ -110,7 +104,6 @@ function App() {
   }, []);
 
   const checkAuth = () => {
-    console.log("🔐 Checking authentication...");
 
     const adminToken = localStorage.getItem("adminToken");
     const adminData = localStorage.getItem("adminData");
@@ -119,17 +112,9 @@ function App() {
     const userToken = localStorage.getItem("accessToken");
     const userData = localStorage.getItem("user");
 
-    console.log("📊 Auth check results:", {
-      adminToken: adminToken ? "✅ Present" : "❌ Missing",
-      adminData: adminData ? "✅ Present" : "❌ Missing",
-      staffToken: staffToken ? "✅ Present" : "❌ Missing",
-      userToken: userToken ? "✅ Present" : "❌ Missing",
-    });
-
     if (adminToken && adminData) {
       try {
         const parsedData = JSON.parse(adminData);
-        console.log("👑 Admin data:", parsedData);
         setAuthStatus({
           isAuthenticated: true,
           userRole: "admin",
@@ -179,7 +164,6 @@ function App() {
   };
 
   const openAuthModal = (type = "user") => {
-    console.log("Opening auth modal for:", type);
     setShowAuthModal(true);
   };
 
@@ -188,7 +172,7 @@ function App() {
   };
 
   const handleAuthSuccess = (role) => {
-    console.log("✅ Auth success, role:", role);
+
     checkAuth();
 
     // 🚀 After successful login, redirect to profile for workspace selection
@@ -202,7 +186,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log("🚪 Logging out...");
+
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminData");
     localStorage.removeItem("staffToken");
@@ -225,7 +209,7 @@ function App() {
   // Listen for auth events
   useEffect(() => {
     const handleAuthEvent = (e) => {
-      console.log("📡 Auth event received:", e.detail);
+
       checkAuth();
     };
 
@@ -482,14 +466,8 @@ function App() {
 const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
   const location = useLocation();
 
-  console.log(`🛡️ ProtectedRoute check:`);
-  console.log(`   Required Role: ${requiredRole}`);
-  console.log(`   Current Auth:`, authStatus);
-  console.log(`   Current Path: ${location.pathname}`);
-
   // If not authenticated, redirect to login
   if (!authStatus.isAuthenticated) {
-    console.log("❌ Not authenticated, redirecting to /");
     return <Navigate to="/" state={{ from: location.pathname }} />;
   }
 
@@ -512,9 +490,7 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
     return <Navigate to={redirectTo} />;
   }
 
-  console.log(
-    `✅ Access granted for ${authStatus.userRole} to ${requiredRole} route`,
-  );
+
 
   // Clone children and pass authStatus as prop
   const childrenWithProps = React.Children.map(children, (child) => {
