@@ -1313,3 +1313,27 @@ export const handleUpvoteComplaint = async (req, res) => {
     });
   }
 };
+// DELETE /api/user_issues/:id — user can only delete their own complaint
+export const handleDeleteIssue = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id || req.user?._id;
+
+    const complaint = await UserComplaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    // Only the owner can delete
+    if (complaint.user.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this complaint' });
+    }
+
+    await UserComplaint.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Complaint deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting complaint:', error);
+    res.status(500).json({ success: false, message: 'Error deleting complaint: ' + error.message });
+  }
+};

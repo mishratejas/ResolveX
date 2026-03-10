@@ -24,7 +24,7 @@
 //   Hash,
 //   Info
 // } from 'lucide-react';
-
+// 
 // const AuthModal = ({ 
 //   isOpen, 
 //   onClose, 
@@ -32,7 +32,7 @@
 //   formType: initialFormType = 'signup', 
 //   setUserType, 
 //   setFormType,
-//   baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000',
+//   baseUrl = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com',
 //   onAuthSuccess
 // }) => {
 //   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,42 +52,42 @@
 //   const [showStaffIdInfo, setShowStaffIdInfo] = useState(false);
 //   const [loginMethod, setLoginMethod] = useState('staffId');
 //   const formRef = useRef(null);
-
+// 
 //   // 🚀 NEW: Workspace Code State
 //   const [workspaceCodeValue, setWorkspaceCodeValue] = useState('');
 //   const [workspaceValid, setWorkspaceValid] = useState(false);
-
+// 
 //   // Update parent components
 //   useEffect(() => {
 //     if (setUserType) setUserType(userType);
 //   }, [userType, setUserType]);
-
+// 
 //   useEffect(() => {
 //     if (setFormType) setFormType(activeForm);
 //   }, [activeForm, setFormType]);
-
+// 
 //   // Fetch departments when staff registration is shown
 //   // useEffect(() => {
 //   //   if (userType === 'staff' && activeForm === 'signup' && isOpen) {
 //   //     fetchDepartments();
 //   //   }
 //   // }, [userType, activeForm, isOpen]);
-
+// 
 //   // const fetchDepartments = async () => {
 //   //   try {
 //   //     setLoadingDepartments(true);
 //   //     console.log('🌐 Fetching departments...');
-      
+//       
 //   //     const response = await fetch(`${baseUrl}/api/staff/departments`, {
 //   //       method: 'GET',
 //   //       headers: {
 //   //         'Content-Type': 'application/json',
 //   //       },
 //   //     });
-      
+//       
 //   //     const result = await response.json();
 //   //     console.log('📋 Departments API response:', result);
-      
+//       
 //   //     if (response.ok && result.success) {
 //   //       setDepartments(result.data || result.departments || []);
 //   //       console.log('✅ Loaded departments:', result.data?.length || result.departments?.length || 0);
@@ -104,7 +104,7 @@
 //   //     setLoadingDepartments(false);
 //   //   }
 //   // };
-
+// 
 //   // 🚀 UPDATED: Fetch departments ONLY when a valid 6-character workspace code is entered
 //   useEffect(() => {
 //     if (userType === 'staff' && activeForm === 'signup' && workspaceCodeValue.length >= 6) {
@@ -114,20 +114,20 @@
 //       setWorkspaceValid(false);
 //     }
 //   }, [userType, activeForm, workspaceCodeValue]);
-
+// 
 //   const fetchDepartments = async (code) => {
 //     try {
 //       setLoadingDepartments(true);
 //       setError('');
 //       console.log(`🌐 Fetching departments for workspace: ${code}...`);
-      
+//       
 //       const response = await fetch(`${baseUrl}/api/admin/departments/workspace/${code}`, {
 //         method: 'GET',
 //         headers: { 'Content-Type': 'application/json' },
 //       });
-      
+//       
 //       const result = await response.json();
-      
+//       
 //       if (response.ok && result.success) {
 //         setDepartments(result.data || []);
 //         setWorkspaceValid(true);
@@ -145,7 +145,7 @@
 //       setLoadingDepartments(false);
 //     }
 //   };
-
+// 
 //   const getFallbackDepartments = () => {
 //     return [
 //       { _id: '1', name: 'Water Supply', category: 'utilities' },
@@ -160,7 +160,7 @@
 //       { _id: '10', name: 'Public Works', category: 'other' }
 //     ];
 //   };
-
+// 
 //   useEffect(() => {
 //     if (isOpen) {
 //       document.body.style.overflow = 'hidden';
@@ -186,7 +186,7 @@
 //       document.body.style.overflow = 'unset';
 //     };
 //   }, [isOpen]);
-
+// 
 //   useEffect(() => {
 //     let timer;
 //     if (otpTimer > 0) {
@@ -194,7 +194,7 @@
 //     }
 //     return () => clearTimeout(timer);
 //   }, [otpTimer]);
-
+// 
 //   const handleUserTypeChange = (type) => {
 //     setLocalUserType(type);
 //     setError('');
@@ -215,37 +215,37 @@
 //       setActiveForm('signup');
 //     }
 //   };
-
+// 
 //   const handleSendOtp = async () => {
 //     // For staff login, we don't need OTP
 //     if (userType === 'staff' && activeForm === 'signin') {
 //       return;
 //     }
-
+// 
 //     if (!emailValue) {
 //       setError('Please enter email first');
 //       return;
 //     }
-
+// 
 //     if (otpTimer > 0) {
 //       setError(`Please wait ${otpTimer} seconds before resending OTP`);
 //       return;
 //     }
-
+// 
 //     try {
 //       setError('');
 //       setSuccess('');
 //       setIsSubmitting(true);
-
+// 
 //       const purpose = 'signup';
-      
+//       
 //       console.log('📤 Sending OTP request:', {
 //         identifier: emailValue,
 //         purpose,
 //         userType,
 //         type: 'email'
 //       });
-
+// 
 //       const res = await fetch(`${baseUrl}/api/otp/request`, {
 //         method: 'POST',
 //         headers: { 'Content-Type': 'application/json' },
@@ -256,14 +256,14 @@
 //           type: 'email'
 //         })
 //       });
-
+// 
 //       const result = await res.json();
 //       console.log('📥 OTP Response:', result);
-
+// 
 //       if (!res.ok) {
 //         throw new Error(result.message || 'Failed to send OTP');
 //       }
-
+// 
 //       setOtpSent(true);
 //       setOtpTimer(60);
 //       setSuccess('OTP sent successfully to your email');
@@ -274,31 +274,88 @@
 //       setIsSubmitting(false);
 //     }
 //   };
-
+// 
 //   const generateStaffId = () => {
 //     // Generate a 5-digit staff ID starting with 'S'
 //     const randomNum = Math.floor(1000 + Math.random() * 9000);
 //     return `S${randomNum}`;
 //   };
-
+// 
+//   const handleForgotPassword = async (step) => {
+//     setForgotLoading(true);
+//     setError(''); setSuccess('');
+//     try {
+//       if (step === 'sendOtp') {
+//         if (!forgotEmail) { setError('Please enter your email'); setForgotLoading(false); return; }
+//         const res = await fetch(`${baseUrl}/api/otp/request`, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify({ identifier: forgotEmail, purpose: 'password-reset', userType, type: 'email' })
+//         });
+//         const result = await res.json();
+//         if (!res.ok) throw new Error(result.message || 'Failed to send OTP');
+//         setForgotOtpSent(true);
+//         setSuccess('OTP sent to your email. Check your inbox.');
+//       } else if (step === 'resetPassword') {
+//         if (!forgotOtpValue || !forgotNewPassword) { setError('Please fill all fields'); setForgotLoading(false); return; }
+//         if (forgotNewPassword.length < 6) { setError('Password must be at least 6 characters'); setForgotLoading(false); return; }
+//         
+//         // Different endpoints per user type
+//         let resetUrl = '';
+//         let resetPayload = {};
+//         if (userType === 'user') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         } else if (userType === 'admin') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         } else if (userType === 'staff') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         }
+//         const res = await fetch(resetUrl, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify(resetPayload)
+//         });
+//         const result = await res.json();
+//         if (!res.ok) throw new Error(result.message || 'Failed to reset password');
+//         setSuccess('Password reset successful! You can now sign in with your new password.');
+//         setTimeout(() => {
+//           setForgotMode(false);
+//           setForgotOtpSent(false);
+//           setForgotEmail('');
+//           setForgotOtpValue('');
+//           setForgotNewPassword('');
+//           setActiveForm('signin');
+//           setError(''); setSuccess('');
+//         }, 2000);
+//       }
+//     } catch (err) {
+//       setError(err.message || 'Something went wrong. Please try again.');
+//     } finally {
+//       setForgotLoading(false);
+//     }
+//   };
+// 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
-    
+//     
 //     setIsSubmitting(true);
 //     setError('');
 //     setSuccess('');
-
+// 
 //     const formData = new FormData(e.target);
 //     const data = Object.fromEntries(formData);
-
+// 
 //     try {
 //       console.log('📝 Form data:', data);
 //       console.log('📝 Active form:', activeForm);
 //       console.log('👤 User type:', userType);
-
+// 
 //       let url = '';
 //       let payload = {};
-
+// 
 //       if (activeForm === 'signup') {
 //         if (userType === 'admin') {
 //           // 🚀 NEW: Admin Signup Payload
@@ -327,7 +384,7 @@
 //           url = `${baseUrl}/api/otp/signup/staff`;
 //           const autoStaffId = generateStaffId();
 //           setGeneratedStaffId(autoStaffId);
-          
+//           
 //           payload = {
 //             name: data.name,
 //             email: data.email,
@@ -358,20 +415,20 @@
 //           };
 //         }
 //       }
-
+// 
 //       console.log('🚀 Making request to:', url);
 //       console.log('📦 Payload:', payload);
-
+// 
 //       const res = await fetch(url, {
 //         method: 'POST',
 //         headers: { 'Content-Type': 'application/json' },
 //         body: JSON.stringify(payload)
 //       });
-
+// 
 //       // Handle response
 //       const contentType = res.headers.get('content-type');
 //       let result;
-      
+//       
 //       if (contentType && contentType.includes('application/json')) {
 //         result = await res.json();
 //       } else {
@@ -379,9 +436,9 @@
 //         console.error('❌ Non-JSON response:', text);
 //         throw new Error(`Server returned ${res.status}: ${text}`);
 //       }
-      
+//       
 //       console.log('✅ Response:', result);
-
+// 
 //       if (!res.ok) {
 //         // Handle specific error messages
 //         if (result.message) {
@@ -397,23 +454,23 @@
 //         }
 //         throw new Error(result.message || result.error || 'Authentication failed');
 //       }
-
+// 
 //       // Store tokens and user data
 //       if (userType === 'user') {
 //         const accessToken = result.accessToken || result.data?.accessToken || result.token;
 //         const userData = result.user || result.data?.user || result.data;
-        
+//         
 //         console.log('💾 Storing user data:', { accessToken, userData });
-        
+//         
 //         if (accessToken) localStorage.setItem('accessToken', accessToken);
 //         if (userData) localStorage.setItem('user', JSON.stringify(userData));
-        
+//         
 //         window.dispatchEvent(new CustomEvent('userLogin', { detail: { role: 'user', data: userData } }));
-        
+//         
 //         if (onAuthSuccess) onAuthSuccess('user');
-        
+//         
 //         setSuccess('Registration successful! Redirecting to user portal...');
-        
+//         
 //         setTimeout(() => {
 //           onClose();
 //           window.location.href = '/home';
@@ -421,9 +478,9 @@
 //       } else if (userType === 'staff') {
 //         const accessToken = result.accessToken || result.data?.accessToken || result.token;
 //         const staffData = result.staff || result.data?.staff || result.data;
-        
+//         
 //         console.log('💾 Storing staff data:', { accessToken, staffData });
-        
+//         
 //         if (accessToken) {
 //           localStorage.setItem('staffToken', accessToken);
 //           localStorage.setItem('staffAccessToken', accessToken);
@@ -432,13 +489,13 @@
 //           localStorage.setItem('staff', JSON.stringify(staffData));
 //           localStorage.setItem('staffData', JSON.stringify(staffData));
 //         }
-        
+//         
 //         window.dispatchEvent(new CustomEvent('userLogin', { 
 //           detail: { role: 'staff', data: staffData } 
 //         }));
-        
+//         
 //         if (onAuthSuccess) onAuthSuccess('staff');
-        
+//         
 //         // Show success message with generated Staff ID for registration
 //         let successMsg = '';
 //         if (activeForm === 'signup') {
@@ -447,18 +504,18 @@
 //           successMsg = 'Staff login successful! Redirecting...';
 //         }
 //         setSuccess(successMsg);
-        
+//         
 //         setTimeout(() => {
 //           onClose();
 //           window.location.href = '/staff/dashboard';
 //         }, activeForm === 'signup' ? 3000 : 1500); // Give more time to see the Staff ID
 //       } else if (userType === 'admin') {
-        
+//         
 //         // 🚀 NEW: Handle Admin Signup Success
 //         if (activeForm === 'signup') {
 //           const workspaceCode = result.data?.workspaceCode;
 //           setSuccess(`Workspace created! IMPORTANT: Your Workspace Code is ${workspaceCode}. Save this code for your staff.`);
-          
+//           
 //           // Switch them to the sign-in form after 5 seconds so they can log in
 //           setTimeout(() => {
 //             setActiveForm('signin');
@@ -466,13 +523,13 @@
 //           }, 5000);
 //           return; // Stop here, don't try to log them in yet!
 //         }
-
+// 
 //         // 🚀 Handle Admin Login Success
 //         const accessToken = result.accessToken || result.data?.accessToken || result.token;
 //         const adminData = result.admin || result.data?.admin || result.data;
-        
+//         
 //         console.log('💾 Storing admin credentials:', { accessToken, adminData });
-        
+//         
 //         if (accessToken) {
 //           localStorage.setItem('adminToken', accessToken);
 //           localStorage.setItem('adminAccessToken', accessToken);
@@ -481,17 +538,17 @@
 //           localStorage.setItem('admin', JSON.stringify(adminData));
 //           localStorage.setItem('adminData', JSON.stringify(adminData));
 //         }
-        
+//         
 //         if (onAuthSuccess) onAuthSuccess('admin');
-        
+//         
 //         setSuccess('Admin login successful! Redirecting...');
-        
+//         
 //         setTimeout(() => {
 //           onClose();
 //           window.location.href = '/admin/dashboard';
 //         }, 1500);
 //       }
-
+// 
 //     } catch (err) {
 //       console.error('❌ Submit Error:', err);
 //       setError(err.message || 'An error occurred. Please try again.');
@@ -499,12 +556,12 @@
 //       setIsSubmitting(false);
 //     }
 //   };
-
+// 
 //   const copyToClipboard = (text) => {
 //     navigator.clipboard.writeText(text);
 //     alert('Staff ID copied to clipboard!');
 //   };
-
+// 
 //   const userTypes = [
 //     { 
 //       id: 'user', 
@@ -528,9 +585,9 @@
 //       color: 'from-green-500 to-emerald-500'
 //     }
 //   ];
-
+// 
 //   if (!isOpen) return null;
-
+// 
 //   return (
 //     <AnimatePresence>
 //       <motion.div
@@ -557,7 +614,7 @@
 //             >
 //               <X className="w-4 h-4" />
 //             </button>
-            
+//             
 //             <div className="text-center">
 //               <h2 className="text-2xl font-bold text-white mb-1">
 //                 Resolve<span className="text-cyan-200">X</span>
@@ -565,7 +622,7 @@
 //               <p className="text-white/80 text-sm">Community Issue Resolution Platform</p>
 //             </div>
 //           </div>
-
+// 
 //           {/* Scrollable Content Area */}
 //           <div 
 //             ref={formRef}
@@ -611,7 +668,7 @@
 //                 ))}
 //               </div>
 //             </div>
-
+// 
 //             {/* Toggle between Sign In and Sign Up - Only for user and staff */}
 //               <div className="mb-6">
 //                 <div className="flex rounded-lg bg-gray-100 p-1 max-w-xs mx-auto">
@@ -656,7 +713,7 @@
 //                   </button>
 //                 </div>
 //               </div>
-
+// 
 //             {/* Error/Success Messages */}
 //             <AnimatePresence>
 //               {error && (
@@ -706,7 +763,7 @@
 //                 </motion.div>
 //               )}
 //             </AnimatePresence>
-
+// 
 //             {/* Auth Form */}
 //             <motion.form
 //               key={`${userType}-${activeForm}`}
@@ -764,7 +821,7 @@
 //                       </div>
 //                     </>
 //                   )}
-
+// 
 //                   {/* Email & Password (Shared for both Login and Signup) */}
 //                   <div>
 //                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -844,7 +901,7 @@
 //                       </p>
 //                     </div>
 //                   )}
-
+// 
 //                   {/* STAFF ONLY: Workspace Code Field for both Login and Signup */}
 //                   {userType === 'staff' && (
 //                     <div className="mb-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
@@ -867,7 +924,7 @@
 //                       </p>
 //                     </div>
 //                   )}
-
+// 
 //                   {/* Identifier Field (Email or Staff ID depending on mode) */}
 //                   {userType === 'staff' && activeForm === 'signin' ? (
 //                     <div>
@@ -932,7 +989,7 @@
 //                       )}
 //                     </div>
 //                   )}
-
+// 
 //                   {/* OTP Field - Only for signup */}
 //                   {activeForm === 'signup' && (
 //                     <div>
@@ -979,7 +1036,7 @@
 //                       )}
 //                     </div>
 //                   )}
-
+// 
 //                   {/* Password Field */}
 //                   <div>
 //                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1004,7 +1061,7 @@
 //                       </button>
 //                     </div>
 //                   </div>
-
+// 
 //                   {/* Additional fields for signup */}
 //                   {activeForm === 'signup' && (
 //                     <>
@@ -1021,7 +1078,7 @@
 //                           className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
 //                         />
 //                       </div>
-
+// 
 //                       <div>
 //                         <label className="block text-sm font-medium text-gray-700 mb-2">
 //                           <Phone className="w-4 h-4 inline mr-2" />
@@ -1036,7 +1093,7 @@
 //                           className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
 //                         />
 //                       </div>
-
+// 
 //                       {/* 🚀 UPDATED: DEPARTMENT DROPDOWN - STAFF ONLY */}
 //                       {userType === 'staff' && (
 //                         <div>
@@ -1061,7 +1118,7 @@
 //                               </option>
 //                             ))}
 //                           </select>
-                          
+//                           
 //                           {/* Loading State UI */}
 //                           {loadingDepartments && (
 //                             <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
@@ -1077,7 +1134,7 @@
 //                           )}
 //                         </div>
 //                       )}
-
+// 
 //                       {/* USER ADDRESS FIELDS */}
 //                       {userType === 'user' && (
 //                         <div>
@@ -1117,7 +1174,7 @@
 //                   )}
 //                 </>
 //               )}
-
+// 
 //               {/* Submit Button */}
 //               <button
 //                 type="submit"
@@ -1149,7 +1206,7 @@
 //                   </>
 //                 )}
 //               </button>
-
+// 
 //               {/* Terms and Conditions */}
 //               {activeForm === 'signup' && userType !== 'admin' && (
 //                 <p className="text-center text-xs text-gray-500 mt-4">
@@ -1164,7 +1221,7 @@
 //                 </p>
 //               )}
 //             </motion.form>
-
+// 
 //             {/* Demo Credentials */}
 //             <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
 //               <h4 className="font-medium text-blue-900 text-sm mb-2 flex items-center gap-2">
@@ -1220,9 +1277,9 @@
 //     </AnimatePresence>
 //   );
 // };
-
+// 
 // export default AuthModal;
-
+// 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -1238,7 +1295,7 @@ const AuthModal = ({
   formType: initialFormType = 'signup', 
   setUserType, 
   setFormType,
-  baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseUrl = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com',
   onAuthSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1255,6 +1312,13 @@ const AuthModal = ({
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [generatedStaffId, setGeneratedStaffId] = useState('');
   const formRef = useRef(null);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtpSent, setForgotOtpSent] = useState(false);
+  const [forgotOtpValue, setForgotOtpValue] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Workspace Code State
   const [workspaceCodeValue, setWorkspaceCodeValue] = useState('');
@@ -1371,6 +1435,63 @@ const AuthModal = ({
 
   const generateStaffId = () => {
     return `S${Math.floor(1000 + Math.random() * 9000)}`;
+  };
+
+  const handleForgotPassword = async (step) => {
+    setForgotLoading(true);
+    setError(''); setSuccess('');
+    try {
+      if (step === 'sendOtp') {
+        if (!forgotEmail) { setError('Please enter your email'); setForgotLoading(false); return; }
+        const res = await fetch(`${baseUrl}/api/otp/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: forgotEmail, purpose: 'password-reset', userType, type: 'email' })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Failed to send OTP');
+        setForgotOtpSent(true);
+        setSuccess('OTP sent to your email. Check your inbox.');
+      } else if (step === 'resetPassword') {
+        if (!forgotOtpValue || !forgotNewPassword) { setError('Please fill all fields'); setForgotLoading(false); return; }
+        if (forgotNewPassword.length < 6) { setError('Password must be at least 6 characters'); setForgotLoading(false); return; }
+        
+        // Different endpoints per user type
+        let resetUrl = '';
+        let resetPayload = {};
+        if (userType === 'user') {
+          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+        } else if (userType === 'admin') {
+          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+        } else if (userType === 'staff') {
+          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+        }
+        const res = await fetch(resetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(resetPayload)
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Failed to reset password');
+        setSuccess('Password reset successful! You can now sign in with your new password.');
+        setTimeout(() => {
+          setForgotMode(false);
+          setForgotOtpSent(false);
+          setForgotEmail('');
+          setForgotOtpValue('');
+          setForgotNewPassword('');
+          setActiveForm('signin');
+          setError(''); setSuccess('');
+        }, 2000);
+      }
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -1504,7 +1625,7 @@ const AuthModal = ({
 
   return (
     <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 pb-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25 }} className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]" style={{ height: '85vh' }} onClick={(e) => e.stopPropagation()}>
           
           <div className="relative bg-gradient-to-r from-blue-600 to-cyan-500 p-6 flex-shrink-0">
@@ -1564,6 +1685,48 @@ const AuthModal = ({
               )}
             </AnimatePresence>
 
+            {/* Forgot Password Flow */}
+            {forgotMode && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <button type="button" onClick={() => { setForgotMode(false); setForgotOtpSent(false); setError(''); setSuccess(''); }} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                    <ArrowRight className="w-4 h-4 text-gray-500 rotate-180" />
+                  </button>
+                  <h3 className="font-semibold text-gray-800">Reset Password</h3>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address *</label>
+                  <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="Enter your registered email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" disabled={forgotOtpSent} />
+                </div>
+                {forgotOtpSent && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">OTP *</label>
+                      <input type="text" value={forgotOtpValue} onChange={e => setForgotOtpValue(e.target.value.replace(/\D/g,'').slice(0,6))} maxLength="6" placeholder="Enter 6-digit OTP" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password *</label>
+                      <div className="relative">
+                        <input type={showPassword ? 'text' : 'password'} value={forgotNewPassword} onChange={e => setForgotNewPassword(e.target.value)} placeholder="Min. 6 characters" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 pr-12" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <button
+                  type="button"
+                  disabled={forgotLoading}
+                  onClick={() => handleForgotPassword(forgotOtpSent ? 'resetPassword' : 'sendOtp')}
+                  className="w-full py-3 px-6 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {forgotLoading ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> Processing...</>
+                  ) : forgotOtpSent ? 'Reset Password' : 'Send OTP'}
+                </button>
+              </div>
+            )}
+
+            {!forgotMode && (
             <motion.form key={`${userType}-${activeForm}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onSubmit={handleSubmit} className="space-y-4">
               
               {userType === 'admin' ? (
@@ -1651,27 +1814,23 @@ const AuthModal = ({
                 </>
               )}
 
+              {activeForm === 'signin' && !forgotMode && (
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setForgotMode(true); setError(''); setSuccess(''); }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
               <button type="submit" disabled={isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue))} className={`w-full py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 mt-6 ${isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue)) ? 'bg-gray-400 cursor-not-allowed' : `bg-gradient-to-r ${userType === 'user' ? 'from-blue-600 to-cyan-500' : userType === 'staff' ? 'from-purple-600 to-pink-500' : 'from-green-600 to-emerald-500'} hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`} text-white flex items-center justify-center gap-2`}>
                 {isSubmitting ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Processing...</>) : (<>{userType === 'admin' ? 'Admin Login' : activeForm === 'signin' ? 'Sign In' : 'Create Account'} <ArrowRight className="w-4 h-4" /></>)}
               </button>
             </motion.form>
-
-            <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-900 text-sm mb-2 flex items-center gap-2"><Shield className="w-3 h-3" /> Testing Instructions</h4>
-              <div className="space-y-1 text-xs text-blue-700">
-                {userType === 'admin' ? (
-                  <><div>Admin Credentials:</div><div>Email: admin@agracouncil.gov</div><div>Password: securepassword123</div></>
-                ) : userType === 'staff' && activeForm === 'signup' ? (
-                  <><div>Staff Registration:</div><div>1. Enter your Admin's Workspace Code</div><div>2. Enter email and click "Send OTP"</div><div>3. Check email for OTP</div><div>4. Select department</div><div>5. Click "Create Account"</div></>
-                ) : userType === 'staff' && activeForm === 'signin' ? (
-                  <><div>Staff Login:</div><div>Use your registered Email</div><div>Example: staff@example.com</div><div>Password: your-password</div></>
-                ) : activeForm === 'signin' ? (
-                  <><div>User Login:</div><div>Use your registered credentials</div><div>Email: user@example.com</div><div>Password: your-password</div></>
-                ) : (
-                  <><div>User Registration:</div><div>1. Enter email and click "Send OTP"</div><div>2. Enter OTP and fill details</div><div>3. Click "Create Account"</div></>
-                )}
-              </div>
-            </div>
+            )}
 
           </div>
         </motion.div>

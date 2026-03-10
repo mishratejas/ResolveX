@@ -10,7 +10,8 @@ import {
     handleGetStats,
     // NEW IMPORTS
     checkDuplicateComplaint,
-    handleUpvoteComplaint
+    handleUpvoteComplaint,
+    handleDeleteIssue
 } from "../controllers/user_issue.controllers.js";
 import { auth } from "../middleware/auth.js";
 
@@ -44,5 +45,8 @@ router.put('/:id/upvote', auth, handleUpvoteComplaint);
 
 // PUT /api/user_issues/:id/vote - Add voting system for public engagement
 router.put('/:id/vote', handleVoteCount);
+
+// DELETE /api/user_issues/:id - Delete a complaint (owner only)
+router.delete('/:id', auth, handleDeleteIssue);
 
 export default router;

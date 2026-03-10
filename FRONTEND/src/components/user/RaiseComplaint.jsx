@@ -54,49 +54,78 @@ const RaiseComplaint = ({ currentUser }) => {
   });
   const [locationLoading, setLocationLoading] = useState(false);
 
-  // Load Leaflet dynamically
+  // Load Leaflet dynamically and get user location
   useEffect(() => {
-    if (showMap && !window.L) {
+    if (!showMap) return;
+    const doInit = () => {
+      // Try to get user's real GPS location first
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => initializeMap(pos.coords.latitude, pos.coords.longitude),
+          () => initializeMap(null, null), // fallback if denied
+          { timeout: 5000 }
+        );
+      } else {
+        initializeMap(null, null);
+      }
+    };
+
+    if (!window.L) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
       document.head.appendChild(link);
-
       const script = document.createElement("script");
       script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = initializeMap;
+      script.onload = doInit;
       document.body.appendChild(script);
-    } else if (showMap && window.L && !map) {
-      initializeMap();
+    } else if (!map) {
+      doInit();
     }
   }, [showMap]);
 
-  const initializeMap = () => {
+  const pinIcon = () => window.L.divIcon({
+    className: '',
+    html: `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:40px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45))"><path d="M12 0C7.58 0 4 3.58 4 8c0 5.25 8 20 8 20s8-14.75 8-20c0-4.42-3.58-8-8-8z" fill="#EF4444"/><circle cx="12" cy="8" r="3.5" fill="white"/></svg>`,
+    iconSize: [28, 40],
+    iconAnchor: [14, 40],
+    popupAnchor: [0, -40],
+  });
+
+  // Prevent browser zoom when using trackpad/mouse over map
+  const trapMapWheel = (container) => {
+    if (!container) return;
+    container.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+    }, { passive: false });
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) e.stopPropagation();
+    }, { passive: false });
+  };
+
+  const initializeMap = (userLat, userLng) => {
     if (!window.L || !mapRef.current || map) return;
+    trapMapWheel(mapRef.current);
 
-    // Default to a central location or user's last known location
-    const defaultLat = formData.location.latitude || 28.6139;
-    const defaultLng = formData.location.longitude || 77.209;
+    const lat = formData.location.latitude || userLat || 20.5937;
+    const lng = formData.location.longitude || userLng || 78.9629;
+    const zoom = userLat ? 15 : 5;
 
-    const newMap = window.L.map(mapRef.current).setView(
-      [defaultLat, defaultLng],
-      13,
-    );
+    const newMap = window.L.map(mapRef.current, { scrollWheelZoom: true }).setView([lat, lng], zoom);
 
     window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
       maxZoom: 19,
     }).addTo(newMap);
 
-    // Add click handler - NOW USING THE CORRECT FUNCTION
-    newMap.on("click", handleMapClick); // ← FIX: Now using the handleMapClick function
+    const icon = pinIcon();
+    newMap.on("click", (e) => handleMapClick(e, newMap, icon));
 
-    // Add marker if location exists
-    if (formData.location.latitude && formData.location.longitude) {
-      const marker = window.L.marker([
-        formData.location.latitude,
-        formData.location.longitude,
-      ]).addTo(newMap);
+    // Place marker at existing location or user GPS
+    const markerLat = formData.location.latitude || userLat;
+    const markerLng = formData.location.longitude || userLng;
+    if (markerLat && markerLng) {
+      const marker = window.L.marker([markerLat, markerLng], { icon }).addTo(newMap);
       markerRef.current = marker;
     }
 
@@ -104,14 +133,18 @@ const RaiseComplaint = ({ currentUser }) => {
   };
 
   const handleMapClick = useCallback(
-    async (e) => {
+    async (e, activeMap, icon) => {
       const { lat, lng } = e.latlng;
 
-      // Update marker
+      // Update or create pin marker
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);
-      } else if (window.L && map) {
-        const marker = window.L.marker([lat, lng]).addTo(map);
+      } else if (window.L && (activeMap || map)) {
+        const targetMap = activeMap || map;
+        const markerIcon = icon || (window.L ? pinIcon() : undefined);
+        const marker = markerIcon
+          ? window.L.marker([lat, lng], { icon: markerIcon }).addTo(targetMap)
+          : window.L.marker([lat, lng]).addTo(targetMap);
         markerRef.current = marker;
       }
 
@@ -570,6 +603,26 @@ const handleUpvoteDuplicate = async (complaintId) => {
         skipDuplicateCheck,
       };
 
+      // Upload image to Cloudinary if provided
+      if (formData.image) {
+        try {
+          const imageFormData = new FormData();
+          imageFormData.append("image", formData.image);
+          const uploadRes = await axios.post(`${BASE_URL}/api/upload`, imageFormData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          });
+          if (uploadRes.data.success && uploadRes.data.urls?.length > 0) {
+            payload.images = uploadRes.data.urls;
+          }
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          // Continue submission even if image upload fails
+        }
+      }
+
       console.log("📤 Submitting payload:", payload);
 
       const response = await axios.post(
@@ -804,7 +857,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">
-                      🤖 AI-Powered Priority
+                       AI-Powered Priority
                     </h4>
                     <p className="text-sm text-gray-700">
                       Our AI will automatically assign priority based on urgency
@@ -873,11 +926,15 @@ const handleUpvoteDuplicate = async (complaintId) => {
               {/* Map Container */}
               {showMap && (
                 <div className="border border-gray-300 rounded-lg overflow-hidden">
-                  <div ref={mapRef} className="w-full h-96" />
-                  <div className="p-3 bg-gray-50 text-sm text-gray-600">
-                    <p>
-                      Click on the map to set the exact location of the issue
-                    </p>
+                  <div
+                    ref={mapRef}
+                    className="w-full"
+                    style={{ height: '384px', zIndex: 0, touchAction: 'none' }}
+                    onWheel={(e) => e.stopPropagation()}
+                  />
+                  <div className="p-3 bg-gray-50 text-sm text-gray-600 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <p>Click on the map to pin the exact location of the issue</p>
                   </div>
                 </div>
               )}

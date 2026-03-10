@@ -1,65 +1,79 @@
 import axios from 'axios';
 
+const BASE = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com';
+
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-    withCredentials: true, // CRITICAL for cookies
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
+    baseURL: BASE,
+    withCredentials: true,
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
 });
 
-// Request interceptor
+const getToken = () =>
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('adminToken') ||
+    localStorage.getItem('staffToken');
+
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Check for user token first, then admin token (if you want both roles)
-        const userToken = localStorage.getItem('accessToken');
-        if (userToken) {
-            config.headers.Authorization = `Bearer ${userToken}`;
-        } else {
-            // fallback to admin token (if you want admin requests to also work)
-            const adminToken = localStorage.getItem('adminToken');
-            if (adminToken) {
-                config.headers.Authorization = `Bearer ${adminToken}`;
-            }
-        }
+        const token = getToken();
+        if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Response interceptor for user token refresh
+let refreshing = false;
+let refreshQueue = [];
+
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        
-        // If 401 and not already retried, try to refresh user token
+
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
+            // Only users have a refresh endpoint
+            const userToken = localStorage.getItem('accessToken');
+            if (!userToken) return Promise.reject(error);
+
+            if (refreshing) {
+                return new Promise((resolve, reject) => {
+                    refreshQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return axiosInstance(originalRequest);
+                });
+            }
+
+            refreshing = true;
             try {
-                // Call your user refresh token endpoint
-                const refreshResponse = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/api/user/refresh-token`,
+                const res = await axios.post(
+                    `${BASE}/api/users/refresh-token`,
                     {},
                     { withCredentials: true }
                 );
-
-                if (refreshResponse.data.accessToken) {
-                    localStorage.setItem('accessToken', refreshResponse.data.accessToken);
-                    originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.accessToken}`;
+                const newToken = res.data.accessToken;
+                if (newToken) {
+                    localStorage.setItem('accessToken', newToken);
+                    axiosInstance.defaults.headers.Authorization = `Bearer ${newToken}`;
+                    refreshQueue.forEach(p => p.resolve(newToken));
+                    refreshQueue = [];
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
                     return axiosInstance(originalRequest);
                 }
-            } catch (refreshError) {
-                // Refresh failed – clear storage and redirect to login
+            } catch (refreshErr) {
+                refreshQueue.forEach(p => p.reject(refreshErr));
+                refreshQueue = [];
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('user');
+                localStorage.removeItem('currentWorkspace');
                 window.location.href = '/';
-                return Promise.reject(refreshError);
+            } finally {
+                refreshing = false;
             }
         }
-        
+
         return Promise.reject(error);
     }
 );

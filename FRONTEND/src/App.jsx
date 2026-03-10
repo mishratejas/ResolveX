@@ -69,6 +69,29 @@ const RouteDebugger = () => {
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // On mount: check if stored tokens are expired and clear them
+  useEffect(() => {
+    const checkAndClearExpiredTokens = () => {
+      const tokenKeys = ['accessToken', 'staffToken', 'staffAccessToken', 'adminToken', 'adminAccessToken'];
+      tokenKeys.forEach(key => {
+        const token = localStorage.getItem(key);
+        if (!token) return;
+        try {
+          // Decode JWT payload without verifying signature
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            localStorage.removeItem(key);
+            console.log(`Cleared expired token: ${key}`);
+          }
+        } catch {
+          // Malformed token - remove it
+          localStorage.removeItem(key);
+        }
+      });
+    };
+    checkAndClearExpiredTokens();
+  }, []);
   const [isLoading, setIsLoading] = useState(true);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const [authStatus, setAuthStatus] = useState({
@@ -172,12 +195,17 @@ function App() {
   };
 
   const handleAuthSuccess = (role) => {
-
     checkAuth();
 
-    // 🚀 After successful login, redirect to profile for workspace selection
     if (role === "user") {
-      window.location.href = "/user/profile";
+      // If user already has a workspace saved, go directly to home
+      const savedWorkspace = localStorage.getItem("currentWorkspace");
+      if (savedWorkspace) {
+        window.location.href = "/home";
+      } else {
+        // Otherwise go to workspace selector (not profile)
+        window.location.href = "/user/select-workspace";
+      }
     }
   };
 
