@@ -1280,6 +1280,567 @@
 // 
 // export default AuthModal;
 // 
+// import React, { useState, useEffect, useRef } from 'react';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { 
+//   X, User, Briefcase, Shield, Mail, Lock, Eye, EyeOff,
+//   CheckCircle, AlertCircle, ArrowRight, Building, Phone,
+//   MapPin, UserPlus, Key, Loader2, Copy, Info
+// } from 'lucide-react';
+
+// const AuthModal = ({ 
+//   isOpen, 
+//   onClose, 
+//   userType: initialUserType = 'user', 
+//   formType: initialFormType = 'signup', 
+//   setUserType, 
+//   setFormType,
+//   baseUrl = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com',
+//   onAuthSuccess
+// }) => {
+//   const [isSubmitting, setIsSubmitting] = useState(false);
+//   const [error, setError] = useState('');
+//   const [success, setSuccess] = useState('');
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [activeForm, setActiveForm] = useState(initialFormType);
+//   const [userType, setLocalUserType] = useState(initialUserType);
+//   const [otpSent, setOtpSent] = useState(false);
+//   const [otpTimer, setOtpTimer] = useState(0);
+//   const [emailValue, setEmailValue] = useState('');
+//   const [otpValue, setOtpValue] = useState('');
+//   const [departments, setDepartments] = useState([]);
+//   const [loadingDepartments, setLoadingDepartments] = useState(false);
+//   const [generatedStaffId, setGeneratedStaffId] = useState('');
+//   const formRef = useRef(null);
+//   const [forgotMode, setForgotMode] = useState(false);
+//   const [forgotEmail, setForgotEmail] = useState('');
+//   const [forgotOtpSent, setForgotOtpSent] = useState(false);
+//   const [forgotOtpValue, setForgotOtpValue] = useState('');
+//   const [forgotNewPassword, setForgotNewPassword] = useState('');
+//   const [forgotLoading, setForgotLoading] = useState(false);
+//   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+//   // Workspace Code State
+//   const [workspaceCodeValue, setWorkspaceCodeValue] = useState('');
+//   const [workspaceValid, setWorkspaceValid] = useState(false);
+
+//   useEffect(() => {
+//     if (setUserType) setUserType(userType);
+//   }, [userType, setUserType]);
+
+//   useEffect(() => {
+//     if (setFormType) setFormType(activeForm);
+//   }, [activeForm, setFormType]);
+
+//   // Fetch departments ONLY when a valid 6-character workspace code is entered
+//   useEffect(() => {
+//     if (userType === 'staff' && activeForm === 'signup' && workspaceCodeValue.length >= 6) {
+//       fetchDepartments(workspaceCodeValue);
+//     } else {
+//       setDepartments([]); 
+//       setWorkspaceValid(false);
+//     }
+//   }, [userType, activeForm, workspaceCodeValue]);
+
+//   const fetchDepartments = async (code) => {
+//     try {
+//       setLoadingDepartments(true);
+//       setError('');
+      
+//       const response = await fetch(`${baseUrl}/api/admin/departments/workspace/${code}`, {
+//         method: 'GET',
+//         headers: { 'Content-Type': 'application/json' },
+//       });
+      
+//       const result = await response.json();
+      
+//       if (response.ok && result.success) {
+//         setDepartments(result.data || []);
+//         setWorkspaceValid(true);
+//         setSuccess('Workspace verified! Please select your department.');
+//       } else {
+//         setDepartments([]);
+//         setWorkspaceValid(false);
+//         setError(result.message || 'Invalid Workspace Code. Departments not found.');
+//       }
+//     } catch (error) {
+//       setError('Failed to verify workspace. Please check your connection.');
+//       setWorkspaceValid(false);
+//     } finally {
+//       setLoadingDepartments(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     if (isOpen) {
+//       document.body.style.overflow = 'hidden';
+//       if (formRef.current) formRef.current.scrollTop = 0;
+//     } else {
+//       document.body.style.overflow = 'unset';
+//       setOtpSent(false);
+//       setOtpTimer(0);
+//       setEmailValue('');
+//       setOtpValue('');
+//       setError('');
+//       setSuccess('');
+//       setDepartments([]);
+//       setGeneratedStaffId('');
+//       setWorkspaceCodeValue('');
+//     }
+//     return () => { document.body.style.overflow = 'unset'; };
+//   }, [isOpen]);
+
+//   useEffect(() => {
+//     let timer;
+//     if (otpTimer > 0) timer = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
+//     return () => clearTimeout(timer);
+//   }, [otpTimer]);
+
+//   const handleUserTypeChange = (type) => {
+//     setLocalUserType(type);
+//     setError(''); setSuccess(''); setOtpSent(false); setOtpTimer(0);
+//     setEmailValue(''); setOtpValue(''); setWorkspaceCodeValue('');
+//     setDepartments([]); setGeneratedStaffId('');
+//     if (type === 'admin') {
+//       setActiveForm('signin');
+//     } else {
+//       setActiveForm('signup');
+//     }
+//   };
+
+//   const handleSendOtp = async () => {
+//     if (userType === 'staff' && activeForm === 'signin') return;
+//     if (!emailValue) { setError('Please enter email first'); return; }
+//     if (otpTimer > 0) { setError(`Please wait ${otpTimer} seconds before resending OTP`); return; }
+
+//     try {
+//       setError(''); setSuccess(''); setIsSubmitting(true);
+//       const res = await fetch(`${baseUrl}/api/otp/request`, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({ identifier: emailValue, purpose: 'signup', userType, type: 'email' })
+//       });
+
+//       const result = await res.json();
+//       if (!res.ok) throw new Error(result.message || 'Failed to send OTP');
+
+//       setOtpSent(true); setOtpTimer(60);
+//       setSuccess('OTP sent successfully to your email');
+//     } catch (err) {
+//       setError(err.message || 'Failed to send OTP. Please try again.');
+//     } finally {
+//       setIsSubmitting(false);
+//     }
+//   };
+
+//   const generateStaffId = () => {
+//     return `S${Math.floor(1000 + Math.random() * 9000)}`;
+//   };
+
+//   const handleForgotPassword = async (step) => {
+//     setForgotLoading(true);
+//     setError(''); setSuccess('');
+//     try {
+//       if (step === 'sendOtp') {
+//         if (!forgotEmail) { setError('Please enter your email'); setForgotLoading(false); return; }
+//         const res = await fetch(`${baseUrl}/api/otp/request`, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify({ identifier: forgotEmail, purpose: 'password-reset', userType, type: 'email' })
+//         });
+//         const result = await res.json();
+//         if (!res.ok) throw new Error(result.message || 'Failed to send OTP');
+//         setForgotOtpSent(true);
+//         setSuccess('OTP sent to your email. Check your inbox.');
+//       } else if (step === 'resetPassword') {
+//         if (!forgotOtpValue || !forgotNewPassword) { setError('Please fill all fields'); setForgotLoading(false); return; }
+//         if (forgotNewPassword.length < 6) { setError('Password must be at least 6 characters'); setForgotLoading(false); return; }
+        
+//         // Different endpoints per user type
+//         let resetUrl = '';
+//         let resetPayload = {};
+//         if (userType === 'user') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         } else if (userType === 'admin') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         } else if (userType === 'staff') {
+//           resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+//           resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+//         }
+//         const res = await fetch(resetUrl, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify(resetPayload)
+//         });
+//         const result = await res.json();
+//         if (!res.ok) throw new Error(result.message || 'Failed to reset password');
+//         setSuccess('Password reset successful! You can now sign in with your new password.');
+//         setTimeout(() => {
+//           setForgotMode(false);
+//           setForgotOtpSent(false);
+//           setForgotEmail('');
+//           setForgotOtpValue('');
+//           setForgotNewPassword('');
+//           setActiveForm('signin');
+//           setError(''); setSuccess('');
+//         }, 2000);
+//       }
+//     } catch (err) {
+//       setError(err.message || 'Something went wrong. Please try again.');
+//     } finally {
+//       setForgotLoading(false);
+//     }
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setIsSubmitting(true); setError(''); setSuccess('');
+//     const formData = new FormData(e.target);
+//     const data = Object.fromEntries(formData);
+
+//     try {
+//       let url = '';
+//       let payload = {};
+
+//       if (activeForm === 'signup') {
+//         if (userType === 'admin') {
+//           url = `${baseUrl}/api/admin/signup`;
+//           payload = { organizationName: data.organizationName, name: data.name, email: data.email, password: data.password, phone: data.phone };
+//         } else if (userType === 'user') {
+//           url = `${baseUrl}/api/otp/signup/user`;
+//           payload = { name: data.name, email: data.email, password: data.password, phone: data.phone, street: data.street || '', city: data.city || '', state: data.state || '', pincode: data.pincode || '', otp: data.otp };
+//         } else if (userType === 'staff') {
+//           url = `${baseUrl}/api/otp/signup/staff`;
+//           const autoStaffId = generateStaffId();
+//           setGeneratedStaffId(autoStaffId);
+//           payload = { name: data.name, email: data.email, password: data.password, phone: data.phone, staffId: autoStaffId, department: data.departmentId, otp: data.otp, workspaceCode: workspaceCodeValue };
+//         }
+//       } else {
+//         // 🚀 UPDATED: All logins now just use email and password!
+//         if (userType === 'admin') {
+//           url = `${baseUrl}/api/admin/login`;
+//           payload = { email: data.email, password: data.password }; 
+//         } else if (userType === 'user') {
+//           url = `${baseUrl}/api/users/login`;
+//           payload = { email: data.email, password: data.password };
+//        } else if (userType === 'staff') {
+//           url = `${baseUrl}/api/staff/login`; 
+//           payload = { 
+//             staffIdOrEmail: data.email, // 🚀 FIX: Now it matches the backend!
+//             password: data.password 
+//           };
+//         }
+//       }
+
+//       const res = await fetch(url, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(payload)
+//       });
+
+//       const contentType = res.headers.get('content-type');
+//       let result;
+//       if (contentType && contentType.includes('application/json')) {
+//         result = await res.json();
+//       } else {
+//         throw new Error(`Server returned ${res.status}: Non-JSON response`);
+//       }
+
+//       if (!res.ok) throw new Error(result.message || result.error || 'Authentication failed');
+
+//       // Handle Success & Storage
+//       if (userType === 'user') {
+//         const accessToken = result.accessToken || result.data?.accessToken || result.token;
+//         const userData = result.user || result.data?.user || result.data;
+//         if (accessToken) localStorage.setItem('accessToken', accessToken);
+//         if (userData) localStorage.setItem('user', JSON.stringify(userData));
+//         window.dispatchEvent(new CustomEvent('userLogin', { detail: { role: 'user', data: userData } }));
+//         if (onAuthSuccess) onAuthSuccess('user');
+//         setSuccess('Registration successful! Redirecting to user portal...');
+//         setTimeout(() => { onClose(); window.location.href = '/home'; }, 1500);
+
+//       } else if (userType === 'staff') {
+//         const accessToken = result.accessToken || result.data?.accessToken || result.token;
+//         const staffData = result.staff || result.data?.staff || result.data;
+//         if (accessToken) {
+//           localStorage.setItem('staffToken', accessToken);
+//           localStorage.setItem('staffAccessToken', accessToken);
+//         }
+//         if (staffData) {
+//           localStorage.setItem('staff', JSON.stringify(staffData));
+//           localStorage.setItem('staffData', JSON.stringify(staffData));
+//         }
+//         window.dispatchEvent(new CustomEvent('userLogin', { detail: { role: 'staff', data: staffData } }));
+//         if (onAuthSuccess) onAuthSuccess('staff');
+        
+//         let successMsg = activeForm === 'signup' 
+//           ? `Staff registration successful! Your Staff ID: ${generatedStaffId}. Redirecting...` 
+//           : 'Staff login successful! Redirecting...';
+//         setSuccess(successMsg);
+//         setTimeout(() => { onClose(); window.location.href = '/staff/dashboard'; }, activeForm === 'signup' ? 3000 : 1500);
+
+//       } else if (userType === 'admin') {
+//         if (activeForm === 'signup') {
+//           const workspaceCode = result.data?.workspaceCode;
+//           setSuccess(`Workspace created! IMPORTANT: Your Workspace Code is ${workspaceCode}. Save this code for your staff.`);
+//           setTimeout(() => { setActiveForm('signin'); setSuccess(''); }, 5000);
+//           return; 
+//         }
+//         const accessToken = result.accessToken || result.data?.accessToken || result.token;
+//         const adminData = result.admin || result.data?.admin || result.data;
+//         if (accessToken) {
+//           localStorage.setItem('adminToken', accessToken);
+//           localStorage.setItem('adminAccessToken', accessToken);
+//         }
+//         if (adminData) {
+//           localStorage.setItem('admin', JSON.stringify(adminData));
+//           localStorage.setItem('adminData', JSON.stringify(adminData));
+//         }
+//         if (onAuthSuccess) onAuthSuccess('admin');
+//         setSuccess('Admin login successful! Redirecting...');
+//         setTimeout(() => { onClose(); window.location.href = '/admin/dashboard'; }, 1500);
+//       }
+
+//     } catch (err) {
+//       setError(err.message || 'An error occurred. Please try again.');
+//     } finally {
+//       setIsSubmitting(false);
+//     }
+//   };
+
+//   const copyToClipboard = (text) => {
+//     navigator.clipboard.writeText(text);
+//     alert('Staff ID copied to clipboard!');
+//   };
+
+//   const userTypes = [
+//     { id: 'user', label: 'Community Member', icon: User, description: 'Report issues and track resolutions', color: 'from-blue-500 to-cyan-500' },
+//     { id: 'staff', label: 'Staff Member', icon: Briefcase, description: 'Handle and resolve community issues', color: 'from-purple-500 to-pink-500' },
+//     { id: 'admin', label: 'Administrator', icon: Shield, description: 'Login with predefined credentials', color: 'from-green-500 to-emerald-500' }
+//   ];
+
+//   if (!isOpen) return null;
+
+//   return (
+//     <AnimatePresence>
+//       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 pb-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+//         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25 }} className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]" style={{ height: '85vh' }} onClick={(e) => e.stopPropagation()}>
+          
+//           <div className="relative bg-gradient-to-r from-blue-600 to-cyan-500 p-6 flex-shrink-0">
+//             <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"><X className="w-4 h-4" /></button>
+//             <div className="text-center">
+//               <h2 className="text-2xl font-bold text-white mb-1">Resolve<span className="text-cyan-200">X</span></h2>
+//               <p className="text-white/80 text-sm">Community Issue Resolution Platform</p>
+//             </div>
+//           </div>
+
+//           <div ref={formRef} className="flex-1 overflow-y-auto p-6" style={{ maxHeight: 'calc(85vh - 180px)', scrollBehavior: 'smooth' }}>
+            
+//             <div className="mb-6">
+//               <h3 className="text-lg font-bold text-gray-800 mb-3 text-center">Select Your Role</h3>
+//               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+//                 {userTypes.map((type) => (
+//                   <button key={type.id} type="button" onClick={() => handleUserTypeChange(type.id)} className={`relative group p-4 rounded-lg border transition-all duration-200 ${userType === type.id ? `border-transparent bg-gradient-to-br ${type.color} text-white shadow-md` : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'}`}>
+//                     <div className="flex flex-col items-center text-center">
+//                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${userType === type.id ? 'bg-white/20' : `bg-gradient-to-br ${type.color}`}`}><type.icon className="w-5 h-5 text-white" /></div>
+//                       <h4 className="font-semibold text-sm mb-1">{type.label}</h4>
+//                       <p className={`text-xs ${userType === type.id ? 'text-white/90' : 'text-gray-500'}`}>{type.description}</p>
+//                     </div>
+//                   </button>
+//                 ))}
+//               </div>
+//             </div>
+
+//             <div className="mb-6">
+//               <div className="flex rounded-lg bg-gray-100 p-1 max-w-xs mx-auto">
+//                 <button type="button" onClick={() => { setActiveForm('signup'); setError(''); setSuccess(''); setOtpSent(false); setOtpTimer(0); setOtpValue(''); setGeneratedStaffId(''); }} className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeForm === 'signup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><UserPlus className="w-4 h-4 inline mr-2" /> Sign Up</button>
+//                 <button type="button" onClick={() => { setActiveForm('signin'); setError(''); setSuccess(''); setOtpSent(false); setOtpTimer(0); setOtpValue(''); setGeneratedStaffId(''); }} className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeForm === 'signin' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Sign In</button>
+//               </div>
+//             </div>
+
+//             <AnimatePresence>
+//               {error && (
+//                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+//                   <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+//                   <div className="flex-1"><p className="font-medium text-red-800 text-sm">Error</p><p className="text-red-600 text-xs">{error}</p></div>
+//                 </motion.div>
+//               )}
+//               {success && (
+//                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
+//                   <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+//                   <div className="flex-1">
+//                     <p className="font-medium text-green-800 text-sm">Success</p><p className="text-green-600 text-xs">{success}</p>
+//                     {generatedStaffId && activeForm === 'signup' && userType === 'staff' && (
+//                       <div className="mt-3 p-2 bg-green-100 rounded border border-green-300">
+//                         <div className="flex items-center justify-between">
+//                           <div><p className="font-bold text-green-800">Your Staff ID:</p><p className="text-green-700 text-lg font-mono">{generatedStaffId}</p><p className="text-green-600 text-xs">Save this ID for your records</p></div>
+//                           <button type="button" onClick={() => copyToClipboard(generatedStaffId)} className="p-2 bg-green-200 text-green-700 rounded hover:bg-green-300"><Copy className="w-4 h-4" /></button>
+//                         </div>
+//                       </div>
+//                     )}
+//                   </div>
+//                 </motion.div>
+//               )}
+//             </AnimatePresence>
+
+//             {/* Forgot Password Flow */}
+//             {forgotMode && (
+//               <div className="space-y-4">
+//                 <div className="flex items-center gap-3 mb-4">
+//                   <button type="button" onClick={() => { setForgotMode(false); setForgotOtpSent(false); setError(''); setSuccess(''); }} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+//                     <ArrowRight className="w-4 h-4 text-gray-500 rotate-180" />
+//                   </button>
+//                   <h3 className="font-semibold text-gray-800">Reset Password</h3>
+//                 </div>
+//                 <div>
+//                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address *</label>
+//                   <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="Enter your registered email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" disabled={forgotOtpSent} />
+//                 </div>
+//                 {forgotOtpSent && (
+//                   <>
+//                     <div>
+//                       <label className="block text-sm font-medium text-gray-700 mb-1.5">OTP *</label>
+//                       <input type="text" value={forgotOtpValue} onChange={e => setForgotOtpValue(e.target.value.replace(/\D/g,'').slice(0,6))} maxLength="6" placeholder="Enter 6-digit OTP" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+//                     </div>
+//                     <div>
+//                       <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password *</label>
+//                       <div className="relative">
+//                         <input type={showPassword ? 'text' : 'password'} value={forgotNewPassword} onChange={e => setForgotNewPassword(e.target.value)} placeholder="Min. 6 characters" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 pr-12" />
+//                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
+//                       </div>
+//                     </div>
+//                   </>
+//                 )}
+//                 <button
+//                   type="button"
+//                   disabled={forgotLoading}
+//                   onClick={() => handleForgotPassword(forgotOtpSent ? 'resetPassword' : 'sendOtp')}
+//                   className="w-full py-3 px-6 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+//                 >
+//                   {forgotLoading ? (
+//                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> Processing...</>
+//                   ) : forgotOtpSent ? 'Reset Password' : 'Send OTP'}
+//                 </button>
+//               </div>
+//             )}
+
+//             {!forgotMode && (
+//             <motion.form key={`${userType}-${activeForm}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onSubmit={handleSubmit} className="space-y-4">
+              
+//               {userType === 'admin' ? (
+//                 <div className="space-y-4">
+//                   {activeForm === 'signup' && (
+//                     <>
+//                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><Building className="w-4 h-4 inline mr-2" />Organization Name *</label><input type="text" name="organizationName" required placeholder="e.g., Agra City Council" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+//                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><User className="w-4 h-4 inline mr-2" />Admin Full Name *</label><input type="text" name="name" required placeholder="Enter your full name" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+//                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label><input type="tel" name="phone" required pattern="[0-9]{10}" placeholder="Enter 10-digit phone number" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+//                     </>
+//                   )}
+//                   <div><label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Admin Email *</label><input type="email" name="email" required value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="Enter admin email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+//                   <div><label className="block text-sm font-medium text-gray-700 mb-2"><Lock className="w-4 h-4 inline mr-2" />Admin Password *</label><div className="relative"><input type={showPassword ? "text" : "password"} name="password" required placeholder="Enter admin password" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors pr-12" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button></div></div>
+//                 </div>
+//               ) : (
+//                 <>
+//                   {userType === 'staff' && activeForm === 'signup' && (
+//                     <div className="mb-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+//                       <label className="block text-sm font-bold text-blue-900 mb-2"><Building className="w-4 h-4 inline mr-2" />Workspace Code *</label>
+//                       <input type="text" name="workspaceCode" required value={workspaceCodeValue} onChange={(e) => setWorkspaceCodeValue(e.target.value.toUpperCase())} maxLength="8" placeholder="Enter 6-8 digit code (e.g., 03CB9A)" className="w-full p-3 text-sm rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors uppercase font-mono tracking-wider font-bold text-gray-800" />
+//                       <p className="text-xs text-blue-600 mt-2 font-medium">Required: Ask your Admin for the organization's code.</p>
+//                     </div>
+//                   )}
+
+//                   <div>
+//                     <label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Email Address *</label>
+//                     <input type="email" name="email" required value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="Enter your email address" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+//                     {userType === 'staff' && activeForm === 'signup' && (
+//                       <p className="text-xs text-gray-500 mt-1">A unique Staff ID will be automatically generated for you.</p>
+//                     )}
+//                   </div>
+
+//                   {activeForm === 'signup' && (
+//                     <div>
+//                       <div className="flex items-center justify-between mb-2">
+//                         <label className="block text-sm font-medium text-gray-700"><Key className="w-4 h-4 inline mr-2" />OTP Verification *</label>
+//                         <button type="button" onClick={handleSendOtp} disabled={!emailValue || otpTimer > 0 || isSubmitting} className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed">
+//                           {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `Send OTP (${otpTimer}s)` : 'Send OTP'}
+//                         </button>
+//                       </div>
+//                       {otpSent ? (
+//                         <><input type="text" name="otp" required value={otpValue} onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength="6" placeholder="Enter 6-digit OTP" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /><p className="text-xs text-gray-500 mt-2">Enter the 6-digit OTP sent to your email. Valid for 10 minutes.</p></>
+//                       ) : (<p className="text-sm text-gray-500 italic">Click "Send OTP" to receive verification code</p>)}
+//                     </div>
+//                   )}
+
+//                   <div>
+//                     <label className="block text-sm font-medium text-gray-700 mb-2"><Lock className="w-4 h-4 inline mr-2" />Password *</label>
+//                     <div className="relative">
+//                       <input type={showPassword ? "text" : "password"} name="password" required minLength="6" placeholder="Enter your password (min. 6 characters)" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors pr-12" />
+//                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+//                     </div>
+//                   </div>
+
+//                   {activeForm === 'signup' && (
+//                     <>
+//                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><User className="w-4 h-4 inline mr-2" />Full Name *</label><input type="text" name="name" required placeholder="Enter your full name" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+//                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label><input type="tel" name="phone" required pattern="[0-9]{10}" placeholder="Enter 10-digit phone number" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
+                      
+//                       {userType === 'staff' && (
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 mb-2"><Building className="w-4 h-4 inline mr-2" />Department *</label>
+//                           <select name="departmentId" required disabled={loadingDepartments || !workspaceValid} className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed">
+//                             <option value="">{!workspaceValid ? "🔒 Enter a valid Workspace Code first..." : "✅ Select your department"}</option>
+//                             {departments.map((dept) => (<option key={dept._id || dept.id} value={dept._id || dept.id}>{dept.name} {dept.category && `(${dept.category})`}</option>))}
+//                           </select>
+//                           {loadingDepartments && <p className="text-xs text-blue-600 mt-2 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Verifying workspace and fetching departments...</p>}
+//                           {!loadingDepartments && workspaceValid && departments.length === 0 && <p className="text-xs text-red-500 mt-2 bg-red-50 p-2 rounded border border-red-100">This workspace has no departments yet. Please contact your Admin.</p>}
+//                         </div>
+//                       )}
+
+//                       {userType === 'user' && (
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 mb-2"><MapPin className="w-4 h-4 inline mr-2" />Address (Optional)</label>
+//                           <div className="grid grid-cols-2 gap-2">
+//                             <input type="text" name="street" placeholder="Street" className="col-span-2 p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+//                             <input type="text" name="city" placeholder="City" className="p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+//                             <input type="text" name="state" placeholder="State" className="p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+//                             <input type="text" name="pincode" placeholder="Pincode" className="p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+//                           </div>
+//                         </div>
+//                       )}
+//                     </>
+//                   )}
+//                 </>
+//               )}
+
+//               {activeForm === 'signin' && !forgotMode && (
+//                 <div className="flex justify-end -mt-2">
+//                   <button
+//                     type="button"
+//                     onClick={() => { setForgotMode(true); setError(''); setSuccess(''); }}
+//                     className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+//                   >
+//                     Forgot password?
+//                   </button>
+//                 </div>
+//               )}
+
+//               <button type="submit" disabled={isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue))} className={`w-full py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 mt-6 ${isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue)) ? 'bg-gray-400 cursor-not-allowed' : `bg-gradient-to-r ${userType === 'user' ? 'from-blue-600 to-cyan-500' : userType === 'staff' ? 'from-purple-600 to-pink-500' : 'from-green-600 to-emerald-500'} hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`} text-white flex items-center justify-center gap-2`}>
+//                 {isSubmitting ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Processing...</>) : (<>{userType === 'admin' ? 'Admin Login' : activeForm === 'signin' ? 'Sign In' : 'Create Account'} <ArrowRight className="w-4 h-4" /></>)}
+//               </button>
+//             </motion.form>
+//             )}
+
+//           </div>
+//         </motion.div>
+//       </motion.div>
+//     </AnimatePresence>
+//   );
+// };
+
+// export default AuthModal;
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -1318,7 +1879,6 @@ const AuthModal = ({
   const [forgotOtpValue, setForgotOtpValue] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Workspace Code State
   const [workspaceCodeValue, setWorkspaceCodeValue] = useState('');
@@ -1409,7 +1969,7 @@ const AuthModal = ({
   };
 
   const handleSendOtp = async () => {
-    if (userType === 'staff' && activeForm === 'signin') return;
+    if (activeForm === 'signin') return;
     if (!emailValue) { setError('Please enter email first'); return; }
     if (otpTimer > 0) { setError(`Please wait ${otpTimer} seconds before resending OTP`); return; }
 
@@ -1456,19 +2016,9 @@ const AuthModal = ({
         if (!forgotOtpValue || !forgotNewPassword) { setError('Please fill all fields'); setForgotLoading(false); return; }
         if (forgotNewPassword.length < 6) { setError('Password must be at least 6 characters'); setForgotLoading(false); return; }
         
-        // Different endpoints per user type
-        let resetUrl = '';
-        let resetPayload = {};
-        if (userType === 'user') {
-          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
-          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
-        } else if (userType === 'admin') {
-          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
-          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
-        } else if (userType === 'staff') {
-          resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
-          resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
-        }
+        let resetUrl = `${baseUrl}/api/otp/password-reset/verify`;
+        let resetPayload = { identifier: forgotEmail, otp: forgotOtpValue, newPassword: forgotNewPassword, userType };
+        
         const res = await fetch(resetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1506,8 +2056,9 @@ const AuthModal = ({
 
       if (activeForm === 'signup') {
         if (userType === 'admin') {
-          url = `${baseUrl}/api/admin/signup`;
-          payload = { organizationName: data.organizationName, name: data.name, email: data.email, password: data.password, phone: data.phone };
+          // 🚀 UPDATED: Pointing Admin to the OTP signup route instead of direct signup
+          url = `${baseUrl}/api/otp/signup/admin`;
+          payload = { organizationName: data.organizationName, name: data.name, email: data.email, password: data.password, phone: data.phone, otp: data.otp };
         } else if (userType === 'user') {
           url = `${baseUrl}/api/otp/signup/user`;
           payload = { name: data.name, email: data.email, password: data.password, phone: data.phone, street: data.street || '', city: data.city || '', state: data.state || '', pincode: data.pincode || '', otp: data.otp };
@@ -1518,19 +2069,15 @@ const AuthModal = ({
           payload = { name: data.name, email: data.email, password: data.password, phone: data.phone, staffId: autoStaffId, department: data.departmentId, otp: data.otp, workspaceCode: workspaceCodeValue };
         }
       } else {
-        // 🚀 UPDATED: All logins now just use email and password!
         if (userType === 'admin') {
           url = `${baseUrl}/api/admin/login`;
           payload = { email: data.email, password: data.password }; 
         } else if (userType === 'user') {
           url = `${baseUrl}/api/users/login`;
           payload = { email: data.email, password: data.password };
-       } else if (userType === 'staff') {
+        } else if (userType === 'staff') {
           url = `${baseUrl}/api/staff/login`; 
-          payload = { 
-            staffIdOrEmail: data.email, // 🚀 FIX: Now it matches the backend!
-            password: data.password 
-          };
+          payload = { staffIdOrEmail: data.email, password: data.password };
         }
       }
 
@@ -1583,7 +2130,7 @@ const AuthModal = ({
 
       } else if (userType === 'admin') {
         if (activeForm === 'signup') {
-          const workspaceCode = result.data?.workspaceCode;
+          const workspaceCode = result.data?.workspaceCode || result.admin?.workspaceCode;
           setSuccess(`Workspace created! IMPORTANT: Your Workspace Code is ${workspaceCode}. Save this code for your staff.`);
           setTimeout(() => { setActiveForm('signin'); setSuccess(''); }, 5000);
           return; 
@@ -1618,7 +2165,7 @@ const AuthModal = ({
   const userTypes = [
     { id: 'user', label: 'Community Member', icon: User, description: 'Report issues and track resolutions', color: 'from-blue-500 to-cyan-500' },
     { id: 'staff', label: 'Staff Member', icon: Briefcase, description: 'Handle and resolve community issues', color: 'from-purple-500 to-pink-500' },
-    { id: 'admin', label: 'Administrator', icon: Shield, description: 'Login with predefined credentials', color: 'from-green-500 to-emerald-500' }
+    { id: 'admin', label: 'Administrator', icon: Shield, description: 'Manage the workspace & staff', color: 'from-green-500 to-emerald-500' }
   ];
 
   if (!isOpen) return null;
@@ -1685,7 +2232,6 @@ const AuthModal = ({
               )}
             </AnimatePresence>
 
-            {/* Forgot Password Flow */}
             {forgotMode && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-4">
@@ -1729,6 +2275,7 @@ const AuthModal = ({
             {!forgotMode && (
             <motion.form key={`${userType}-${activeForm}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onSubmit={handleSubmit} className="space-y-4">
               
+              {/* 🚀 ADMIN FIELDS BLOCK */}
               {userType === 'admin' ? (
                 <div className="space-y-4">
                   {activeForm === 'signup' && (
@@ -1738,10 +2285,37 @@ const AuthModal = ({
                       <div><label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label><input type="tel" name="phone" required pattern="[0-9]{10}" placeholder="Enter 10-digit phone number" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
                     </>
                   )}
-                  <div><label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Admin Email *</label><input type="email" name="email" required value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="Enter admin email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-2"><Lock className="w-4 h-4 inline mr-2" />Admin Password *</label><div className="relative"><input type={showPassword ? "text" : "password"} name="password" required placeholder="Enter admin password" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors pr-12" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button></div></div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Admin Email *</label>
+                    <input type="email" name="email" required value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="Enter admin email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
+                  </div>
+
+                  {/* 🚀 NEW: Admin OTP Block */}
+                  {activeForm === 'signup' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700"><Key className="w-4 h-4 inline mr-2" />OTP Verification *</label>
+                        <button type="button" onClick={handleSendOtp} disabled={!emailValue || otpTimer > 0 || isSubmitting} className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed">
+                          {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `Send OTP (${otpTimer}s)` : 'Send OTP'}
+                        </button>
+                      </div>
+                      {otpSent ? (
+                        <><input type="text" name="otp" required value={otpValue} onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength="6" placeholder="Enter 6-digit OTP" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" /><p className="text-xs text-gray-500 mt-2">Enter the 6-digit OTP sent to your email. Valid for 10 minutes.</p></>
+                      ) : (<p className="text-sm text-gray-500 italic">Click "Send OTP" to receive verification code</p>)}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2"><Lock className="w-4 h-4 inline mr-2" />Admin Password *</label>
+                    <div className="relative">
+                      <input type={showPassword ? "text" : "password"} name="password" required placeholder="Enter admin password" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors pr-12" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                    </div>
+                  </div>
                 </div>
               ) : (
+                /* STAFF AND USER FIELDS BLOCK */
                 <>
                   {userType === 'staff' && activeForm === 'signup' && (
                     <div className="mb-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
@@ -1826,8 +2400,13 @@ const AuthModal = ({
                 </div>
               )}
 
-              <button type="submit" disabled={isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue))} className={`w-full py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 mt-6 ${isSubmitting || (userType !== 'admin' && activeForm === 'signup' && (!otpSent || !otpValue)) ? 'bg-gray-400 cursor-not-allowed' : `bg-gradient-to-r ${userType === 'user' ? 'from-blue-600 to-cyan-500' : userType === 'staff' ? 'from-purple-600 to-pink-500' : 'from-green-600 to-emerald-500'} hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`} text-white flex items-center justify-center gap-2`}>
-                {isSubmitting ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Processing...</>) : (<>{userType === 'admin' ? 'Admin Login' : activeForm === 'signin' ? 'Sign In' : 'Create Account'} <ArrowRight className="w-4 h-4" /></>)}
+              {/* 🚀 UPDATED: Submit button now requires OTP for ALL signups */}
+              <button 
+                type="submit" 
+                disabled={isSubmitting || (activeForm === 'signup' && (!otpSent || !otpValue))} 
+                className={`w-full py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 mt-6 ${isSubmitting || (activeForm === 'signup' && (!otpSent || !otpValue)) ? 'bg-gray-400 cursor-not-allowed' : `bg-gradient-to-r ${userType === 'user' ? 'from-blue-600 to-cyan-500' : userType === 'staff' ? 'from-purple-600 to-pink-500' : 'from-green-600 to-emerald-500'} hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`} text-white flex items-center justify-center gap-2`}
+              >
+                {isSubmitting ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Processing...</>) : (<>{userType === 'admin' ? (activeForm === 'signin' ? 'Admin Login' : 'Create Workspace') : activeForm === 'signin' ? 'Sign In' : 'Create Account'} <ArrowRight className="w-4 h-4" /></>)}
               </button>
             </motion.form>
             )}
