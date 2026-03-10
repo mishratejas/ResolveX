@@ -19,7 +19,6 @@ import AnalyticsPage from "./pages/admin/AnalyticsPage";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffIssuesPage from "./pages/staff/StaffIssuesPage";
 import AuditLogsPage from "./pages/admin/AuditLogsPage";
-import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage";
 import NotificationsPage from "./pages/public/NotificationPage";
 import AdminChatPage from './pages/admin/AdminChatPage';
@@ -373,18 +372,6 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminStaffPage authStatus={authStatus} onLogout={handleLogout} />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/settings"
-          element={
-            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
-              <AdminSettingsPage
-                authStatus={authStatus}
-                onLogout={handleLogout}
-              />
             </ProtectedRoute>
           }
         />

@@ -80,7 +80,6 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
                       {adminInfo.name.charAt(0)}
                     </div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-transform group-hover:rotate-180 hidden md:block" />
                 </button>
               </div>
             </div>
