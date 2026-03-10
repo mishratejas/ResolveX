@@ -11,11 +11,18 @@ import {
     sendTypingIndicator,
     searchMessages
 } from '../controllers/chat.controllers.js';
-import { getComplaintMessages, sendComplaintMessage } from '../controllers/complaint_chat.controllers.js';
+
+// 🚀 ADDED getActiveConversations HERE
+import { 
+    getComplaintMessages, 
+    sendComplaintMessage, 
+    getActiveConversations 
+} from '../controllers/complaint_chat.controllers.js';
+
 import { auth } from '../middleware/auth.js';
 import { staffAuth } from '../middleware/staffAuth.js';
 import { adminAuth } from '../middleware/adminAuth.js';
-import { chatAuth } from '../middleware/chatAuth.js'; // This middleware checks if user, staff, or admin
+import { chatAuth } from '../middleware/chatAuth.js'; 
 import multer from 'multer';
 
 const router = express.Router();
@@ -54,5 +61,8 @@ router.get('/search', chatAuth, searchMessages);
 // --- NEW: Our Optimized Live Ticket Chat Routes ---
 router.get('/complaint/:complaintId', chatAuth, getComplaintMessages);
 router.post('/complaint/:complaintId/send', chatAuth, sendComplaintMessage);
+
+// 🚀 ADDED THE INBOX ROUTE HERE
+router.get('/inbox', chatAuth, getActiveConversations);
 
 export default router;

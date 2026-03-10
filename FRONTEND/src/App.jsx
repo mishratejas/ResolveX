@@ -22,6 +22,7 @@ import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage";
 import NotificationsPage from "./pages/public/NotificationPage";
+import AdminChatPage from './pages/admin/AdminChatPage';
 const BASE_URL =
   import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
@@ -356,6 +357,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route 
+        path="/admin/chat" 
+        element={
+          <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+            <AdminChatPage onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
 
         <Route
           path="/admin/users"

@@ -193,4 +193,47 @@ export const sendComplaintMessage = async (req, res) => {
         console.error('Error sending complaint message:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
+    
+};
+
+// 🚀 NEW: Get all active conversations for the Master Inbox
+export const getActiveConversations = async (req, res) => {
+    try {
+        const conversations = await ChatMessage.aggregate([
+            { $sort: { createdAt: -1 } },
+            { 
+                $group: { 
+                    _id: "$complaintId", 
+                    latestMessage: { $first: "$message" },
+                    latestMessageTime: { $first: "$createdAt" },
+                    senderModel: { $first: "$senderModel" }
+                } 
+            },
+            { $sort: { latestMessageTime: -1 } } // Sort inbox by newest activity
+        ]);
+
+        const populatedConversations = await UserComplaint.find({
+            _id: { $in: conversations.map(c => c._id) }
+        }).populate('assignedTo', 'name').lean();
+
+        const inbox = conversations.map(conv => {
+            const complaint = populatedConversations.find(c => c._id.toString() === conv._id.toString());
+            if (!complaint) return null; 
+            
+            return {
+                complaintId: conv._id,
+                title: complaint.title || 'Untitled Issue',
+                ticketId: complaint.ticketId || complaint._id.toString().slice(-6).toUpperCase(),
+                status: complaint.status,
+                latestMessage: conv.latestMessage,
+                latestMessageTime: conv.latestMessageTime,
+                assignedToName: complaint.assignedTo?.name || 'Unassigned'
+            };
+        }).filter(Boolean); 
+
+        res.status(200).json({ success: true, data: inbox });
+    } catch (error) {
+        console.error('Error fetching inbox:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 };

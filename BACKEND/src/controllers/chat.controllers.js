@@ -204,6 +204,104 @@ export const getConversation = asyncHandler(async (req, res) => {
 
 // ==================== GET ALL USER CONVERSATIONS ====================
 
+// export const getAllConversations = asyncHandler(async (req, res) => {
+//     let userId, userModel;
+
+//     if (req.user) {
+//         userId = req.user._id;
+//         userModel = 'User';
+//     } else if (req.staff) {
+//         userId = req.staff._id;
+//         userModel = 'Staff';
+//     } else if (req.admin) {
+//         userId = req.admin._id;
+//         userModel = 'Admin';
+//     } else {
+//         throw new ApiError(401, "Unauthorized");
+//     }
+
+//     let complaints;
+
+//     if (userModel === 'Admin') {
+//         // Admins see all complaints with messages
+//         complaints = await UserComplaint.find()
+//             .populate('user', 'name email profileImage')
+//             .populate('assignedTo', 'name email profileImage')
+//             .sort({ updatedAt: -1 })
+//             .lean();
+//     } else if (userModel === 'Staff') {
+//         // Staff see only assigned complaints
+//         complaints = await UserComplaint.find({ assignedTo: userId })
+//             .populate('user', 'name email profileImage')
+//             .populate('assignedTo', 'name email profileImage')
+//             .sort({ updatedAt: -1 })
+//             .lean();
+//     } else {
+//         // Users see their own complaints
+//         complaints = await UserComplaint.find({ user: userId })
+//             .populate('user', 'name email profileImage')
+//             .populate('assignedTo', 'name email profileImage')
+//             .sort({ updatedAt: -1 })
+//             .lean();
+//     }
+
+//     // Get last message and unread count for each complaint
+//     const conversationsWithDetails = await Promise.all(
+//         complaints.map(async (complaint) => {
+//             const conversationId = `complaint_${complaint._id}`;
+            
+//             const [lastMessage, unreadCount] = await Promise.all([
+//                 ChatMessage.findOne({ conversationId })
+//                     .sort({ createdAt: -1 })
+//                     .populate('senderId', 'name')
+//                     .lean(),
+//                 ChatMessage.countDocuments({
+//                     conversationId,
+//                     receiverId: userId,
+//                     isRead: false
+//                 })
+//             ]);
+
+//             return {
+//                 complaintId: complaint._id,
+//                 title: complaint.title,
+//                 category: complaint.category,
+//                 status: complaint.status,
+//                 priority: complaint.priority,
+//                 user: complaint.user,
+//                 assignedTo: complaint.assignedTo,
+//                 lastMessage: lastMessage ? {
+//                     text: lastMessage.message,
+//                     sender: lastMessage.senderId?.name,
+//                     timestamp: lastMessage.createdAt
+//                 } : null,
+//                 unreadCount,
+//                 updatedAt: complaint.updatedAt
+//             };
+//         })
+//     );
+
+//     // Sort by last message time or complaint update time
+//     conversationsWithDetails.sort((a, b) => {
+//         const timeA = a.lastMessage?.timestamp || a.updatedAt;
+//         const timeB = b.lastMessage?.timestamp || b.updatedAt;
+//         return new Date(timeB) - new Date(timeA);
+//     });
+
+//     // Get total unread count
+//     const totalUnread = conversationsWithDetails.reduce((sum, conv) => sum + conv.unreadCount, 0);
+
+//     res.status(200).json(
+//         new ApiResponse(200, {
+//             conversations: conversationsWithDetails,
+//             totalUnread,
+//             totalConversations: conversationsWithDetails.length
+//         }, "Conversations fetched successfully")
+//     );
+// });
+
+// ==================== GET ALL USER CONVERSATIONS (INBOX) ====================
+
 export const getAllConversations = asyncHandler(async (req, res) => {
     let userId, userModel;
 
@@ -223,7 +321,7 @@ export const getAllConversations = asyncHandler(async (req, res) => {
     let complaints;
 
     if (userModel === 'Admin') {
-        // Admins see all complaints with messages
+        // Admins see all complaints
         complaints = await UserComplaint.find()
             .populate('user', 'name email profileImage')
             .populate('assignedTo', 'name email profileImage')
@@ -262,40 +360,47 @@ export const getAllConversations = asyncHandler(async (req, res) => {
                 })
             ]);
 
+            // 🚀 THE FIX: If there are no messages, return null so we can filter it out of the inbox
+            if (!lastMessage) return null;
+
             return {
                 complaintId: complaint._id,
+                ticketId: complaint.ticketId || complaint._id.toString().slice(-6).toUpperCase(), // Added for frontend
                 title: complaint.title,
                 category: complaint.category,
                 status: complaint.status,
                 priority: complaint.priority,
                 user: complaint.user,
                 assignedTo: complaint.assignedTo,
-                lastMessage: lastMessage ? {
+                lastMessage: {
                     text: lastMessage.message,
-                    sender: lastMessage.senderId?.name,
+                    sender: lastMessage.senderId?.name || 'User',
                     timestamp: lastMessage.createdAt
-                } : null,
+                },
                 unreadCount,
                 updatedAt: complaint.updatedAt
             };
         })
     );
 
-    // Sort by last message time or complaint update time
-    conversationsWithDetails.sort((a, b) => {
+    // 🚀 THE FIX: Filter out all the nulls (tickets with no chats)
+    const activeConversations = conversationsWithDetails.filter(conv => conv !== null);
+
+    // Sort by last message time
+    activeConversations.sort((a, b) => {
         const timeA = a.lastMessage?.timestamp || a.updatedAt;
         const timeB = b.lastMessage?.timestamp || b.updatedAt;
         return new Date(timeB) - new Date(timeA);
     });
 
     // Get total unread count
-    const totalUnread = conversationsWithDetails.reduce((sum, conv) => sum + conv.unreadCount, 0);
+    const totalUnread = activeConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
 
     res.status(200).json(
         new ApiResponse(200, {
-            conversations: conversationsWithDetails,
+            conversations: activeConversations,
             totalUnread,
-            totalConversations: conversationsWithDetails.length
+            totalConversations: activeConversations.length
         }, "Conversations fetched successfully")
     );
 });
