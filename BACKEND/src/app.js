@@ -26,12 +26,13 @@ const server = createServer(app);
 
 // ✅ SIMPLE CORS FIX - Use basic CORS middleware
 const allowedOrigins = [
+    `${process.env.FRONTEND_URL}`,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://webster-2025.onrender.com'
-];
+].filter(Boolean);
 
 // Apply CORS middleware with proper configuration
 app.use(cors({
@@ -81,7 +82,7 @@ app.use((req, res, next) => {
 app.get("/api/debug/routes", (req, res) => {
     res.json({
         message: "Server is running",
-        port: process.env.PORT || 3000,
+        port: process.env.PORT || 5000,
         cors_origins: allowedOrigins,
         timestamp: new Date().toISOString()
     });
@@ -110,7 +111,7 @@ app.get("/health", (req, res) => {
     res.json({
         status: "healthy",
         timestamp: new Date().toISOString(),
-        port: process.env.PORT || 3000
+        port: process.env.PORT || 5000
     });
 });
 

@@ -11,7 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import ComplaintChat from "../chat/ComplaintChat"; // Adjust path if needed
 
-const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AdminChatInbox = () => {
   const [conversations, setConversations] = useState([]);

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com';
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 const axiosInstance = axios.create({
     baseURL: BASE,

@@ -200,7 +200,7 @@ const Leaderboard = ({ currentUser }) => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   // ================ YOUR ACTUAL COMPLAINT CATEGORIES ================
   const COMPLAINT_CATEGORIES = [

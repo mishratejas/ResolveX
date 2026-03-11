@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const MyReportsModal = ({ onClose, currentUser }) => {
   const [reports, setReports] = useState([]);

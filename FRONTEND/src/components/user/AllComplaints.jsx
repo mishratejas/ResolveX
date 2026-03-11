@@ -22,7 +22,7 @@ const AllComplaints = ({ currentUser }) => {
   const [voting, setVoting] = useState({});
   const [user, setUser] = useState(null);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const userData = localStorage.getItem("user");

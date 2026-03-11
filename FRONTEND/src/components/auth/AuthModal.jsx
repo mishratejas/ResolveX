@@ -1856,7 +1856,7 @@ const AuthModal = ({
   formType: initialFormType = 'signup', 
   setUserType, 
   setFormType,
-  baseUrl = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com',
+  baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000',
   onAuthSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

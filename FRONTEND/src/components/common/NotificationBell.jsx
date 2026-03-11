@@ -3,7 +3,7 @@ import { Bell, Check, Trash2, X, CheckCircle, AlertTriangle, AlertCircle, Info, 
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const BASE = import.meta.env.VITE_API_URL || 'https://webster-2025.onrender.com';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const getToken = () =>
   localStorage.getItem('accessToken') ||

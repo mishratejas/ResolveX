@@ -24,7 +24,7 @@ import NotificationsPage from "./pages/public/NotificationPage";
 import AdminChatPage from './pages/admin/AdminChatPage';
 import ComplaintDetailPage from './components/common/ComplaintDetailPage';
 const BASE_URL =
-  import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const getUserId = (role) => {
   try {
