@@ -936,7 +936,7 @@ const StaffManager = () => {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <button onClick={() => navigate(`/admin/staff/${staffMember._id}`)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button>
+                        {/* <button onClick={() => navigate(`/admin/staff/${staffMember._id}`)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button> */}
                         <button onClick={() => openEditModal(staffMember)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
                         <button onClick={() => handleToggleStatus(staffMember._id, staffMember.isActive)} className={`p-2 rounded-lg transition-colors ${staffMember.isActive ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'}`} title={staffMember.isActive ? 'Deactivate' : 'Activate'}>
                           {staffMember.isActive ? <Clock className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}

@@ -10,6 +10,7 @@ import User from "../models/User.models.js";
 import Staff from "../models/Staff.models.js";
 import Admin from "../models/Admin.models.js";
 import OTP from "../models/otp.model.js";
+import Department from "../models/Department.model.js";
 
 // Generate OTP
 const generateOTP = () => {
@@ -802,6 +803,118 @@ export const staffLoginWithOTP = asyncHandler(async (req, res) => {
                 role: 'staff'
             }
         }, "Staff login successful")
+    );
+});
+
+// Admin Signup with OTP
+export const adminSignupWithOTP = asyncHandler(async (req, res) => {
+    // 🚀 Uses organizationName instead of workspaceName
+    const { organizationName, name, email, password, phone, otp } = req.body;
+
+    console.log("🏢 New Workspace creation attempt with OTP:", { email, organizationName });
+
+    if (!organizationName || !name || !email || !password || !otp) {
+        throw new ApiError(400, "Organization name, Admin name, email, password, and OTP are required");
+    }
+
+    // --- 1. VERIFY OTP ---
+    const otpRecord = await OTP.findOne({
+        identifier: email,
+        purpose: 'signup',
+        userType: 'admin',
+        expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+        throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
+    }
+
+    if (otpRecord.attempts >= 5) {
+        await OTP.deleteOne({ _id: otpRecord._id });
+        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+    }
+
+    const isValid = await bcrypt.compare(otp, otpRecord.otp);
+    if (!isValid) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+    }
+
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    // --- 2. CHECK EXISTING ADMIN ---
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+        throw new ApiError(400, "Email is already registered");
+    }
+
+    // --- 3. CREATE ADMIN ---
+    // ⚠️ IMPORTANT: If your Admin model has a pre-save hook that hashes the password automatically 
+    // (like your User/Staff models), change `password: hashedPassword` to just `password: password`
+    // to avoid the double-hashing bug!
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newAdmin = new Admin({
+        organizationName,
+        name,
+        email,
+        password: hashedPassword, 
+        phone,
+        isVerified: true // Mark as verified since OTP succeeded
+    });
+
+    await newAdmin.save();
+    console.log(`✅ Workspace created! Code: ${newAdmin.workspaceCode}`);
+
+    // --- 4. AUTO-PROVISION DEFAULT DEPARTMENT ---
+    try {
+        const defaultDept = new Department({
+            name: 'Other',
+            description: 'Default bucket for general or unassigned issues.',
+            adminId: newAdmin._id,
+            workspaceCode: newAdmin.workspaceCode
+        });
+        await defaultDept.save();
+        console.log(`✅ Default 'Other' department created for workspace ${newAdmin.workspaceCode}`);
+    } catch (deptError) {
+        console.error("⚠️ Failed to create default department:", deptError);
+        // We don't throw an error here so the signup still succeeds even if the department fails
+    }
+
+    // Delete OTP record now that it's fully used
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    // --- 5. GENERATE LOGIN TOKENS ---
+    const payload = { 
+        id: newAdmin._id, 
+        role: newAdmin.role || 'admin', 
+        workspaceCode: newAdmin.workspaceCode 
+    };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    // --- 6. SEND RESPONSE ---
+    res.status(201).json(
+        new ApiResponse(201, {
+            accessToken,
+            admin: {
+                id: newAdmin._id,
+                organizationName: newAdmin.organizationName,
+                name: newAdmin.name,
+                email: newAdmin.email,
+                workspaceCode: newAdmin.workspaceCode 
+            }
+        }, "Workspace created successfully")
     );
 });
 

@@ -6,6 +6,7 @@ import {
     staffSignupWithOTP,
     userLoginWithOTP,
     staffLoginWithOTP,
+    adminSignupWithOTP,
     adminLoginWithOTP,
     requestPasswordResetOTP,
     resetPasswordWithOTP,
@@ -30,6 +31,9 @@ router.post("/signup/user", userSignupWithOTP);
 
 // Staff Signup with OTP
 router.post("/signup/staff", staffSignupWithOTP);
+
+// Admin Signup with OTP
+router.post("/signup/admin", adminSignupWithOTP);
 
 // User Login with OTP
 router.post("/login/user", userLoginWithOTP);

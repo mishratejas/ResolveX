@@ -921,9 +921,9 @@ import React from 'react';
 import AdminLayout from '../../layouts/AdminLayout'; // Double check your path
 import StaffManager from '../../components/admin/StaffManager'; // Double check your path
 
-const AdminStaffPage = () => {
+const AdminStaffPage = ({ onLogout }) => {
   return (
-    <AdminLayout activePage="staff">
+    <AdminLayout activePage="staff" onLogout={onLogout}>
       <StaffManager />
     </AdminLayout>
   );
