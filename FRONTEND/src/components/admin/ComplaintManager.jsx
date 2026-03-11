@@ -662,6 +662,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, Eye, Search, RefreshCw, CheckCircle, 
   User, MapPin, Building, Calendar, ShieldAlert, MessageSquare // 🚀 Added MessageSquare
@@ -674,6 +675,7 @@ import ComplaintChat from '../chat/ComplaintChat';
 const BASE_URL = import.meta.env.VITE_API_URL || "https://webster-2025.onrender.com";
 
 const ComplaintManager = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending'); 
   const [complaints, setComplaints] = useState([]);
   const [staffList, setStaffList] = useState([]);
@@ -988,6 +990,14 @@ const ComplaintManager = () => {
                           </p>
                         </div>
                       )}
+
+                      {/* View Full Details Button */}
+                      <button 
+                        onClick={() => navigate(`/admin/issues/${complaint._id}`)}
+                        className="w-full py-2 mt-2 text-sm font-bold text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" /> View Full Details
+                      </button>
 
                       {/* 🚀 NEW: The Open Chat Button for Assigned & Resolved Tickets */}
                       {(activeTab === 'assigned' || activeTab === 'resolved') && complaint.assignedTo && (

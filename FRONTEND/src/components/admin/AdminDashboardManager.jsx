@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Copy, Users, FileText, CheckCircle, Clock, 
   TrendingUp, UserCog, Building, PieChart,
-  RefreshCw, ChevronDown, ChevronRight, LineChart // 🚀 I ADDED LineChart HERE!
+  RefreshCw, ChevronDown, ChevronRight, LineChart, Activity, AlertTriangle
 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart as RechartsLine, Line,
@@ -24,7 +24,8 @@ const AdminDashboardManager = () => {
     },
     topPerformers: [],
     departmentStats: [],
-    performanceTrends: []
+    performanceTrends: [],
+    recentActivity: []
   });
   
   const [loading, setLoading] = useState(true);
@@ -96,6 +97,13 @@ const AdminDashboardManager = () => {
             resolutionRate: staff.resolutionRate || 0,
             resolved: staff.resolvedCount || 0,
             avatarColor: getRandomGradient()
+          })),
+          recentActivity: (backendData.recentActivity || []).map(activity => ({
+            id: activity.id,
+            action: activity.action,
+            user: activity.user,
+            time: activity.time,
+            type: activity.type
           }))
         }));
       }
@@ -382,7 +390,7 @@ const AdminDashboardManager = () => {
         </div>
       </div>
 
-      {/* Top Performers Grid */}
+      {/* Top Performers + Recent Activity Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl p-6 border border-orange-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -428,6 +436,59 @@ const AdminDashboardManager = () => {
               <div className="flex flex-col items-center justify-center text-gray-400 py-6">
                 <UserCog className="w-10 h-10 mb-2 opacity-20" />
                 <p className="text-sm">No performance data yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="lg:col-span-2 bg-white rounded-xl p-6 border border-orange-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+              <p className="text-sm text-gray-600">Latest complaint updates</p>
+            </div>
+            <button onClick={() => navigate('/admin/issues')} className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1 group">
+              View All <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {dashboardData.recentActivity.length > 0 ? (
+              dashboardData.recentActivity.map((item, index) => (
+                <div key={item.id || index} className="flex items-start gap-3 p-3 hover:bg-orange-50 rounded-lg transition-colors group">
+                  <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${
+                    item.type === 'resolved' ? 'bg-emerald-100' :
+                    item.type === 'in-progress' ? 'bg-amber-100' : 'bg-orange-100'
+                  }`}>
+                    {item.type === 'resolved' ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    ) : item.type === 'in-progress' ? (
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-orange-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 font-medium leading-snug line-clamp-1">{item.action}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-500">{item.user}</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-xs text-gray-400">{item.time}</span>
+                    </div>
+                  </div>
+                  <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                    item.type === 'resolved' ? 'bg-emerald-50 text-emerald-700' :
+                    item.type === 'in-progress' ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-orange-700'
+                  }`}>
+                    {item.type === 'resolved' ? 'Resolved' : item.type === 'in-progress' ? 'In Progress' : 'Pending'}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 py-8">
+                <Activity className="w-10 h-10 mb-2 opacity-20" />
+                <p className="text-sm">No recent activity yet.</p>
               </div>
             )}
           </div>

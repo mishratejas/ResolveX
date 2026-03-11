@@ -906,38 +906,124 @@ function msToHours(ms) {
 
 // ==================== EXPORT DATA ====================
 
-export const exportAnalyticsData = asyncHandler(async (req, res) => {
-    const { format = 'json', timeRange = '30d' } = req.query;
+// Internal helper to build analytics data without sending a response
+async function buildAnalyticsData(timeRange = '30d', department = null, category = null) {
+    const endDate = new Date();
+    const startDate = new Date();
     
-    // Get comprehensive analytics
-    const analytics = await getComprehensiveAnalytics(req, res);
+    switch (timeRange) {
+        case '7d': startDate.setDate(endDate.getDate() - 7); break;
+        case '30d': startDate.setDate(endDate.getDate() - 30); break;
+        case '90d': startDate.setDate(endDate.getDate() - 90); break;
+        case '1y': startDate.setFullYear(endDate.getFullYear() - 1); break;
+        default: startDate.setDate(endDate.getDate() - 30);
+    }
+
+    const matchQuery = { createdAt: { $gte: startDate, $lte: endDate } };
+    if (department) matchQuery.department = department;
+    if (category) matchQuery.category = category;
+
+    const [
+        overviewMetrics,
+        trendData,
+        categoryBreakdown,
+        departmentPerformance,
+        staffPerformance,
+        userEngagement,
+        resolutionMetrics,
+        priorityDistribution,
+        locationAnalysis,
+        timeAnalysis,
+        comparisonMetrics
+    ] = await Promise.all([
+        getOverviewMetrics(matchQuery),
+        getTrendData(startDate, endDate, matchQuery),
+        getCategoryBreakdown(matchQuery),
+        getDepartmentPerformance(matchQuery),
+        getStaffPerformance(matchQuery),
+        getUserEngagement(matchQuery),
+        getResolutionMetrics(matchQuery),
+        getPriorityDistribution(matchQuery),
+        getLocationAnalysis(matchQuery),
+        getTimeAnalysis(matchQuery),
+        getComparisonMetrics(startDate, endDate, matchQuery)
+    ]);
+
+    return {
+        timeRange,
+        dateRange: { start: startDate, end: endDate },
+        overview: overviewMetrics,
+        trends: trendData,
+        categories: categoryBreakdown,
+        departments: departmentPerformance,
+        staff: staffPerformance,
+        userEngagement,
+        resolution: resolutionMetrics,
+        priorities: priorityDistribution,
+        location: locationAnalysis,
+        timeAnalysis,
+        comparison: comparisonMetrics,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+export const exportAnalyticsData = asyncHandler(async (req, res) => {
+    const { format = 'csv', timeRange = '30d', department, category } = req.query;
+    
+    // Build analytics data without triggering a response
+    const analyticsData = await buildAnalyticsData(timeRange, department, category);
     
     if (format === 'csv') {
-        // Convert to CSV format
-        const csv = convertToCSV(analytics.data);
-        res.header('Content-Type', 'text/csv');
-        res.attachment(`analytics-${Date.now()}.csv`);
+        const csv = convertToCSV(analyticsData);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="analytics-${Date.now()}.csv"`);
         return res.send(csv);
     }
     
     // Default JSON format
-    res.header('Content-Type', 'application/json');
-    res.attachment(`analytics-${Date.now()}.json`);
-    res.send(JSON.stringify(analytics, null, 2));
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="analytics-${Date.now()}.json"`);
+    return res.send(JSON.stringify({ success: true, data: analyticsData }, null, 2));
 });
 
 function convertToCSV(data) {
-    // Implement CSV conversion logic
-    // This is a simplified version
     let csv = '';
-    
-    // Add overview metrics
+    csv += 'ANALYTICS EXPORT REPORT\n';
+    csv += `Generated,${new Date().toISOString()}\n`;
+    csv += `Time Range,${data.timeRange || 'N/A'}\n\n`;
+    csv += 'OVERVIEW METRICS\n';
     csv += 'Metric,Value\n';
-    csv += `Total Complaints,${data.overview.complaints.total}\n`;
-    csv += `Active Complaints,${data.overview.complaints.active}\n`;
-    csv += `Resolved Complaints,${data.overview.complaints.resolved}\n`;
-    csv += `Resolution Rate,${data.overview.complaints.resolutionRate}%\n`;
-    
+    const overview = data.overview || {};
+    const complaints = overview.complaints || {};
+    csv += `Total Complaints,${complaints.total ?? 0}\n`;
+    csv += `Active Complaints,${complaints.active ?? 0}\n`;
+    csv += `Resolved Complaints,${complaints.resolved ?? 0}\n`;
+    csv += `Pending Complaints,${complaints.pending ?? 0}\n`;
+    csv += `Resolution Rate,${complaints.resolutionRate ?? 0}%\n\n`;
+    if (data.categories && Array.isArray(data.categories)) {
+        csv += 'CATEGORY BREAKDOWN\n';
+        csv += 'Category,Count\n';
+        data.categories.forEach(cat => {
+            csv += `"${cat._id || cat.name || 'Unknown'}",${cat.count || cat.value || 0}\n`;
+        });
+        csv += '\n';
+    }
+    if (data.priorities && Array.isArray(data.priorities)) {
+        csv += 'PRIORITY DISTRIBUTION\n';
+        csv += 'Priority,Count\n';
+        data.priorities.forEach(p => {
+            csv += `"${p._id || p.priority || 'Unknown'}",${p.count || 0}\n`;
+        });
+        csv += '\n';
+    }
+    if (data.departments && Array.isArray(data.departments)) {
+        csv += 'DEPARTMENT PERFORMANCE\n';
+        csv += 'Department,Total,Resolved\n';
+        data.departments.forEach(dept => {
+            csv += `"${dept.name || 'Unknown'}",${dept.total || 0},${dept.resolved || 0}\n`;
+        });
+        csv += '\n';
+    }
     return csv;
 }
 

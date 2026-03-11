@@ -28,7 +28,7 @@ const Navbar = ({
         
         if (adminToken) {
           setUserRole('admin');
-          const adminData = localStorage.getItem('admin');
+          const adminData = localStorage.getItem('adminData') || localStorage.getItem('admin');
           if (adminData) {
             try {
               setCurrentUser(JSON.parse(adminData));
@@ -38,7 +38,7 @@ const Navbar = ({
           }
         } else if (staffToken) {
           setUserRole('staff');
-          const staffData = localStorage.getItem('staff');
+          const staffData = localStorage.getItem('staffData') || localStorage.getItem('staff');
           if (staffData) {
             try {
               setCurrentUser(JSON.parse(staffData));
