@@ -387,7 +387,7 @@ export const staffLogin = async (req, res) => {
         // We let them log in so the frontend can redirect them to the beautiful "Waiting Room" screen.
         
         const payload = { id: staff._id, role: staff.role || "staff" };
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
         
         res.cookie("refreshToken", refreshToken, {

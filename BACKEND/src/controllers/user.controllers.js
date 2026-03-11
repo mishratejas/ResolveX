@@ -70,7 +70,7 @@ export const userSignup = async (req, res) => {
 
         // 7. Generate tokens
         const payload = { id: newUser._id, role: newUser.role || "user" };
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
         // 8. Send refresh token as a cookie
@@ -161,7 +161,7 @@ export const userLogin = async (req, res) => {
         //Generate JWT
         const payload = { id: user._id, role: user.role || "user" };
 
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
         //Send refresh token as HttpOnly cookie
@@ -221,7 +221,7 @@ export const refreshToken = async (req, res) => {
 
         // Generate new access token
         const payload = { id: user._id, role: user.role || "user" };
-        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
 
         res.json({
             success: true,

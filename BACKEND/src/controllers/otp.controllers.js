@@ -369,7 +369,7 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
 
     // Generate tokens
     const payload = { id: newUser._id, role: newUser.role };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     res.cookie("refreshToken", refreshToken, {
@@ -444,7 +444,7 @@ export const userLoginWithOTP = asyncHandler(async (req, res) => {
 
     // Generate tokens
     const payload = { id: user._id, role: user.role };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     res.cookie("refreshToken", refreshToken, {
@@ -619,7 +619,7 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
 
     // Generate tokens
     const payload = { id: newStaff._id, role: 'staff' };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     res.cookie("refreshToken", refreshToken, {
@@ -779,7 +779,7 @@ export const staffLoginWithOTP = asyncHandler(async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     const payload = { id: staff._id, role: 'staff', workspaceCode: admin.workspaceCode };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     res.cookie("refreshToken", refreshToken, {
@@ -852,7 +852,7 @@ export const adminLoginWithOTP = asyncHandler(async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     const payload = { id: admin._id, role: admin.role };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     res.cookie("refreshToken", refreshToken, {

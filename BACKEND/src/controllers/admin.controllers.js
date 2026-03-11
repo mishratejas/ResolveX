@@ -1009,7 +1009,7 @@ export const adminLogin = async (req, res) => {
             workspaceCode: admin.workspaceCode // 🚀 Added to token
         };
 
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
         res.cookie("refreshToken", refreshToken, {
