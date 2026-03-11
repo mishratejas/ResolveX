@@ -17,58 +17,82 @@ const Navbar = ({
 
   // Check authentication status
   useEffect(() => {
+    // 🚀 NEW: Helper function to safely decode JWT and check expiration
+    const isTokenExpired = (token) => {
+      if (!token) return true;
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const payload = JSON.parse(jsonPayload);
+        // JWT exp is in seconds, Date.now() is in milliseconds
+        return (payload.exp * 1000) < Date.now();
+      } catch (e) {
+        return true; // If we can't parse it, consider it expired/invalid
+      }
+    };
+
+    // 🚀 NEW: Helper to silently clear storage if a token is expired
+    const clearStaleSession = () => {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('staffToken');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('admin');
+      localStorage.removeItem('staff');
+      localStorage.removeItem('currentWorkspace');
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setUserRole('');
+    };
+
     const checkAuth = () => {
       const adminToken = localStorage.getItem('adminToken');
       const staffToken = localStorage.getItem('staffToken');
       const userToken = localStorage.getItem('accessToken');
       const userData = localStorage.getItem('user');
       
-      if (adminToken || staffToken || userToken) {
+      // 🚀 UPDATED: Now we also check !isTokenExpired() before logging them in
+      if (adminToken && !isTokenExpired(adminToken)) {
         setIsAuthenticated(true);
-        
-        if (adminToken) {
-          setUserRole('admin');
-          const adminData = localStorage.getItem('adminData') || localStorage.getItem('admin');
-          if (adminData) {
-            try {
-              setCurrentUser(JSON.parse(adminData));
-            } catch (e) {
-              console.error('Error parsing admin data:', e);
-            }
-          }
-        } else if (staffToken) {
-          setUserRole('staff');
-          const staffData = localStorage.getItem('staffData') || localStorage.getItem('staff');
-          if (staffData) {
-            try {
-              setCurrentUser(JSON.parse(staffData));
-            } catch (e) {
-              console.error('Error parsing staff data:', e);
-            }
-          }
-        } else if (userToken && userData) {
-          setUserRole('user');
-          try {
-            setCurrentUser(JSON.parse(userData));
-          } catch (e) {
-            console.error('Error parsing user data:', e);
-          }
+        setUserRole('admin');
+        const adminData = localStorage.getItem('admin');
+        if (adminData) {
+          try { setCurrentUser(JSON.parse(adminData)); } catch (e) { console.error(e); }
         }
-      } else {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-        setUserRole('');
+      } 
+      else if (staffToken && !isTokenExpired(staffToken)) {
+        setIsAuthenticated(true);
+        setUserRole('staff');
+        const staffData = localStorage.getItem('staff');
+        if (staffData) {
+          try { setCurrentUser(JSON.parse(staffData)); } catch (e) { console.error(e); }
+        }
+      } 
+      else if (userToken && !isTokenExpired(userToken) && userData) {
+        setIsAuthenticated(true);
+        setUserRole('user');
+        try { setCurrentUser(JSON.parse(userData)); } catch (e) { console.error(e); }
+      } 
+      else {
+        // If there ARE tokens in storage but they ARE expired, clean them up!
+        if (adminToken || staffToken || userToken) {
+          clearStaleSession();
+        } else {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          setUserRole('');
+        }
       }
     };
     
     checkAuth();
     
     // Listen for login events
-    const handleUserLogin = () => {
-      console.log('Navbar - Received userLogin event');
-      checkAuth();
-    };
-    
+    const handleUserLogin = () => checkAuth();
     window.addEventListener('userLogin', handleUserLogin);
     
     // Listen for storage changes
@@ -77,7 +101,6 @@ const Navbar = ({
         checkAuth();
       }
     };
-    
     window.addEventListener('storage', handleStorageChange);
     
     return () => {
@@ -93,7 +116,7 @@ const Navbar = ({
     localStorage.removeItem('user');
     localStorage.removeItem('admin');
     localStorage.removeItem('staff');
-    localStorage.removeItem('currentWorkspace'); // 🔧 Clear workspace on logout
+    localStorage.removeItem('currentWorkspace'); 
     
     setIsAuthenticated(false);
     setCurrentUser(null);
@@ -165,10 +188,8 @@ const Navbar = ({
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
-              {/* 🔧 FIXED: Added WorkspaceSwitcher only for user role */}
               {userRole === 'user' && <WorkspaceSwitcher />}
               
-              {/* 🔧 FIXED: Conditionally render NotificationBell only when user is authenticated and has _id */}
               {isAuthenticated && currentUser && currentUser._id && (
                 <NotificationBell 
                   userId={currentUser._id} 
