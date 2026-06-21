@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   Home, FileText, Users, UserCog, BarChart3, 
   MessageSquare, Shield, Menu, LogOut,
-  ChevronRight, Building
+  ChevronRight, Building, Settings
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -88,6 +88,7 @@ const Sidebar = ({ activePage, onLogout }) => {
     { icon: BarChart3, label: 'Analytics', id: 'analytics', path: '/admin/analytics', badge: null },
     { icon: MessageSquare, label: 'Chat', id: 'chat', path: '/admin/chat', badge: badges.chat },
     { icon: Shield, label: 'Audit Logs', id: 'audit', path: '/admin/audit', badge: null },
+    { icon: Settings, label: 'Settings', id: 'settings', path: '/admin/settings', badge: null },
   ];
 
   return (

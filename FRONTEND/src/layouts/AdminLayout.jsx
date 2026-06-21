@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Bell, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/admin/Sidebar';
 
 const AdminLayout = ({ children, activePage, onLogout }) => {
+  const navigate = useNavigate();
   const [adminInfo, setAdminInfo] = useState({
     organizationName: 'ResolveX Admin',
     name: 'Administrator',
-    email: ''
+    email: '',
+    profileImage: ''
   });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -18,7 +21,8 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
         setAdminInfo({
           organizationName: parsedData.organizationName || 'ResolveX Admin',
           name: parsedData.name || 'Administrator',
-          email: parsedData.email || ''
+          email: parsedData.email || '',
+          profileImage: parsedData.profileImage || ''
         });
       } catch (e) {
         console.error('Error parsing admin data:', e);
@@ -67,7 +71,11 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
               </button>
 
               <div className="relative group">
-                <button className="flex items-center gap-3 p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 border border-orange-200 bg-white">
+                <button
+                  onClick={() => navigate('/admin/settings')}
+                  className="flex items-center gap-3 p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 border border-orange-200 bg-white"
+                  title="Profile settings"
+                >
                   <div className="hidden md:block text-right">
                     <p className="text-sm font-bold text-gray-900">{adminInfo.name}</p>
                     <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
@@ -76,9 +84,17 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
                     </p>
                   </div>
                   <div className="relative">
-                    <div className="w-9 h-9 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md uppercase border border-orange-500/30">
-                      {adminInfo.name.charAt(0)}
-                    </div>
+                    {adminInfo.profileImage ? (
+                      <img
+                        src={adminInfo.profileImage}
+                        alt={adminInfo.name}
+                        className="w-9 h-9 rounded-lg object-cover shadow-md border border-orange-500/30"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md uppercase border border-orange-500/30">
+                        {adminInfo.name.charAt(0)}
+                      </div>
+                    )}
                   </div>
                 </button>
               </div>

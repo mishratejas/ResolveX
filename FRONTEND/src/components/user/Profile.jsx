@@ -30,6 +30,7 @@ import {
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import ProfilePhotoUpload from "../common/ProfilePhotoUpload";
 
 const Profile = ({ currentUser }) => {
   const [userData, setUserData] = useState(null);
@@ -329,6 +330,28 @@ const loadUserRank = async () => {
     setShowEditModal(true);
   };
 
+  const handleProfilePhotoUploaded = async (imageUrl) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.put(
+        `${BASE_URL}/api/users/profile`,
+        { profileImage: imageUrl },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      if (response.data.success) {
+        setUserData(prev => ({ ...prev, profileImage: imageUrl }));
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          localStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), profileImage: imageUrl }));
+        }
+      }
+    } catch (error) {
+      console.error('Error saving profile photo:', error);
+      toast.error('Photo uploaded, but failed to save it to your profile.');
+    }
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     if (editTab === 'profile') {
@@ -579,17 +602,14 @@ const loadUserRank = async () => {
         <div className="flex flex-col md:flex-row md:items-start gap-6">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            {userData?.profileImage ? (
-              <img
-                src={userData.profileImage}
-                alt={userData.name}
-                className="w-24 h-24 rounded-full border-4 border-white/30 object-cover"
-              />
-            ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-white/20 to-white/10 rounded-full border-4 border-white/30 flex items-center justify-center text-white text-3xl font-bold">
-                {userData?.name?.charAt(0)?.toUpperCase() || "U"}
-              </div>
-            )}
+            <ProfilePhotoUpload
+              currentImage={userData?.profileImage}
+              name={userData?.name}
+              token={localStorage.getItem('accessToken')}
+              onUploaded={handleProfilePhotoUploaded}
+              size="w-24 h-24"
+              ringColor="border-white/30"
+            />
           </div>
 
           {/* User Info */}

@@ -123,7 +123,8 @@ export const adminLogin = async (req, res) => {
                 name: admin.name,
                 email: admin.email,
                 role: admin.role,
-                permissions: admin.permissions
+                permissions: admin.permissions,
+                profileImage: admin.profileImage || "" // 🚀 NEW: So the dashboard can render the avatar right after login
             }
         });
 
@@ -407,6 +408,75 @@ export const getNotifications = async (req, res) => {
 
 export const markNotificationAsRead = async (req, res) => {
     res.status(200).json({ success: true, data: { read: true } });
+};
+
+// ==================== ADMIN OWN PROFILE ====================
+
+// 🚀 NEW: Get the logged-in Admin's own profile
+export const getAdminProfile = async (req, res) => {
+    try {
+        // adminAuth middleware already attaches the admin doc (minus password) to req.admin
+        const admin = req.admin;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                id: admin._id,
+                organizationName: admin.organizationName,
+                workspaceCode: admin.workspaceCode,
+                name: admin.name,
+                email: admin.email,
+                phone: admin.phone,
+                role: admin.role,
+                permissions: admin.permissions,
+                profileImage: admin.profileImage || ""
+            }
+        });
+    } catch (error) {
+        console.error("❌ Get Admin Profile Error:", error);
+        res.status(500).json({ success: false, message: "Server error while fetching profile" });
+    }
+};
+
+// 🚀 NEW: Let an Admin update their own profile (name, phone, org name, profile photo)
+export const updateAdminProfile = async (req, res) => {
+    try {
+        const adminId = req.admin._id;
+        const admin = await Admin.findById(adminId);
+
+        if (!admin) {
+            return res.status(404).json({ success: false, message: "Admin not found" });
+        }
+
+        const { name, phone, organizationName, profileImage } = req.body;
+
+        if (name) admin.name = name;
+        if (phone) admin.phone = phone;
+        if (organizationName) admin.organizationName = organizationName;
+        // profileImage is a Cloudinary URL string uploaded by the frontend via /api/upload
+        if (profileImage !== undefined) admin.profileImage = profileImage;
+
+        await admin.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            data: {
+                id: admin._id,
+                organizationName: admin.organizationName,
+                workspaceCode: admin.workspaceCode,
+                name: admin.name,
+                email: admin.email,
+                phone: admin.phone,
+                role: admin.role,
+                permissions: admin.permissions,
+                profileImage: admin.profileImage || ""
+            }
+        });
+    } catch (error) {
+        console.error("❌ Update Admin Profile Error:", error);
+        res.status(500).json({ success: false, message: "Server error while updating profile" });
+    }
 };
 
 // ==================== HELPER FUNCTIONS ====================

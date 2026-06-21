@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "../../components/common/NotificationBell";
+import ProfilePhotoUpload from "../../components/common/ProfilePhotoUpload";
 
 // 🚀 Import the Chat Component
 import ComplaintChat from "../../components/chat/ComplaintChat";
@@ -238,6 +239,30 @@ const StaffDashboard = () => {
     localStorage.removeItem("staffAccessToken");
     localStorage.removeItem("staff");
     navigate("/");
+  };
+
+  // 🚀 NEW: Persist the uploaded profile photo URL to the staff's profile
+  const handleProfilePhotoUploaded = async (imageUrl) => {
+    try {
+      const token =
+        localStorage.getItem("staffToken") ||
+        localStorage.getItem("staffAccessToken");
+
+      const response = await axios.put(
+        `${BASE_URL}/api/staff/profile`,
+        { profileImage: imageUrl },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      if (response.data.success) {
+        const updated = { ...staffData, profileImage: imageUrl };
+        setStaffData(updated);
+        localStorage.setItem("staffData", JSON.stringify(updated));
+        localStorage.setItem("staff", JSON.stringify(updated));
+      }
+    } catch (error) {
+      console.error("Error saving staff profile photo:", error);
+    }
   };
 
   const checkApprovalStatus = async () => {
@@ -502,7 +527,24 @@ const StaffDashboard = () => {
                 <NotificationBell userId={staffData._id} userType="Staff" />
               )}
 
-              <div className="hidden md:flex items-center space-x-4 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+              <div className="hidden md:flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                <ProfilePhotoUpload
+                  currentImage={staffData.profileImage}
+                  name={staffData.name}
+                  token={
+                    localStorage.getItem("staffToken") ||
+                    localStorage.getItem("staffAccessToken")
+                  }
+                  onUploaded={handleProfilePhotoUploaded}
+                  size="w-10 h-10"
+                  ringColor="border-blue-100"
+                  borderWidth="border-2"
+                  fallbackBg="bg-gradient-to-br from-blue-600 to-purple-600"
+                  textColor="text-white"
+                  textSize="text-sm"
+                  buttonSize="w-5 h-5"
+                  iconSize="w-2.5 h-2.5"
+                />
                 <div className="text-right">
                   <p className="font-semibold text-gray-900">
                     {staffData.name}
