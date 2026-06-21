@@ -705,7 +705,7 @@ async function getConversationParticipants(complaint) {
     }
 
     // Admins are implicit participants (can join any conversation)
-    const admins = await Admin.find({ role: { $in: ['admin', 'superadmin'] } })
+    const admins = await Admin.find({ role: 'admin' })
         .select('name email profileImage')
         .limit(5)
         .lean();

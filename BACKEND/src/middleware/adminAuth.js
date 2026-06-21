@@ -24,7 +24,7 @@ export const adminAuth=async(req,res,next)=>{
             });
         }
 
-        if(!["admin","superadmin"].includes(admin.role)){
+        if(admin.role !== "admin"){
             return res.status(403).json({
                 success:false,
                 message:"Access denied. You are not an admin."

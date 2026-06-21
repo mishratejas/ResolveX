@@ -28,6 +28,6 @@ router.put("/:id", adminAuth, handleUpdateIssue);
 
 // Bulk operations
 router.post("/bulk-assign", adminAuth, handleBulkAssign);
-router.patch('/complaint/:complaintId/priority',adminOverridePriority);
+router.patch('/complaint/:complaintId/priority', adminAuth, adminOverridePriority);
 
 export default router;

@@ -50,7 +50,7 @@ const RaiseComplaint = ({ currentUser }) => {
       latitude: null,
       longitude: null,
     },
-    image: null,
+    images: [],
   });
   const [locationLoading, setLocationLoading] = useState(false);
 
@@ -435,15 +435,40 @@ const RaiseComplaint = ({ currentUser }) => {
     }));
   };
 
+  const MAX_IMAGES = 5;
+
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
-        return;
-      }
-      setFormData((prev) => ({ ...prev, image: file }));
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    const oversized = selectedFiles.filter((f) => f.size > 5 * 1024 * 1024);
+    if (oversized.length > 0) {
+      setError(
+        `${oversized.length > 1 ? "Some images" : "Image"} exceed${
+          oversized.length > 1 ? "" : "s"
+        } the 5MB size limit`
+      );
     }
+
+    const validFiles = selectedFiles.filter((f) => f.size <= 5 * 1024 * 1024);
+
+    setFormData((prev) => {
+      const combined = [...prev.images, ...validFiles];
+      if (combined.length > MAX_IMAGES) {
+        setError(`You can upload up to ${MAX_IMAGES} photos only`);
+      }
+      return { ...prev, images: combined.slice(0, MAX_IMAGES) };
+    });
+
+    // Allow re-selecting the same file(s) again later
+    e.target.value = "";
+  };
+
+  const removeImageAt = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
   };
 
 const checkForDuplicates = async () => {
@@ -603,11 +628,13 @@ const handleUpvoteDuplicate = async (complaintId) => {
         skipDuplicateCheck,
       };
 
-      // Upload image to Cloudinary if provided
-      if (formData.image) {
+      // Upload images to Cloudinary if provided
+      if (formData.images.length > 0) {
         try {
           const imageFormData = new FormData();
-          imageFormData.append("image", formData.image);
+          formData.images.forEach((file) => {
+            imageFormData.append("image", file);
+          });
           const uploadRes = await axios.post(`${BASE_URL}/api/upload`, imageFormData, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -964,53 +991,55 @@ const handleUpvoteDuplicate = async (complaintId) => {
             {/* Image Upload */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Add Photo (Optional)
+                Add Photos (Optional)
               </label>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  {formData.image ? (
-                    <div className="space-y-3">
-                      <div className="w-20 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden">
+              {formData.images.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {formData.images.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <div className="w-full h-20 bg-gray-100 rounded-lg overflow-hidden">
                         <img
-                          src={URL.createObjectURL(formData.image)}
-                          alt="Preview"
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <p className="text-sm text-gray-600">
-                        {formData.image.name}
-                      </p>
                       <button
                         type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({ ...prev, image: null }))
-                        }
-                        className="text-sm text-red-600 hover:text-red-800"
+                        onClick={() => removeImageAt(index)}
+                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 transition-colors"
                       >
-                        Remove
+                        <XCircle className="w-4 h-4" />
                       </button>
                     </div>
-                  ) : (
-                    <>
-                      <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        Click to upload a photo
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG up to 5MB
-                      </p>
-                    </>
-                  )}
-                </label>
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {formData.images.length < MAX_IMAGES && (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    id="image-upload"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      {formData.images.length > 0
+                        ? "Click to add more photos"
+                        : "Click to upload photos"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG up to 5MB each &middot; up to {MAX_IMAGES} photos
+                    </p>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Submit */}

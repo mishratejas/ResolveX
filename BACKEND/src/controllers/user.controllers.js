@@ -149,7 +149,7 @@ export const userLogin = async (req, res) => {
         //Compare password
         const isMatch = await bcrypt.compare(password, user.password);
         
-        console.log('🔐 Password match result:', isMatch);
+        console.log(' Password match result:', isMatch);
         
         if (!isMatch) {
             console.log('❌ Password mismatch for:', email);
@@ -333,7 +333,7 @@ export const updateUserProfile = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error while updating profile" });
     }
 };
-// 🚀 NEW: Join a workspace using workspace code
+//   NEW: Join a workspace using workspace code
 export const joinWorkspace = async (req, res) => {
     try {
         const { workspaceCode } = req.body;
@@ -413,7 +413,7 @@ export const joinWorkspace = async (req, res) => {
     }
 };
 
-// 🚀 NEW: Leave a workspace
+//   NEW: Leave a workspace
 export const leaveWorkspace = async (req, res) => {
     try {
         const { workspaceId } = req.params;
@@ -472,7 +472,7 @@ export const leaveWorkspace = async (req, res) => {
     }
 };
 
-// 🚀 NEW: Get user's workspaces
+//   NEW: Get user's workspaces
 export const getMyWorkspaces = async (req, res) => {
     try {
         const userId = req.user._id;

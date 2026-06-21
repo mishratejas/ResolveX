@@ -38,22 +38,13 @@ const userComplaintSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  priorityOverriddenBy: {
-    type: String,
-    enum: ["admin", "staff"],
-    default: null,
-  },
   priorityOverriddenAt: {
     type: Date,
     default: null,
   },
   priorityOverriddenById: {
     type: mongoose.Schema.Types.ObjectId,
-    refPath: "priorityOverriddenByModel",
-  },
-  priorityOverriddenByModel: {
-    type: String,
-    enum: ["Admin", "Staff"],
+    ref: "Admin",
     default: null,
   },
   location: {

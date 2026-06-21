@@ -7,7 +7,7 @@ import {
   areComplaintsSimilar,
 } from "../utils/locationUtils.js";
 
-// 🚀 NEW: Import our Load Balancer!
+//   NEW: Import our Load Balancer!
 import { getLeastLoadedStaff } from "../utils/loadBalancer.js";
 import NotificationService from "../services/notification.service.js";
 import Staff from "../models/Staff.models.js";
@@ -181,7 +181,7 @@ export const handleIssueGeneration = async (req, res) => {
       description,
       location,
       category,
-      department, // 🚀 NEW: Extracted department from frontend
+      department, //   NEW: Extracted department from frontend
       images,
       userId,
       skipDuplicateCheck,
@@ -262,7 +262,7 @@ export const handleIssueGeneration = async (req, res) => {
       console.log(`🔄 Using rule-based priority: ${priority}`);
     }
 
-    // 🚀 NEW: THE LOAD BALANCER EXECUTION
+    //   NEW: THE LOAD BALANCER EXECUTION
     let assignedStaffId = null;
     let initialStatus = "pending";
 
@@ -288,8 +288,8 @@ export const handleIssueGeneration = async (req, res) => {
       category: category || "other",
       user: complaintUserId,
       adminId: adminId, 
-      department: department || null, // 🚀 Saved to DB
-      assignedTo: assignedStaffId,    // 🚀 Auto-assigned by Load Balancer
+      department: department || null, //   Saved to DB
+      assignedTo: assignedStaffId,    //   Auto-assigned by Load Balancer
       status: initialStatus,
       priority: priority,
       autoPriorityAssigned: prioritySource === "ai",
@@ -363,15 +363,13 @@ export const adminOverridePriority = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid priority value. Must be low, medium, high, or critical" });
     }
 
-    const complaint = await UserComplaint.findById(complaintId);
-    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found" });
+    const complaint = await UserComplaint.findOne({ _id: complaintId, adminId });
+    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found or you do not have permission to edit it." });
 
     complaint.priority = priority;
     complaint.manualPriorityOverridden = true;
-    complaint.priorityOverriddenBy = "admin";
     complaint.priorityOverriddenAt = new Date();
     complaint.priorityOverriddenById = adminId;
-    complaint.priorityOverriddenByModel = "Admin";
 
     await complaint.save();
     res.status(200).json({ success: true, message: "Priority updated successfully", data: complaint });

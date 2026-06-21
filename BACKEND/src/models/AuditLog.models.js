@@ -22,7 +22,7 @@ const auditLogSchema = new mongoose.Schema({
     },
     actorRole: {
         type: String,
-        enum: ['user', 'staff', 'admin', 'superadmin']
+        enum: ['user', 'staff', 'admin']
     },
 
     // WHAT action was performed

@@ -1,23 +1,3 @@
-// import cloudinary from "../config/cloudinary.js";
-
-// export const handleImageUpload = async (req, res) => {
-//     try {
-//         const uploadPromises = req.files.map((file) =>
-//             cloudinary.uploader.upload(file.path, { folder: "complaints" })
-//         );
-
-//         const results = await Promise.all(uploadPromises);
-
-//         const urls = results.map((r) => r.secure_url);
-
-//         res.json({ success: true, urls });
-//     } 
-//     catch (err) {
-//         console.error("Upload error:", err);
-//         res.status(500).json({ success: false, message: "Upload failed" });
-//     }
-// }
-
 import cloudinary from "../config/cloudinary.js";
 
 export const handleImageUpload = async (req, res) => {

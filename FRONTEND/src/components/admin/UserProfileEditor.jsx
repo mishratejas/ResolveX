@@ -1,4 +1,3 @@
-// components/admin/UserProfileEditor.jsx
 import React, { useState, useEffect } from 'react';
 import { Save, X, Mail, Phone, User, Shield, Lock, Eye, EyeOff, Download } from 'lucide-react';
 
