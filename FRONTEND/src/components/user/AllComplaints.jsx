@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Filter, Calendar, MapPin, ThumbsUp, Eye,
-  ChevronDown, ChevronUp, Plus, RefreshCw, AlertCircle, Building2,
+  ChevronDown, ChevronUp, Plus, RefreshCw, AlertCircle, Building2, MessageCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -347,25 +347,33 @@ const AllComplaints = ({ currentUser }) => {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleVote(complaint._id); }}
-                      disabled={voting[complaint._id] || !user || isOwnComplaint || hasVoted}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
-                        isOwnComplaint
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : hasVoted
-                          ? "bg-green-100 text-green-600 cursor-default"
-                          : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                      }`}
-                    >
-                      {voting[complaint._id] ? (
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <ThumbsUp className={`w-4 h-4 ${hasVoted ? "fill-current" : ""}`} />
-                      )}
-                      <span className="font-medium">{complaint.voteCount || 0}</span>
-                      <span>{getVoteButtonText(complaint)}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleVote(complaint._id); }}
+                        disabled={voting[complaint._id] || !user || isOwnComplaint || hasVoted}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                          isOwnComplaint
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : hasVoted
+                            ? "bg-green-100 text-green-600 cursor-default"
+                            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        }`}
+                      >
+                        {voting[complaint._id] ? (
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <ThumbsUp className={`w-4 h-4 ${hasVoted ? "fill-current" : ""}`} />
+                        )}
+                        <span className="font-medium">{complaint.voteCount || 0}</span>
+                        <span>{getVoteButtonText(complaint)}</span>
+                      </button>
+
+                      {/* Comment count */}
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500">
+                        <MessageCircle className="w-4 h-4" />
+                        {complaint.comments?.length || 0}
+                      </span>
+                    </div>
 
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/home/complaints/${complaint._id}`); }}

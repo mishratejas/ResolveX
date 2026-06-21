@@ -665,7 +665,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
   X, Eye, Search, RefreshCw, CheckCircle, 
-  User, MapPin, Building, Calendar, ShieldAlert, MessageSquare // 🚀 Added MessageSquare
+  User, MapPin, Building, Calendar, ShieldAlert, MessageSquare, MessageCircle // 🚀 Added MessageCircle for comment count
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -906,6 +906,7 @@ const ComplaintManager = () => {
                         <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5"/> {deptName || 'General'}</span>
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5"/> {formatDate(complaint.createdAt || new Date())}</span>
                         {complaint.location?.address && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> {complaint.location.address}</span>}
+                        <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5"/> {complaint.comments?.length || 0} comments</span>
                       </div>
                         {complaint.images && complaint.images.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">

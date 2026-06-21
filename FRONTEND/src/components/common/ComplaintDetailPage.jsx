@@ -3,18 +3,32 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, MapPin, Calendar, User, ThumbsUp,
-  ExternalLink, Image as ImageIcon, AlertTriangle, Clock, CheckCircle
+  ExternalLink, Image as ImageIcon, AlertTriangle, Clock, CheckCircle,
+  MessageCircle, Send, ShieldCheck, Briefcase
 } from "lucide-react";
 import axios from "axios";
+import complaintService from "../../services/complaintService";
 
-const ComplaintDetailPage = () => {
+const ComplaintDetailPage = ({ authStatus }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
   const [alreadyVoted, setAlreadyVoted] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const [commentText, setCommentText] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [commentError, setCommentError] = useState("");
+
+  // This page is mounted from three different routes (/home/complaints/:id for citizens,
+  // /admin/issues/:id, /staff/issues/:id) — ProtectedRoute injects `authStatus` on the
+  // latter two, so we know for certain which kind of account is viewing.
+  const role = authStatus?.userRole; // "admin" | "staff" | undefined (=> citizen user route)
+  const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  const currentStaff = JSON.parse(localStorage.getItem("staffData") || "null");
+  const currentAdmin = JSON.parse(localStorage.getItem("adminData") || "null");
+  const viewer = role === "admin" ? currentAdmin : role === "staff" ? currentStaff : currentUser;
+
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => { loadComplaintDetails(); }, [id]);
@@ -63,6 +77,68 @@ const ComplaintDetailPage = () => {
       alert(error.response?.data?.message || "Failed to vote");
     } finally {
       setVoting(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!viewer) { alert("Please login to comment"); return; }
+    if (!commentText.trim()) return;
+
+    try {
+      setPostingComment(true);
+      setCommentError("");
+
+      let updatedComments;
+
+      if (role === "admin") {
+        const token = localStorage.getItem("adminToken");
+        const res = await axios.put(
+          `${BASE_URL}/api/admin/issues/${id}`,
+          { comments: commentText.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        updatedComments = res.data?.data?.comments;
+      } else if (role === "staff") {
+        const token = localStorage.getItem("staffToken");
+        const res = await axios.put(
+          `${BASE_URL}/api/staff/issues/${id}`,
+          { comments: commentText.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        updatedComments = res.data?.data?.comments;
+      } else {
+        const response = await complaintService.addComment(id, commentText.trim());
+        if (!response.success) {
+          setCommentError(response.message || "Failed to post comment");
+          return;
+        }
+        updatedComments = response.comments;
+      }
+
+      if (updatedComments) {
+        setComplaint((prev) => ({ ...prev, comments: updatedComments }));
+      }
+      setCommentText("");
+    } catch (error) {
+      setCommentError(error.response?.data?.message || "Failed to post comment. Please try again.");
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  // Strip the internal "[ADMIN NOTE]:" / "[STAFF UPDATE]:" prefixes the backend adds —
+  // the role badge already conveys who wrote it, so showing both is redundant.
+  const cleanCommentMessage = (message) =>
+    (message || "").replace(/^\[(ADMIN NOTE|STAFF UPDATE|REJECTED)\]:\s*/i, "");
+
+  const getCommentAuthor = (comment) => {
+    switch (comment.authorRole) {
+      case "staff":
+        return { name: comment.staff?.name || "Staff Member", icon: Briefcase, badge: "Staff" };
+      case "admin":
+        return { name: comment.admin?.name || "Administrator", icon: ShieldCheck, badge: "Admin" };
+      default:
+        return { name: comment.user?.name || "Citizen", icon: User, badge: "Citizen" };
     }
   };
 
@@ -251,31 +327,116 @@ const ComplaintDetailPage = () => {
               </div>
             </div>
 
-            {/* Vote section */}
-            <div className="pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleVote}
-                  disabled={voting || alreadyVoted || isOwner}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${
-                    alreadyVoted
-                      ? "bg-green-100 text-green-700 cursor-default"
-                      : isOwner
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-                  }`}
-                >
-                  {voting ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <ThumbsUp className={`w-4 h-4 ${alreadyVoted ? "fill-current" : ""}`} />
+            {/* Vote section — citizens only; voting isn't a staff/admin action */}
+            {!role && (
+              <div className="pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleVote}
+                    disabled={voting || alreadyVoted || isOwner}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${
+                      alreadyVoted
+                        ? "bg-green-100 text-green-700 cursor-default"
+                        : isOwner
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                    }`}
+                  >
+                    {voting ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ThumbsUp className={`w-4 h-4 ${alreadyVoted ? "fill-current" : ""}`} />
+                    )}
+                    <span>{complaint.voteCount || 0} {alreadyVoted ? "Voted" : isOwner ? "Your Issue" : "Upvote"}</span>
+                  </button>
+                  {alreadyVoted && (
+                    <p className="text-sm text-green-600 font-medium">✓ Thanks for your support!</p>
                   )}
-                  <span>{complaint.voteCount || 0} {alreadyVoted ? "Voted" : isOwner ? "Your Issue" : "Upvote"}</span>
-                </button>
-                {alreadyVoted && (
-                  <p className="text-sm text-green-600 font-medium">✓ Thanks for your support!</p>
+                </div>
+              </div>
+            )}
+
+            {/* Comments section */}
+            <div className="pt-6 border-t border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-blue-500" />
+                Comments {complaint.comments?.length > 0 && `(${complaint.comments.length})`}
+              </h3>
+
+              {/* Existing comments */}
+              <div className="space-y-4 mb-6">
+                {complaint.comments && complaint.comments.length > 0 ? (
+                  complaint.comments
+                    .slice()
+                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                    .map((comment, idx) => {
+                      const author = getCommentAuthor(comment);
+                      const Icon = author.icon;
+                      return (
+                        <div key={comment._id || idx} className="flex gap-3">
+                          <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm text-gray-900">{author.name}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                                author.badge === "Admin" ? "bg-purple-100 text-purple-700"
+                                : author.badge === "Staff" ? "bg-teal-100 text-teal-700"
+                                : "bg-blue-100 text-blue-700"
+                              }`}>
+                                {author.badge}
+                              </span>
+                              <span className="text-xs text-gray-400 ml-auto">{formatDate(comment.createdAt)}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{cleanCommentMessage(comment.message)}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <p className="text-sm text-gray-500">No comments yet. Be the first to add an update.</p>
                 )}
               </div>
+
+              {/* Add a comment */}
+              {!viewer ? (
+                <p className="text-sm text-gray-500">
+                  <button onClick={() => navigate("/")} className="text-blue-600 hover:underline font-medium">Log in</button> to add a comment.
+                </p>
+              ) : (
+                <div className="flex gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add a comment or update on this complaint..."
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                    {commentError && (
+                      <p className="text-xs text-red-600 mt-1">{commentError}</p>
+                    )}
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handlePostComment}
+                        disabled={postingComment || !commentText.trim()}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        {postingComment ? (
+                          <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        Post Comment
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

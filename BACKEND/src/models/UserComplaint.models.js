@@ -1,126 +1,7 @@
-// import mongoose from "mongoose";
-
-// const userComplaintSchema = new mongoose.Schema({
-//   title: {
-//     type: String,
-//     required: true,
-//   },
-//   description: {
-//     type: String,
-//     required: true,
-//   },
-//   category: {
-//     type: String,
-//     enum: [
-//       "road",
-//       "water",
-//       "electricity",
-//       "sanitation",
-//       "security",
-//       "transport",
-//       "other",
-//     ],
-//     required: true,
-//   },
-//   status: {
-//     type: String,
-//     enum: ["pending", "in-progress", "resolved", "rejected"],
-//     default: "pending",
-//   },
-//   priority: {
-//     type: String,
-//     enum: ["low", "medium", "high", "critical"],
-//     default: "medium",
-//   },
-//   autoPriorityAssigned: {
-//     type: Boolean,
-//     default: false,
-//   },
-//   manualPriorityOverridden: {
-//     type: Boolean,
-//     default: false,
-//   },
-//   priorityOverriddenBy: {
-//     type: String,
-//     enum: ["admin", "staff"],
-//     default: null,
-//   },
-//   priorityOverriddenAt: {
-//     type: Date,
-//     default: null,
-//   },
-//   priorityOverriddenById: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     refPath: "priorityOverriddenByModel",
-//   },
-//   priorityOverriddenByModel: {
-//     type: String,
-//     enum: ["Admin", "Staff"],
-//     default: null,
-//   },
-//   location: {
-//     latitude: Number,
-//     longitude: Number,
-//     address: String,
-//   },
-//   images: [
-//     {
-//       type: String,
-//     },
-//   ],
-//   user: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "User",
-//     required: true,
-//   },
-//   voteCount: {
-//     type: Number,
-//     default: 0,
-//   },
-//   voters: [
-//     {
-//       type: mongoose.Schema.Types.ObjectId,
-//       ref: "User",
-//     },
-//   ],
-//   department: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Department",
-//   },
-//   assignedTo: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Staff",
-//   },
-//   comments: [
-//     {
-//       staff: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: "Staff",
-//       },
-//       message: String,
-//       createdAt: {
-//         type: Date,
-//         default: Date.now,
-//       },
-//     },
-//   ],
-//   createdAt: {
-//     type: Date,
-//     default: Date.now,
-//   },
-//   updatedAt: {
-//     type: Date,
-//     default: Date.now,
-//   },
-// });
-
-// export default mongoose.model("UserComplaint", userComplaintSchema);
-
-
 import mongoose from "mongoose";
 
 const userComplaintSchema = new mongoose.Schema({
-  // 🚀 Strict Workspace Boundary
+  // Strict Workspace Boundary
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Admin",
@@ -208,20 +89,42 @@ const userComplaintSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Staff", 
   },
+  // Comments / discussion thread on a complaint.
+  // Supports comments from the reporting user, staff, and admin.
+  // `authorRole` tells the frontend which of the three ref fields below is populated,
+  // so it doesn't have to guess based on which field happens to be set.
   comments: [
     {
+      authorRole: {
+        type: String,
+        enum: ["user", "staff", "admin"],
+        required: true,
+        default: "staff", // Legacy comments created before this field existed were all staff/admin notes
+      },
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
       staff: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Staff",
       },
-      message: String,
+      admin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Admin",
+      },
+      message: {
+        type: String,
+        required: true,
+        trim: true,
+      },
       createdAt: {
         type: Date,
         default: Date.now,
       },
     },
   ],
-  // 🚀 NEW: Added to track exactly when a staff member finishes the job!
+  // Added to track exactly when a staff member finishes the job!
   resolvedAt: {
     type: Date,
     default: null,

@@ -2335,6 +2335,14 @@ const StaffDashboard = () => {
                           </div>
                         )}
 
+                        {/* View Full Details Button — opens the enlarged ticket view with comments */}
+                        <button
+                          onClick={() => navigate(`/staff/issues/${complaint._id}`)}
+                          className="w-full py-2 bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors text-sm flex items-center justify-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" /> View Full Details
+                        </button>
+
                         {/* 🚀 The Open Chat Button with Unread Badge */}
                         <button 
                           onClick={() => handleOpenChat(complaint)}

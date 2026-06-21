@@ -851,17 +851,14 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
     }
 
     // --- 3. CREATE ADMIN ---
-    // ⚠️ IMPORTANT: If your Admin model has a pre-save hook that hashes the password automatically 
-    // (like your User/Staff models), change `password: hashedPassword` to just `password: password`
-    // to avoid the double-hashing bug!
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    // Password hashing is handled by the Admin model's pre('save') hook now
+    // (the same way User/Staff signup already works), so we pass the plain
+    // password straight through instead of hashing it here.
     const newAdmin = new Admin({
         organizationName,
         name,
         email,
-        password: hashedPassword, 
+        password,
         phone,
         isVerified: true // Mark as verified since OTP succeeded
     });

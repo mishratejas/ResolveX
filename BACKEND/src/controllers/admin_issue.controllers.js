@@ -44,6 +44,8 @@ export const handleFetchAllUserIssues = async (req, res) => {
             .populate('assignedTo', 'name staffId') 
             .populate('department', 'name') 
             .populate('comments.staff', 'name staffId')
+            .populate('comments.admin', 'name organizationName')
+            .populate('comments.user', 'name')
             .sort({ priority: -1, createdAt: -1 });
 
         return res.status(200).json({
@@ -251,7 +253,8 @@ export const handleUpdateIssue = async (req, res) => {
 
         if (status === 'rejected' && rejectionReason) {
             complaint.comments.push({ 
-                staff: adminId, 
+                authorRole: 'admin',
+                admin: adminId, 
                 message: `[REJECTED]: ${rejectionReason}`,
                 createdAt: new Date()
             });
@@ -280,7 +283,8 @@ export const handleUpdateIssue = async (req, res) => {
 
         if (comments) {
             complaint.comments.push({ 
-                staff: adminId, 
+                authorRole: 'admin',
+                admin: adminId, 
                 message: `[ADMIN NOTE]: ${comments}`,
                 createdAt: new Date()
             });
@@ -330,6 +334,8 @@ export const handleUpdateIssue = async (req, res) => {
         await complaint.populate('assignedTo', 'name staffId email');
         await complaint.populate('department', 'name');
         await complaint.populate('comments.staff', 'name staffId');
+        await complaint.populate('comments.admin', 'name organizationName');
+        await complaint.populate('comments.user', 'name');
 
         res.json({
             success: true,
@@ -356,7 +362,9 @@ export const handleGetComplaintDetails = async (req, res) => {
             .populate('user', 'name email phone')
             .populate('assignedTo', 'name staffId email department')
             .populate('department', 'name')
-            .populate('comments.staff', 'name staffId');
+            .populate('comments.staff', 'name staffId')
+            .populate('comments.admin', 'name organizationName')
+            .populate('comments.user', 'name');
 
         if (!complaint) {
             return res.status(404).json({

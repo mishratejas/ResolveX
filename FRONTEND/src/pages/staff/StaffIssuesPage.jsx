@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Search,
@@ -24,7 +25,9 @@ import {
   Share2,
   Star,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  MessageCircle,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -39,6 +42,7 @@ const StaffIssuesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [stats, setStats] = useState({
     assigned: 0,
     inProgress: 0,
@@ -625,7 +629,7 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
                               </h4>
                               {complaint.comments?.length > 0 && (
                                 <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full flex items-center gap-1">
-                                  <MessageSquare className="w-3 h-3" />
+                                  <MessageCircle className="w-3 h-3" />
                                   {complaint.comments.length}
                                 </span>
                               )}
@@ -633,6 +637,22 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
                             <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                               {complaint.description}
                             </p>
+                            {complaint.images && complaint.images.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {complaint.images.map((img, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
+                                    className="relative group w-12 h-12 rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+                                  >
+                                    <img src={img} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                      <ImageIcon className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                               <div className="flex items-center">
                                 <User className="w-3 h-3 mr-1" />
@@ -787,6 +807,35 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
           </div>
         </div>
       </div>
+
+      {/* Full Screen Image Lightbox — click any attachment thumbnail to enlarge */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+            onClick={() => setSelectedImage(null)}
+          >
+            <button
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={selectedImage}
+              alt="Enlarged complaint attachment"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

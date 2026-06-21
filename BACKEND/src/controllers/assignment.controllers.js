@@ -62,7 +62,8 @@ export const assignIssueToStaff = asyncHandler(async (req, res) => {
 
     // Add assignment comment
     issue.comments.push({
-        staff: req.admin._id,
+        authorRole: 'admin',
+        admin: req.admin._id,
         message: notes || `Issue assigned to ${staff.name}`,
         createdAt: new Date()
     });
@@ -275,7 +276,8 @@ export const bulkAssignIssues = asyncHandler(async (req, res) => {
             }
 
             issue.comments.push({
-                staff: req.admin._id,
+                authorRole: 'admin',
+                admin: req.admin._id,
                 message: `Bulk assigned to ${staff.name}`,
                 createdAt: new Date()
             });
@@ -378,7 +380,8 @@ export const reassignIssue = asyncHandler(async (req, res) => {
     issue.department = newStaff.department;
     
     issue.comments.push({
-        staff: req.admin._id,
+        authorRole: 'admin',
+        admin: req.admin._id,
         message: reason || `Reassigned from ${oldStaff?.name || 'Unassigned'} to ${newStaff.name}`,
         createdAt: new Date()
     });
@@ -472,7 +475,8 @@ export const unassignIssue = asyncHandler(async (req, res) => {
     issue.status = 'pending';
     
     issue.comments.push({
-        staff: req.admin._id,
+        authorRole: 'admin',
+        admin: req.admin._id,
         message: reason || `Unassigned from ${oldStaff.name}`,
         createdAt: new Date()
     });
@@ -586,7 +590,8 @@ export const autoAssignByWorkload = asyncHandler(async (req, res) => {
     issue.status = 'in-progress';
     
     issue.comments.push({
-        staff: req.admin._id,
+        authorRole: 'admin',
+        admin: req.admin._id,
         message: `Auto-assigned to ${selectedStaff.name} (Workload: ${selectedStaff.workload} issues)`,
         createdAt: new Date()
     });

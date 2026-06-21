@@ -19,6 +19,8 @@ export const handleGetStaffComplaints=async(req ,res)=>{
             .populate('assignedTo', 'name staffId email')
             .populate('department', 'name')
             .populate('comments.staff', 'name staffId')
+            .populate('comments.admin', 'name organizationName')
+            .populate('comments.user', 'name')
             .sort({ 
                 priority: -1, // High priority first
                 createdAt: -1 // Newest first
@@ -128,7 +130,7 @@ export const handleUpdateStaffComplaint = async (req, res) => {
         }
 
         // Check if staff is assigned to this complaint
-        if (complaint.assignedTo.toString() !== staffId.toString()) {
+        if (!complaint.assignedTo || complaint.assignedTo.toString() !== staffId.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized to update this complaint'
@@ -165,6 +167,7 @@ export const handleUpdateStaffComplaint = async (req, res) => {
         // Add staff comments/work notes
         if (comments) {
             complaint.comments.push({
+                authorRole: 'staff',
                 staff: staffId,
                 message: `[STAFF UPDATE]: ${comments}`,
                 createdAt: new Date()
@@ -193,6 +196,8 @@ export const handleUpdateStaffComplaint = async (req, res) => {
         await complaint.populate('assignedTo', 'name staffId email');
         await complaint.populate('department', 'name');
         await complaint.populate('comments.staff', 'name staffId');
+        await complaint.populate('comments.admin', 'name organizationName');
+        await complaint.populate('comments.user', 'name');
 
         res.json({
             success: true,
