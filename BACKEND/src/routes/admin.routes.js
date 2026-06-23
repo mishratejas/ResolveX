@@ -1,6 +1,5 @@
 import express from "express";
 import { 
-    adminSignup,
     adminLogin,
     adminLogout,
     getDashboardData,
@@ -45,7 +44,7 @@ import { getPendingStaff, approveStaff, rejectStaff } from '../controllers/staff
 const router = express.Router();
 
 // ==================== AUTHENTICATION ====================
-router.post("/signup", adminSignup); // 🚀 ADDED: The actual signup route!
+// NOTE: Admin signup/workspace creation now lives at POST /api/otp/signup/admin (otp.routes.js)
 router.post("/login", adminLogin);
 router.post("/logout", adminAuth, auditLogger('LOGOUT', 'AUTHENTICATION'), adminLogout);
 

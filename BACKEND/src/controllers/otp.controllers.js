@@ -1,11 +1,12 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { sendEmail } from "../utils/email.js";
 import { sendSMS } from "../utils/sms.js";
+import { issueAuthTokens } from "../utils/authTokens.js";
+import { verifyOTPRecord } from "../utils/otpVerification.js";
 import User from "../models/User.models.js";
 import Staff from "../models/Staff.models.js";
 import Admin from "../models/Admin.models.js";
@@ -226,34 +227,8 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
         }
     }
 
-    // Verify OTP
-    const otpRecord = await OTP.findOne({
-        identifier: email,
-        purpose: 'signup',
-        expiresAt: { $gt: new Date() }
-    });
-
-    if (!otpRecord) {
-        throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
-    }
-
-    // Check attempt limit
-    if (otpRecord.attempts >= 5) {
-        await OTP.deleteOne({ _id: otpRecord._id });
-        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
-    }
-
-    // Verify OTP
-    const isValid = await bcrypt.compare(otp, otpRecord.otp);
-    if (!isValid) {
-        otpRecord.attempts += 1;
-        await otpRecord.save();
-        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
-    }
-
-    // Mark as verified
-    otpRecord.verified = true;
-    await otpRecord.save();
+    // Verify OTP (shared helper: lookup, attempt-limit, compare, mark verified)
+    const otpRecord = await verifyOTPRecord({ identifier: email, otp, purpose: 'signup', userType: 'user' });
 
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
@@ -277,20 +252,11 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
     
     console.log('User created with ID:', newUser._id, '(password auto-hashed by model)');
 
-    // Delete OTP record
+    // Delete OTP record now that signup fully succeeded
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    // Generate tokens
-    const payload = { id: newUser._id, role: newUser.role };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
-    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    // Generate tokens + set refresh cookie
+    const accessToken = issueAuthTokens(res, { id: newUser._id, role: newUser.role });
 
     res.status(201).json(
         new ApiResponse(201, {
@@ -324,27 +290,8 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Invalid Workspace Code. Please check with your administrator.");
     }
 
-    // Verify OTP
-    const otpRecord = await OTP.findOne({
-        identifier: email,
-        purpose: 'signup',
-        userType: 'staff',
-        expiresAt: { $gt: new Date() }
-    });
-
-    if (!otpRecord) {
-        throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
-    }
-
-    const isValid = await bcrypt.compare(otp, otpRecord.otp);
-    if (!isValid) {
-        otpRecord.attempts += 1;
-        await otpRecord.save();
-        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
-    }
-
-    otpRecord.verified = true;
-    await otpRecord.save();
+    // Verify OTP (shared helper)
+    const otpRecord = await verifyOTPRecord({ identifier: email, otp, purpose: 'signup', userType: 'staff' });
 
     // Check if staff already exists
     const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
@@ -370,20 +317,11 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
     
     console.log('Staff created with ID:', newStaff._id, '(password auto-hashed by model)');
 
-    // Delete OTP record
+    // Delete OTP record now that signup fully succeeded
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    // Generate tokens
-    const payload = { id: newStaff._id, role: 'staff' };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
-    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    // Generate tokens + set refresh cookie
+    const accessToken = issueAuthTokens(res, { id: newStaff._id, role: 'staff' });
 
     res.status(201).json(
         new ApiResponse(201, {
@@ -414,32 +352,8 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Organization name, Admin name, email, password, and OTP are required");
     }
 
-    // --- 1. VERIFY OTP ---
-    const otpRecord = await OTP.findOne({
-        identifier: email,
-        purpose: 'signup',
-        userType: 'admin',
-        expiresAt: { $gt: new Date() }
-    });
-
-    if (!otpRecord) {
-        throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
-    }
-
-    if (otpRecord.attempts >= 5) {
-        await OTP.deleteOne({ _id: otpRecord._id });
-        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
-    }
-
-    const isValid = await bcrypt.compare(otp, otpRecord.otp);
-    if (!isValid) {
-        otpRecord.attempts += 1;
-        await otpRecord.save();
-        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
-    }
-
-    otpRecord.verified = true;
-    await otpRecord.save();
+    // --- 1. VERIFY OTP (shared helper) ---
+    const otpRecord = await verifyOTPRecord({ identifier: email, otp, purpose: 'signup', userType: 'admin' });
 
     // --- 2. CHECK EXISTING ADMIN ---
     const existingAdmin = await Admin.findOne({ email });
@@ -482,19 +396,10 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     // --- 5. GENERATE LOGIN TOKENS ---
-    const payload = { 
-        id: newAdmin._id, 
-        role: newAdmin.role || 'admin', 
-        workspaceCode: newAdmin.workspaceCode 
-    };
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
-    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
+    const accessToken = issueAuthTokens(res, {
+        id: newAdmin._id,
+        role: newAdmin.role || 'admin',
+        workspaceCode: newAdmin.workspaceCode
     });
 
     // --- 6. SEND RESPONSE ---
@@ -583,25 +488,8 @@ export const resetPasswordWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Password must be at least 6 characters long");
     }
 
-    // Verify OTP
-    const otpRecord = await OTP.findOne({
-        identifier,
-        purpose: 'password-reset',
-        userType,
-        expiresAt: { $gt: new Date() }
-    });
-
-    if (!otpRecord) {
-        throw new ApiError(400, "Invalid or expired OTP");
-    }
-
-    const isValid = await bcrypt.compare(otp, otpRecord.otp);
-
-    if (!isValid) {
-        otpRecord.attempts += 1;
-        await otpRecord.save();
-        throw new ApiError(400, "Invalid OTP");
-    }
+    // Verify OTP (shared helper)
+    const otpRecord = await verifyOTPRecord({ identifier, otp, purpose: 'password-reset', userType });
 
     // Find and update user password
     const hashedPassword = await bcrypt.hash(newPassword, 10);

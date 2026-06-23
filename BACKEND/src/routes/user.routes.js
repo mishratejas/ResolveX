@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  userSignup,
   userLogin,
   refreshToken,
   logout,
@@ -15,7 +14,8 @@ import { auth } from "../middleware/auth.js";
 const router = express.Router();
 
 // Auth routes
-router.post("/signup", userSignup);
+// NOTE: User signup now lives at POST /api/otp/signup/user (otp.routes.js),
+// which actually verifies the OTP before creating the account.
 router.post("/login", userLogin);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
