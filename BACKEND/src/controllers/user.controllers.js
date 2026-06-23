@@ -10,11 +10,11 @@ export const userSignup = async (req, res) => {
         // 1. Get all data from the request body
         const { name, email, password, phone, street, city, state, pincode, otp } = req.body;
 
-        console.log('📥 Signup Request Body:', req.body);
+        console.log('Signup Request Body:', req.body);
         
         // 2. Validate all required fields
         if (!name || !email || !password || !phone) {
-            console.log('❌ Missing fields:', { name, email, password, phone });
+            console.log('Missing fields:', { name, email, password, phone });
             return res.status(400).json({ 
                 success: false,
                 message: "Please fill all required fields: name, email, password, phone." 
@@ -24,22 +24,18 @@ export const userSignup = async (req, res) => {
         // 3. Check if user already exists
         const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
         if (existingUser) {
-            console.log('❌ User already exists:', email);
+            console.log('User already exists:', email);
             return res.status(400).json({ 
                 success: false,
                 message: "Email or phone already registered" 
             });
         }
 
-        // 🔧 FIX: REMOVED MANUAL HASHING
-        // Let the User model's pre-save hook handle password hashing
-        // This prevents double hashing issue
-        
         // 4. Create the new user (password will be hashed by pre-save hook)
         const newUser = new User({
             name,
             email,
-            password: password,  // ← FIXED: Pass plain password, let model hash it
+            password: password,  // Pass plain password, let model hash it
             phone,
             address: {
                 street: street || "",
@@ -50,14 +46,14 @@ export const userSignup = async (req, res) => {
             isVerified: true
         });
 
-        console.log('📝 User object created (password will be auto-hashed on save)');
+        console.log(' User object created (password will be auto-hashed on save)');
 
         // 5. Save user to database (pre-save hook will hash password)
         try {
             await newUser.save();
-            console.log('💾 User saved to database with ID:', newUser._id);
+            console.log('User saved to database with ID:', newUser._id);
         } catch (saveError) {
-            console.error('❌ Error saving user:', saveError);
+            console.error('Error saving user:', saveError);
             throw saveError;
         }
 
@@ -66,7 +62,7 @@ export const userSignup = async (req, res) => {
         if (!savedUser) {
             throw new Error('User was not saved to database');
         }
-        console.log('✅ User verified in database:', savedUser._id);
+        console.log('User verified in database:', savedUser._id);
 
         // 7. Generate tokens
         const payload = { id: newUser._id, role: newUser.role || "user" };
@@ -85,7 +81,7 @@ export const userSignup = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "User registered successfully",
-            accessToken,  // ← FIXED: Return at root level for frontend
+            accessToken,  // Return at root level for frontend
             user: {
                 id: newUser._id,
                 name: newUser.name,
@@ -97,7 +93,7 @@ export const userSignup = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ User Signup Error: ", err);
+        console.error("User Signup Error: ", err);
         
         // Check for MongoDB validation errors
         if (err.name === 'ValidationError') {
@@ -129,7 +125,7 @@ export const userLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        console.log('🔐 Login attempt for:', email);
+        console.log('Login attempt for:', email);
         
         //Find user by email or phone
         const user = await User.findOne({
@@ -137,14 +133,14 @@ export const userLogin = async (req, res) => {
         });
 
         if (!user) {
-            console.log('❌ User not found:', email);
+            console.log('User not found:', email);
             return res.status(404).json({
                 message: "User not found"
             });
         }
 
-        console.log('✅ User found:', user.email);
-        console.log('🔍 Comparing passwords...');
+        console.log('User found:', user.email);
+        console.log('Comparing passwords...');
 
         //Compare password
         const isMatch = await bcrypt.compare(password, user.password);
@@ -152,11 +148,11 @@ export const userLogin = async (req, res) => {
         console.log(' Password match result:', isMatch);
         
         if (!isMatch) {
-            console.log('❌ Password mismatch for:', email);
+            console.log('Password mismatch for:', email);
             return res.status(400).json({ message: "Invalid Credentials" });
         }
         
-        console.log('✅ Password matched! Generating tokens...');
+        console.log('Password matched! Generating tokens...');
         
         //Generate JWT
         const payload = { id: user._id, role: user.role || "user" };
@@ -172,7 +168,7 @@ export const userLogin = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        console.log('✅ Login successful for:', user.email);
+        console.log('Login successful for:', user.email);
 
         res.status(200).json({
             message: "Login Successful",
@@ -188,7 +184,7 @@ export const userLogin = async (req, res) => {
         });
     }
     catch (err) {
-        console.error("❌ User login error: ", err);
+        console.error("User login error: ", err);
         res.status(500).json({ message: "Server Error" });
     }
 };
@@ -333,13 +329,14 @@ export const updateUserProfile = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error while updating profile" });
     }
 };
-//   NEW: Join a workspace using workspace code
+
+// Join a workspace using workspace code
 export const joinWorkspace = async (req, res) => {
     try {
         const { workspaceCode } = req.body;
         const userId = req.user._id;
 
-        console.log('🔑 Join Workspace Request:', { workspaceCode, userId });
+        console.log('Join Workspace Request:', { workspaceCode, userId });
 
         if (!workspaceCode) {
             return res.status(400).json({
@@ -355,7 +352,7 @@ export const joinWorkspace = async (req, res) => {
         }).select('organizationName workspaceCode email');
 
         if (!admin) {
-            console.log('❌ Workspace not found:', workspaceCode);
+            console.log('Workspace not found:', workspaceCode);
             return res.status(404).json({
                 success: false,
                 message: "Invalid workspace code. Please check and try again."
@@ -377,7 +374,7 @@ export const joinWorkspace = async (req, res) => {
         user.joinedWorkspaces.push(admin._id);
         await user.save();
 
-        console.log('✅ User joined workspace:', {
+        console.log('User joined workspace:', {
             userId,
             workspace: admin.organizationName,
             code: admin.workspaceCode
@@ -405,7 +402,7 @@ export const joinWorkspace = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Join Workspace Error:", error);
+        console.error("Join Workspace Error:", error);
         res.status(500).json({
             success: false,
             message: "Error joining workspace. Please try again."
@@ -413,13 +410,13 @@ export const joinWorkspace = async (req, res) => {
     }
 };
 
-//   NEW: Leave a workspace
+// Leave a workspace
 export const leaveWorkspace = async (req, res) => {
     try {
         const { workspaceId } = req.params;
         const userId = req.user._id;
 
-        console.log('👋 Leave Workspace Request:', { workspaceId, userId });
+        console.log('Leave Workspace Request:', { workspaceId, userId });
 
         const user = await User.findById(userId);
 
@@ -445,7 +442,7 @@ export const leaveWorkspace = async (req, res) => {
         );
         await user.save();
 
-        console.log('✅ User left workspace:', { userId, workspaceId });
+        console.log('User left workspace:', { userId, workspaceId });
 
         // Return updated workspaces
         const updatedUser = await User.findById(userId)
@@ -464,7 +461,7 @@ export const leaveWorkspace = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Leave Workspace Error:", error);
+        console.error("Leave Workspace Error:", error);
         res.status(500).json({
             success: false,
             message: "Error leaving workspace"
@@ -472,7 +469,7 @@ export const leaveWorkspace = async (req, res) => {
     }
 };
 
-//   NEW: Get user's workspaces
+//  Get user's workspaces
 export const getMyWorkspaces = async (req, res) => {
     try {
         const userId = req.user._id;
@@ -495,7 +492,7 @@ export const getMyWorkspaces = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Get Workspaces Error:", error);
+        console.error("Get Workspaces Error:", error);
         res.status(500).json({
             success: false,
             message: "Error fetching workspaces"

@@ -4,19 +4,15 @@ import {
     verifyOTP,
     userSignupWithOTP,
     staffSignupWithOTP,
-    userLoginWithOTP,
-    staffLoginWithOTP,
     adminSignupWithOTP,
-    adminLoginWithOTP,
     requestPasswordResetOTP,
     resetPasswordWithOTP,
-    resendOTP,
-    debugOTP
+    resendOTP
 } from "../controllers/otp.controllers.js";
 
 const router = express.Router();
 
-// Request OTP (for login/signup)
+// Request OTP (for signup)
 // api/otp/request
 router.post("/request", requestOTP);
 
@@ -35,22 +31,10 @@ router.post("/signup/staff", staffSignupWithOTP);
 // Admin Signup with OTP
 router.post("/signup/admin", adminSignupWithOTP);
 
-// User Login with OTP
-router.post("/login/user", userLoginWithOTP);
-
-// Staff Login with OTP
-router.post("/login/staff", staffLoginWithOTP);
-
-// Admin Login with OTP
-router.post("/login/admin", adminLoginWithOTP);
-
 // Password Reset - Request OTP
 router.post("/password-reset/request", requestPasswordResetOTP);
 
 // Password Reset - Verify and Reset
 router.post("/password-reset/verify", resetPasswordWithOTP);
-
-// Debug OTP endpoint
-router.get("/debug", debugOTP);
 
 export default router;

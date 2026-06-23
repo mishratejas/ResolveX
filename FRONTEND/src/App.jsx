@@ -58,16 +58,6 @@ const BASE_URL =
   return null;
 };
 
-// Debug Component to see current route
-const RouteDebugger = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-  }, [location]);
-
-  return null;
-};
-
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -264,9 +254,6 @@ function App() {
 
   return (
     <Router>
-      {/* Debug route info */}
-      <RouteDebugger />
-
       {/* Auth Modal */}
       {showAuthModal && (
         <AuthModal
