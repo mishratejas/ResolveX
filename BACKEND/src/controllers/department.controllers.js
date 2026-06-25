@@ -28,7 +28,7 @@ export const getDepartmentsByWorkspaceCode = async (req, res) => {
             data: departments
         });
     } catch (error) {
-        console.error('❌ Error fetching workspace departments:', error);
+        console.error(' Error fetching workspace departments:', error);
         res.status(500).json({ success: false, message: 'Error fetching departments' });
     }
 };
@@ -48,7 +48,7 @@ export const getDepartments = async (req, res) => {
             data: departments
         });
     } catch (error) {
-        console.error('❌ Error fetching departments:', error);
+        console.error(' Error fetching departments:', error);
         res.status(500).json({ success: false, message: 'Error fetching departments' });
     }
 };
@@ -73,7 +73,7 @@ export const getDepartmentStats = async (req, res) => {
             data: stats
         });
     } catch (error) {
-        console.error('❌ Error fetching department stats:', error);
+        console.error(' Error fetching department stats:', error);
         res.status(500).json({ success: false, message: 'Error fetching department stats' });
     }
 };
@@ -81,7 +81,7 @@ export const getDepartmentStats = async (req, res) => {
 export const createDepartment = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
-        // 🚀 Removed category requirement from here
+        //  Removed category requirement from here
         const { name, description, contactEmail, contactPhone } = req.body;
 
         if (!name) {
@@ -110,12 +110,12 @@ export const createDepartment = async (req, res) => {
             data: department
         });
     } catch (error) {
-        console.error('❌ Error creating department:', error);
+        console.error(' Error creating department:', error);
         res.status(500).json({ success: false, message: 'Error creating department' });
     }
 };
 
-// 🚀 NEW: Update an existing department
+//  Update an existing department
 export const updateDepartment = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
@@ -153,12 +153,12 @@ export const updateDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Error updating department:", error);
+        console.error(" Error updating department:", error);
         res.status(500).json({ success: false, message: "Failed to update department" });
     }
 };
 
-// 🚀 NEW: The Smart Delete Function
+//  The Smart Delete Function
 export const deleteDepartment = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
@@ -210,7 +210,7 @@ export const deleteDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Error deleting department:", error);
+        console.error(" Error deleting department:", error);
         res.status(500).json({ success: false, message: "Error deleting department" });
     }
 };

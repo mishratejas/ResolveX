@@ -3,11 +3,10 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
   X, Eye, Search, RefreshCw, CheckCircle, 
-  User, MapPin, Building, Calendar, ShieldAlert, MessageSquare, MessageCircle // 🚀 Added MessageCircle for comment count
+  User, MapPin, Building, Calendar, ShieldAlert, MessageSquare, MessageCircle // Added MessageCircle for comment count
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// 🚀 NEW: Import the Chat Component
 import ComplaintChat from '../chat/ComplaintChat'; 
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

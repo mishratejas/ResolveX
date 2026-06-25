@@ -8,11 +8,9 @@ import {
     handleComplaintLocations,
     handleGetMyIssues,
     handleGetStats,
-    // NEW IMPORTS
     checkDuplicateComplaint,
     handleUpvoteComplaint,
     handleDeleteIssue,
-    // Comments feature
     addComplaintComment,
     getComplaintComments
 } from "../controllers/user_issue.controllers.js";
@@ -43,7 +41,7 @@ router.get('/locations', handleComplaintLocations);
 // GET /api/user_issues/:id - Get single complaint details (public)
 router.get('/:id', handleSingleIssueFetch);
 
-// NEW: Upvote an existing complaint
+// Upvote an existing complaint
 router.put('/:id/upvote', auth, handleUpvoteComplaint);
 
 // PUT /api/user_issues/:id/vote - Add voting system for public engagement

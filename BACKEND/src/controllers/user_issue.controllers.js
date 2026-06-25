@@ -302,7 +302,7 @@ export const handleIssueGeneration = async (req, res) => {
     await complaint.populate("user", "name email");
     await complaint.populate("adminId", "workspaceCode organizationName name"); 
 
-    // 🔔 Send notifications
+    //  Send notifications
     try {
       // Notify user about complaint creation
       await NotificationService.notifyUserComplaintCreated(complaint);
@@ -584,7 +584,7 @@ export const addComplaintComment = async (req, res) => {
     complaint.comments.push(newComment);
     await complaint.save();
 
-    // 🔔 Notify the complaint owner about the new comment (skip if they're commenting on their own complaint)
+    //  Notify the complaint owner about the new comment (skip if they're commenting on their own complaint)
     if (complaint.user.toString() !== userId.toString()) {
       try {
         await NotificationService.notifyNewComment(complaint, req.user, message.trim());

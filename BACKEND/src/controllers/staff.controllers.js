@@ -27,7 +27,6 @@ export const staffLogin = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Credentials" });
         } 
 
-        // 🚀 REMOVED THE BOUNCER!
         // We let them log in so the frontend can redirect them to the beautiful "Waiting Room" screen.
         
         const payload = { id: staff._id, role: staff.role || "staff" };
@@ -53,8 +52,8 @@ export const staffLogin = async (req, res) => {
                 email: staff.email,
                 department: staff.department,
                 phone: staff.phone,
-                profileImage: staff.profileImage || "", // 🚀 NEW
-                isApproved: staff.isApproved // 🚀 CRITICAL: Send this so StaffDashboard knows to show the waiting room!
+                profileImage: staff.profileImage || "", 
+                isApproved: staff.isApproved //Send this so StaffDashboard knows to show the waiting room!
             }
         });
         
@@ -85,8 +84,8 @@ export const getStaffProfile = async (req, res) => {
                 email: staff.email,
                 department: staff.department,
                 phone: staff.phone,
-                profileImage: staff.profileImage || "", // 🚀 NEW: Send profile photo so the dashboard can render it
-                isApproved: staff.isApproved // 🚀 This is the magic flag we need!
+                profileImage: staff.profileImage || "", 
+                isApproved: staff.isApproved 
             } 
         });
     } catch (err) {
@@ -94,7 +93,7 @@ export const getStaffProfile = async (req, res) => {
     }
 };
 
-//NEW: Let a staff member update their own profile (name, phone, profile photo)
+//Let a staff member update their own profile (name, phone, profile photo)
 export const updateStaffProfile = async (req, res) => {
     try {
         // staffAuth middleware attaches the staff doc (minus password) to req.staff
@@ -113,7 +112,6 @@ export const updateStaffProfile = async (req, res) => {
 
         if (name) staff.name = name;
         if (phone) staff.phone = phone;
-        // profileImage is a Cloudinary URL string uploaded by the frontend via /api/upload
         if (profileImage !== undefined) staff.profileImage = profileImage;
 
         await staff.save();
@@ -136,12 +134,10 @@ export const updateStaffProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("❌ Error updating staff profile:", error);
+        console.error("Error updating staff profile:", error);
         res.status(500).json({ success: false, message: "Server error while updating profile" });
     }
 };
-
-// ==================== PROTECTED ADMIN ROUTES ====================
 
 // 1. Get all PENDING staff for the logged-in Admin
 export const getPendingStaff = async (req, res) => {
@@ -163,7 +159,7 @@ export const getPendingStaff = async (req, res) => {
             data: pendingStaff
         });
     } catch (error) {
-        console.error("❌ Error fetching pending staff:", error);
+        console.error("Error fetching pending staff:", error);
         res.status(500).json({ success: false, message: "Server error while fetching pending staff" });
     }
 };
@@ -190,7 +186,7 @@ export const approveStaff = async (req, res) => {
             data: staffToApprove
         });
     } catch (error) {
-        console.error("❌ Error approving staff:", error);
+        console.error("Error approving staff:", error);
         res.status(500).json({ success: false, message: "Server error while approving staff" });
     }
 };
@@ -216,7 +212,7 @@ export const rejectStaff = async (req, res) => {
             message: `${rejectedStaff.name}'s request has been rejected and removed.`
         });
     } catch (error) {
-        console.error("❌ Error rejecting staff:", error);
+        console.error("Error rejecting staff:", error);
         res.status(500).json({ success: false, message: "Server error while rejecting staff" });
     }
 };

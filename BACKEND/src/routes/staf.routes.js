@@ -9,6 +9,6 @@ const router=express.Router();
 router.post("/login",staffLogin);
 router.get("/departments",getDepartments);
 router.get('/profile', staffAuth, getStaffProfile);
-router.put('/profile', staffAuth, updateStaffProfile); // 🚀 NEW: Staff can update their own name/phone/profile photo
+router.put('/profile', staffAuth, updateStaffProfile);
 
 export default router;

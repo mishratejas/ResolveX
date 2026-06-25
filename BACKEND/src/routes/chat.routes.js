@@ -12,7 +12,6 @@ import {
     searchMessages
 } from '../controllers/chat.controllers.js';
 
-// 🚀 ADDED getActiveConversations HERE
 import { 
     getComplaintMessages, 
     sendComplaintMessage, 
@@ -58,11 +57,10 @@ router.post('/typing', chatAuth, sendTypingIndicator);
 // Search messages
 router.get('/search', chatAuth, searchMessages);
 
-// --- NEW: Our Optimized Live Ticket Chat Routes ---
+// --- Our Optimized Live Ticket Chat Routes ---
 router.get('/complaint/:complaintId', chatAuth, getComplaintMessages);
 router.post('/complaint/:complaintId/send', chatAuth, sendComplaintMessage);
 
-// 🚀 ADDED THE INBOX ROUTE HERE
 router.get('/inbox', chatAuth, getActiveConversations);
 
 export default router;

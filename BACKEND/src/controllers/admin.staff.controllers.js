@@ -1,4 +1,4 @@
-import mongoose from "mongoose"; // 🚀 Added to support aggregation matching
+import mongoose from "mongoose"; //Added to support aggregation matching
 import Staff from "../models/Staff.models.js";
 import Department from "../models/Department.model.js";
 import UserComplaint from "../models/UserComplaint.models.js";
@@ -97,14 +97,14 @@ export const getStaffStats = async (req, res) => {
     try {
         const adminId = req.admin?._id || req.admin?.id;
 
-        // 🚀 THE FIX: Pass adminId to all countDocuments
+        // Pass adminId to all countDocuments
         const totalStaff = await Staff.countDocuments({ adminId });
         const activeStaff = await Staff.countDocuments({ adminId, isActive: true });
         const inactiveStaff = await Staff.countDocuments({ adminId, isActive: false });
         
         // Department distribution
         const departmentStats = await Staff.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(adminId) } }, // 🚀 THE FIX
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId) } }, //THE FIX
             {
                 $lookup: {
                     from: 'departments',
@@ -120,7 +120,7 @@ export const getStaffStats = async (req, res) => {
         
         // Performance distribution
         const performanceStats = await UserComplaint.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, // 🚀 THE FIX
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, //THE FIX
             {
                 $group: {
                     _id: '$assignedTo',
@@ -154,7 +154,7 @@ export const getStaffStats = async (req, res) => {
             }
         ]);
         
-        // 🚀 THE FIX: Only fetch departments for this admin
+        // Only fetch departments for this admin
         const departments = await Department.find({ adminId }).select('name');
         
         const stats = {
@@ -177,7 +177,7 @@ export const getStaffDetails = async (req, res) => {
         const { id } = req.params;
         const adminId = req.admin?._id || req.admin?.id;
         
-        // 🚀 THE FIX: Ensure the staff member belongs to this admin
+        // Ensure the staff member belongs to this admin
         const staff = await Staff.findOne({ _id: id, adminId })
             .populate('department', 'name category')
             .select('-password');
@@ -186,7 +186,7 @@ export const getStaffDetails = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
         }
         
-        // 🚀 THE FIX: Ensure complaints belong to this admin
+        // Ensure complaints belong to this admin
         const complaints = await UserComplaint.find({ assignedTo: id, adminId })
             .populate('user', 'name email')
             .populate('department', 'name')
@@ -241,7 +241,7 @@ export const createStaff = async (req, res) => {
         
         let departmentId = null;
         if (department) {
-            // 🚀 THE FIX: Ensure the department belongs to this admin!
+            // Ensure the department belongs to this admin!
             const dept = await Department.findOne({ _id: department, adminId: currentAdminId });
             if (!dept) {
                 return res.status(400).json({ success: false, message: 'Invalid department specified for your workspace' });
@@ -273,14 +273,14 @@ export const updateStaff = async (req, res) => {
         const adminId = req.admin?._id || req.admin?.id;
         const { name, email, phone, department, password, isActive } = req.body;
 
-        // 🚀 THE FIX: Ensure admin owns this staff member
+        // Ensure admin owns this staff member
         const staffMember = await Staff.findOne({ _id: id, adminId });
         if (!staffMember) {
             return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
         }
 
         if (department && staffMember.department?.toString() !== department.toString()) {
-            // 🚀 THE FIX: Ensure department belongs to admin
+            // Ensure department belongs to admin
             const dept = await Department.findOne({ _id: department, adminId });
             if (!dept) {
                 return res.status(400).json({ success: false, message: 'Invalid department specified' });
@@ -318,7 +318,7 @@ export const deleteStaff = async (req, res) => {
         const { id } = req.params;
         const adminId = req.admin?._id || req.admin?.id;
         
-        // 🚀 THE FIX: Find by ID AND adminId
+        // Find by ID AND adminId
         const staff = await Staff.findOne({ _id: id, adminId });
         
         if (!staff) return res.status(404).json({ success: false, message: 'Staff member not found or access denied' });
@@ -352,7 +352,7 @@ export const bulkActivateStaff = async (req, res) => {
         const adminId = req.admin?._id || req.admin?.id;
         
         await Staff.updateMany(
-            { _id: { $in: staffIds }, adminId }, // 🚀 THE FIX
+            { _id: { $in: staffIds }, adminId }, //THE FIX
             { isActive: true }
         );
         res.status(200).json({ success: true, message: 'Staff members activated successfully' });
@@ -367,7 +367,7 @@ export const bulkDeactivateStaff = async (req, res) => {
         const adminId = req.admin?._id || req.admin?.id;
         
         await Staff.updateMany(
-            { _id: { $in: staffIds }, adminId }, // 🚀 THE FIX
+            { _id: { $in: staffIds }, adminId }, //THE FIX
             { isActive: false }
         );
         res.status(200).json({ success: true, message: 'Staff members deactivated successfully' });
@@ -382,7 +382,7 @@ export const getTopPerformers = async (req, res) => {
         const adminId = req.admin?._id || req.admin?.id;
 
         const topPerformers = await UserComplaint.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, // 🚀 THE FIX
+            { $match: { adminId: new mongoose.Types.ObjectId(adminId), assignedTo: { $exists: true, $ne: null } } }, //THE FIX
             {
                 $group: {
                     _id: '$assignedTo',

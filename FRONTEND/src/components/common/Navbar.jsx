@@ -17,7 +17,7 @@ const Navbar = ({
 
   // Check authentication status
   useEffect(() => {
-    // 🚀 NEW: Helper function to safely decode JWT and check expiration
+    //  NEW: Helper function to safely decode JWT and check expiration
     const isTokenExpired = (token) => {
       if (!token) return true;
       try {
@@ -35,7 +35,7 @@ const Navbar = ({
       }
     };
 
-    // 🚀 NEW: Helper to silently clear storage if a token is expired
+    //  NEW: Helper to silently clear storage if a token is expired
     const clearStaleSession = () => {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('staffToken');
@@ -55,7 +55,7 @@ const Navbar = ({
       const userToken = localStorage.getItem('accessToken');
       const userData = localStorage.getItem('user');
       
-      // 🚀 UPDATED: Now we also check !isTokenExpired() before logging them in
+      //  UPDATED: Now we also check !isTokenExpired() before logging them in
       if (adminToken && !isTokenExpired(adminToken)) {
         setIsAuthenticated(true);
         setUserRole('admin');

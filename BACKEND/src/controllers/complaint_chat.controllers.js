@@ -11,7 +11,7 @@ export const getComplaintMessages = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Complaint not found' });
         }
 
-        // 🚀 PROPER FIX: Tell MongoDB to fetch the sender's actual name and email
+        //Tell MongoDB to fetch the sender's actual name and email
         const messages = await ChatMessage.find({ complaintId })
             .populate('senderId', 'name email') 
             .sort({ createdAt: 1 }) 
@@ -66,7 +66,7 @@ export const sendComplaintMessage = async (req, res) => {
     
 };
 
-// 🚀 NEW: Get all active conversations for the Master Inbox
+//Get all active conversations for the Master Inbox
 export const getActiveConversations = async (req, res) => {
     try {
         const conversations = await ChatMessage.aggregate([

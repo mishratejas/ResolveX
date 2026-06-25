@@ -9,7 +9,7 @@ export const handleFetchAllUserIssues = async (req, res) => {
     try {
         const adminId = req.admin?._id || req.admin?.id;
         
-        // 🚀 THE FIX: Instantly lock the filter to ONLY this admin's workspace
+        //Instantly lock the filter to ONLY this admin's workspace
         let filter = { adminId: adminId };
 
         let { status, priority, category, assignedTo } = req.query;
@@ -68,7 +68,7 @@ export const handleFetchStaffList = async (req, res) => {
         const adminId = req.admin?._id || req.admin?.id;
         const { departmentId } = req.query;
         
-        // 🚀 THE FIX: Only fetch staff that belong to this Admin
+        //Only fetch staff that belong to this Admin
         let query = { adminId: adminId };
         
         if (departmentId) {
@@ -101,7 +101,7 @@ export const handleUpdateIssue = async (req, res) => {
         
         const adminId = req.admin?._id;
 
-        // 🚀 THE FIX: Ensure the complaint they are trying to update actually belongs to them
+        // Ensure the complaint they are trying to update actually belongs to them
         const complaint = await UserComplaint.findOne({ _id: id, adminId: adminId });
         
         if (!complaint) {
@@ -122,7 +122,7 @@ export const handleUpdateIssue = async (req, res) => {
             complaint.status = status;
             activityLog.push(`Status changed to ${status}`);
 
-            // 🔔 Notify user about status change
+            // Notify user about status change
             try {
                 await NotificationService.notifyComplaintStatusChange(
                     complaint,
@@ -139,7 +139,7 @@ export const handleUpdateIssue = async (req, res) => {
             complaint.priority = priority;
             activityLog.push(`Priority set to ${priority}`);
 
-            // 🔔 Notify user about priority change
+            // Notify user about priority change
             try {
                 await NotificationService.notifyPriorityChange(
                     complaint,
@@ -176,7 +176,7 @@ export const handleUpdateIssue = async (req, res) => {
                     activityLog.push('Auto-changed status to in-progress');
                 }
 
-                // 🔔 Notify staff about assignment
+                //  Notify staff about assignment
                 try {
                     const staff = await Staff.findById(assignedTo);
                     if (staff) {
@@ -186,7 +186,7 @@ export const handleUpdateIssue = async (req, res) => {
                     console.error('Failed to send assignment notification:', notifError);
                 }
 
-                // 🔔 Notify user about assignment if it's a new assignment
+                //  Notify user about assignment if it's a new assignment
                 if (!previousAssignment) {
                     try {
                         const staff = await Staff.findById(assignedTo);
@@ -221,7 +221,7 @@ export const handleUpdateIssue = async (req, res) => {
             if (department) {
                 activityLog.push('Department assigned');
 
-                // 🔔 Notify user about department assignment
+                //  Notify user about department assignment
                 try {
                     const dept = await Department.findById(department);
                     if (dept) {
@@ -260,7 +260,7 @@ export const handleUpdateIssue = async (req, res) => {
             });
             activityLog.push('Complaint rejected with reason');
 
-            // 🔔 Notify user about rejection with reason
+            //  Notify user about rejection with reason
             try {
                 await NotificationService.createNotification({
                     userId: complaint.user,
@@ -291,7 +291,7 @@ export const handleUpdateIssue = async (req, res) => {
             updates.comments = comments;
             activityLog.push('Admin note added');
 
-            // 🔔 Notify user about admin comment
+            //  Notify user about admin comment
             try {
                 await NotificationService.createNotification({
                     userId: complaint.user,
@@ -357,7 +357,7 @@ export const handleGetComplaintDetails = async (req, res) => {
         const { id } = req.params;
         const adminId = req.admin?._id;
         
-        // 🚀 THE FIX: Ensure they can only view details of their own workspace's tickets
+        // Ensure they can only view details of their own workspace's tickets
         const complaint = await UserComplaint.findOne({ _id: id, adminId: adminId })
             .populate('user', 'name email phone')
             .populate('assignedTo', 'name staffId email department')
@@ -398,7 +398,7 @@ export const handleBulkAssign = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please specify staff member to assign' });
         }
 
-        // 🚀 THE FIX: Only bulk update tickets that belong to this admin
+        // Only bulk update tickets that belong to this admin
         const result = await UserComplaint.updateMany(
             { _id: { $in: complaintIds }, adminId: adminId },
             { 
@@ -432,7 +432,7 @@ export const handleBulkAssign = async (req, res) => {
 // --- 6. Get Issue Stats (WORKSPACE LOCKED) ---
 export const getIssueStats = async (req, res) => {
     try {
-        const adminId = req.admin?._id; // 🚀 GRAB THE ADMIN ID
+        const adminId = req.admin?._id; //  GRAB THE ADMIN ID
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -446,7 +446,7 @@ export const getIssueStats = async (req, res) => {
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(today.getDate() - 7);
 
-        // 🚀 THE FIX: Inject { adminId } into EVERY single query
+        // Inject { adminId } into EVERY single query
         const [
             total, pending, inProgress, resolved, rejected, highPriority, criticalPriority,
             todayCount, weekCount, monthCount, assigned, unassigned, overdue
@@ -481,7 +481,7 @@ export const getIssueStats = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching issue stats:', error);
+        console.error('Error fetching issue stats:', error);
         res.status(500).json({ success: false, message: 'Error fetching issue statistics', error: error.message });
     }
 };

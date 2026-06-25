@@ -24,7 +24,6 @@ import assignmentRoutes from "./routes/assignment.routes.js"
 const app = express();
 const server = createServer(app);
 
-// ✅ SIMPLE CORS FIX - Use basic CORS middleware
 const allowedOrigins = [
     `${process.env.FRONTEND_URL}`,
     'http://localhost:5173',
@@ -52,7 +51,6 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 }));
 
-// ✅ FIXED: Don't use app.options() with wildcards
 // Express will handle preflight automatically with the cors() middleware above
 
 // Socket.IO Configuration
@@ -119,13 +117,13 @@ app.use((req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('✅ User connected:', socket.id);
+    console.log('User connected:', socket.id);
     
     // Handle 'register' event (what your client sends)
     socket.on('register', (userId) => {
         if (userId) {
             socket.join(userId.toString());
-            console.log(`✅ User ${userId} registered and joined room: ${userId}`);
+            console.log(`User ${userId} registered and joined room: ${userId}`);
             
             // Send confirmation back to client
             socket.emit('registered', { 
@@ -157,7 +155,7 @@ io.on('connection', (socket) => {
     });
     
     socket.on('disconnect', () => {
-        console.log('❌ User disconnected:', socket.id);
+        console.log('User disconnected:', socket.id);
     });
     
     socket.on('error', (error) => {

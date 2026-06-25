@@ -208,7 +208,7 @@ export const createNotification = async ({
         ...notification.toObject(),
         timestamp: new Date()
       });
-      console.log(`✅ Real-time notification sent to user ${userId}`);
+      console.log(`Real-time notification sent to user ${userId}`);
     }
 
     // Send email if enabled
@@ -247,10 +247,10 @@ export const createNotification = async ({
           Notification.findByIdAndUpdate(notification._id, { emailSent: true }).catch(err => 
             console.error('Failed to update emailSent status:', err)
           );
-          console.log(`✅ Email notification sent to ${recipient.email}`);
+          console.log(`Email notification sent to ${recipient.email}`);
         })
         .catch(err => {
-          console.error(`❌ Failed to send email to ${recipient.email}:`, err.message);
+          console.error(`Failed to send email to ${recipient.email}:`, err.message);
         });
       }
     }
@@ -446,7 +446,7 @@ export const bulkNotifyUsers = async (userIds, notificationData) => {
 
   try {
     const created = await Notification.insertMany(notifications);
-    console.log(`✅ Created ${created.length} bulk notifications`);
+    console.log(`Created ${created.length} bulk notifications`);
     
     // Send real-time notifications
     if (global.io) {

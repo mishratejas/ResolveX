@@ -1,4 +1,3 @@
-// src/controllers/issue_assignment.controllers.js
 import UserComplaint from "../models/UserComplaint.models.js";
 import Staff from "../models/Staff.models.js";
 import User from "../models/User.models.js";

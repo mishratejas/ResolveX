@@ -1,18 +1,3 @@
-// import express from "express";
-// import multer from "multer";
-// import {handleImageUpload} from '../controllers/upload.controllers.js'
-
-// const router = express.Router();
-// const upload = multer({ 
-//     dest: "uploads/",
-//     limits: { fileSize: 10 * 1024 * 1024 } // 10 MB per file
-// }); // temporary folder
-
-// // /api/upload
-// router.post("/", upload.array("image", 5), handleImageUpload);
-
-// export default router;
-
 import express from "express";
 import multer from "multer";
 import { handleImageUpload } from "../controllers/upload.controllers.js";

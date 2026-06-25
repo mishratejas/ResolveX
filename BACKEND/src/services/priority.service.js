@@ -6,23 +6,23 @@ class PriorityService {
         this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
         // Validate API key on initialization
         if (!this.apiKey || this.apiKey === 'is set') {
-            console.warn('⚠️ GOOGLE_API_KEY not properly configured. AI priority assignment will use fallback method.');
+            console.warn('GOOGLE_API_KEY not properly configured. AI priority assignment will use fallback method.');
         }
     }
 
     async analyzePriority(complaintData) {
-        // 🔧 FIX: Validate API key before making request
+        //   Validate API key before making request
         if (!this.apiKey || this.apiKey === 'is set' || this.apiKey.length < 10) {
-            console.warn('🔄 No valid API key, using rule-based fallback');
+            console.warn('No valid API key, using rule-based fallback');
             return this.ruleBasedFallback(complaintData);
         }
 
         try {
             const { title, description, category, department } = complaintData;
             
-            // 🔧 FIX: Validate input data
+            //   Validate input data
             if (!title || !description) {
-                console.warn('⚠️ Missing title or description, using rule-based fallback');
+                console.warn(' Missing title or description, using rule-based fallback');
                 return this.ruleBasedFallback(complaintData);
             }
             
@@ -48,7 +48,7 @@ class PriorityService {
             Return ONLY one word: low, medium, high, or critical (in lowercase, no punctuation or explanation).
             `;
 
-            // 🔧 FIX: Add timeout to API call
+            // Add timeout to API call
             const response = await axios.post(
                 `${this.apiUrl}?key=${this.apiKey}`,
                 {
@@ -66,15 +66,15 @@ class PriorityService {
                 }
             );
 
-            // 🔧 FIX: Better response validation
+            // Better response validation
             if (!response.data || !response.data.candidates || response.data.candidates.length === 0) {
-                console.warn('⚠️ Invalid AI response structure, using fallback');
+                console.warn('  Invalid AI response structure, using fallback');
                 return this.ruleBasedFallback(complaintData);
             }
 
             const aiText = response.data.candidates[0]?.content?.parts[0]?.text;
             if (!aiText) {
-                console.warn('⚠️ No text in AI response, using fallback');
+                console.warn('  No text in AI response, using fallback');
                 return this.ruleBasedFallback(complaintData);
             }
 
@@ -83,23 +83,23 @@ class PriorityService {
             
             // Validate response
             if (!['low', 'medium', 'high', 'critical'].includes(priority)) {
-                console.warn(`⚠️ Invalid priority from AI: "${aiText}", using fallback`);
+                console.warn(`  Invalid priority from AI: "${aiText}", using fallback`);
                 return this.ruleBasedFallback(complaintData);
             }
 
-            console.log(`✅ AI successfully assigned priority: ${priority}`);
+            console.log(` AI successfully assigned priority: ${priority}`);
             return priority;
 
         } catch (error) {
-            // 🔧 FIX: Better error logging
+            //   Better error logging
             if (error.code === 'ECONNABORTED') {
-                console.error('⏰ AI request timeout, using fallback');
+                console.error('AI request timeout, using fallback');
             } else if (error.response) {
-                console.error('❌ AI API Error:', error.response.status, error.response.data?.error?.message || 'Unknown error');
+                console.error(' AI API Error:', error.response.status, error.response.data?.error?.message || 'Unknown error');
             } else if (error.request) {
-                console.error('❌ No response from AI API, using fallback');
+                console.error(' No response from AI API, using fallback');
             } else {
-                console.error('❌ Error setting up AI request:', error.message);
+                console.error(' Error setting up AI request:', error.message);
             }
             
             // Always fallback on error
@@ -111,7 +111,7 @@ class PriorityService {
         const { title, description, category } = complaintData;
         const text = `${title || ''} ${description || ''}`.toLowerCase();
 
-        console.log(`🔄 Using rule-based priority assignment for: "${title}"`);
+        console.log(`Using rule-based priority assignment for: "${title}"`);
 
         // Critical priority keywords (life-threatening, emergency)
         const criticalKeywords = [
@@ -141,19 +141,19 @@ class PriorityService {
 
         // Check for critical priority
         if (criticalKeywords.some(keyword => text.includes(keyword))) {
-            console.log('✅ Assigned priority: CRITICAL (keyword match)');
+            console.log(' Assigned priority: CRITICAL (keyword match)');
             return 'critical';
         }
 
         // Check for high priority
         if (highKeywords.some(keyword => text.includes(keyword))) {
-            console.log('✅ Assigned priority: HIGH (keyword match)');
+            console.log(' Assigned priority: HIGH (keyword match)');
             return 'high';
         }
 
         // Check for medium priority
         if (mediumKeywords.some(keyword => text.includes(keyword))) {
-            console.log('✅ Assigned priority: MEDIUM (keyword match)');
+            console.log(' Assigned priority: MEDIUM (keyword match)');
             return 'medium';
         }
 
@@ -169,7 +169,7 @@ class PriorityService {
         };
 
         const categoryPriority = categoryPriorityMap[category] || 'low';
-        console.log(`✅ Assigned priority: ${categoryPriority.toUpperCase()} (category-based: ${category})`);
+        console.log(` Assigned priority: ${categoryPriority.toUpperCase()} (category-based: ${category})`);
         return categoryPriority;
     }
 }

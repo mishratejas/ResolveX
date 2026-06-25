@@ -1,4 +1,4 @@
-import mongoose from "mongoose"; // 🚀 Added for aggregation
+import mongoose from "mongoose"; //  Added for aggregation
 import User from "../models/User.models.js";
 import UserComplaint from "../models/UserComplaint.models.js";
 
@@ -8,7 +8,7 @@ export const getAllUsers = async (req, res) => {
         const currentAdminId = req.admin?._id || req.admin?.id;
         const { page = 1, limit = 20, search = '', status = '' } = req.query;
         
-        // 🚀 THE FIX: Only fetch users that have joined THIS admin's workspace
+        //  Only fetch users that have joined THIS admin's workspace
         const query = { joinedWorkspaces: currentAdminId };
         
         if (search) {
@@ -38,7 +38,7 @@ export const getAllUsers = async (req, res) => {
         // Get complaint stats for each user (Scoping to THIS workspace only)
         const usersWithStats = await Promise.all(
             users.map(async (user) => {
-                // 🚀 THE FIX: Only count tickets this user submitted to THIS admin
+                //  Only count tickets this user submitted to THIS admin
                 const userComplaints = await UserComplaint.find({ 
                     user: user._id, 
                     adminId: currentAdminId 
@@ -80,7 +80,7 @@ export const getUserStats = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id;
 
-        // 🚀 THE FIX: Lock all counts to this workspace
+        //  Lock all counts to this workspace
         const totalUsers = await User.countDocuments({ joinedWorkspaces: currentAdminId });
         const activeUsers = await User.countDocuments({ joinedWorkspaces: currentAdminId, isActive: true });
         const verifiedUsers = await User.countDocuments({ joinedWorkspaces: currentAdminId, isVerified: true });
@@ -94,7 +94,7 @@ export const getUserStats = async (req, res) => {
         
         // Complaint statistics by user (Only counting complaints in this workspace)
         const complaintStats = await UserComplaint.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } }, // 🚀 THE FIX
+            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } },
             {
                 $group: {
                     _id: '$user',
@@ -139,14 +139,14 @@ export const getUserDetails = async (req, res) => {
         const { id } = req.params;
         const currentAdminId = req.admin?._id || req.admin?.id;
         
-        // 🚀 THE FIX: Ensure admin is only viewing users attached to their workspace
+        //  Ensure admin is only viewing users attached to their workspace
         const user = await User.findOne({ _id: id, joinedWorkspaces: currentAdminId }).select('-password');
         
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found or access denied' });
         }
         
-        // 🚀 THE FIX: Get user's complaints ONLY for this admin's workspace
+        //  Get user's complaints ONLY for this admin's workspace
         const complaints = await UserComplaint.find({ user: id, adminId: currentAdminId })
             .populate('assignedTo', 'name email')
             .populate('department', 'name')
@@ -184,7 +184,7 @@ export const updateUser = async (req, res) => {
         const currentAdminId = req.admin?._id || req.admin?.id;
         const updates = req.body;
         
-        // 🚀 THE FIX: Verify authorization
+        //  Verify authorization
         const user = await User.findOne({ _id: id, joinedWorkspaces: currentAdminId });
         
         if (!user) {
@@ -214,14 +214,14 @@ export const deleteUser = async (req, res) => {
         const { id } = req.params;
         const currentAdminId = req.admin?._id || req.admin?.id;
         
-        // 🚀 THE FIX: Verify authorization
+        //  Verify authorization
         const user = await User.findOne({ _id: id, joinedWorkspaces: currentAdminId });
         
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found or access denied' });
         }
         
-        // 🚀 THE FIX: Only check complaints in this admin's workspace
+        //  Only check complaints in this admin's workspace
         const userComplaints = await UserComplaint.countDocuments({ user: id, adminId: currentAdminId });
         
         if (userComplaints > 0) {
@@ -263,7 +263,7 @@ export const bulkUpdateUsers = async (req, res) => {
             default: return res.status(400).json({ success: false, message: 'Invalid action' });
         }
         
-        // 🚀 THE FIX: Apply bulk update ONLY to users who belong to this admin
+        //  Apply bulk update ONLY to users who belong to this admin
         await User.updateMany(
             { _id: { $in: userIds }, joinedWorkspaces: currentAdminId }, 
             { $set: update }

@@ -1,4 +1,4 @@
-import mongoose from "mongoose"; // 🚀 Added to help with aggregation pipelines
+import mongoose from "mongoose"; //   Added to help with aggregation pipelines
 import Admin from "../models/Admin.models.js";
 import UserComplaint from "../models/UserComplaint.models.js";
 import Staff from "../models/Staff.models.js";
@@ -14,7 +14,7 @@ export const adminLogin = async (req, res) => {
         const { adminId, email: emailField, password } = req.body;
         const email = adminId || emailField;
 
-        console.log("🔐 Admin login attempt:", { email });
+        console.log(" Admin login attempt:", { email });
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: "Email and password are required" });
@@ -33,7 +33,7 @@ export const adminLogin = async (req, res) => {
             email: admin.email,
             name: admin.name,
             role: admin.role,
-            workspaceCode: admin.workspaceCode // 🚀 Added to token
+            workspaceCode: admin.workspaceCode //   Added to token
         };
 
         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
@@ -46,7 +46,7 @@ export const adminLogin = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        console.log(`✅ Admin login successful: ${admin.email} (Workspace: ${admin.workspaceCode})`);
+        console.log(` Admin login successful: ${admin.email} (Workspace: ${admin.workspaceCode})`);
 
         res.status(200).json({
             success: true,
@@ -60,12 +60,12 @@ export const adminLogin = async (req, res) => {
                 email: admin.email,
                 role: admin.role,
                 permissions: admin.permissions,
-                profileImage: admin.profileImage || "" // 🚀 NEW: So the dashboard can render the avatar right after login
+                profileImage: admin.profileImage || "" // So the dashboard can render the avatar right after login
             }
         });
 
     } catch (error) {
-        console.error("❌ Login Error:", error);
+        console.error("  Login Error:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
@@ -79,7 +79,7 @@ export const adminLogout = async (req, res) => {
         });
         res.status(200).json({ success: true, message: "Admin logged out successfully" });
     } catch (error) {
-        console.error("❌ Logout Error:", error);
+        console.error("  Logout Error:", error);
         res.status(500).json({ success: false, message: "Server error during logout" });
     }
 };
@@ -102,8 +102,8 @@ export const getDashboardData = async (req, res) => {
             UserComplaint.countDocuments({ adminId: currentAdminId, status: 'pending' }),
             UserComplaint.countDocuments({ adminId: currentAdminId, status: 'in-progress' }),
             UserComplaint.countDocuments({ adminId: currentAdminId, status: 'resolved' }),
-            User.countDocuments({ joinedWorkspaces: currentAdminId }), // 🚀 Only users in this workspace
-            Staff.countDocuments({ adminId: currentAdminId, isActive: true }), // 🚀 Only staff in this workspace
+            User.countDocuments({ joinedWorkspaces: currentAdminId }), //   Only users in this workspace
+            Staff.countDocuments({ adminId: currentAdminId, isActive: true }), //   Only staff in this workspace
             UserComplaint.countDocuments({ adminId: currentAdminId, createdAt: { $gte: new Date(today.setHours(0, 0, 0, 0)) } }),
             UserComplaint.countDocuments({ adminId: currentAdminId, createdAt: { $gte: lastWeek } }),
             UserComplaint.countDocuments({ adminId: currentAdminId, createdAt: { $gte: lastMonth } })
@@ -121,7 +121,7 @@ export const getDashboardData = async (req, res) => {
             .lean();
 
         const topStaff = await Staff.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } }, // 🚀 Scoped to Admin
+            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } }, //   Scoped to Admin
             {
                 $lookup: {
                     from: 'usercomplaints', localField: '_id', foreignField: 'assignedTo', as: 'assignedComplaints'
@@ -150,7 +150,7 @@ export const getDashboardData = async (req, res) => {
         const trendData = await UserComplaint.aggregate([
             {
                 $match: { 
-                    adminId: new mongoose.Types.ObjectId(currentAdminId), // 🚀 Scoped to Admin
+                    adminId: new mongoose.Types.ObjectId(currentAdminId), //   Scoped to Admin
                     createdAt: { $gte: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000) } 
                 }
             },
@@ -181,7 +181,7 @@ export const getDashboardData = async (req, res) => {
 
         res.status(200).json({ success: true, data: dashboardData });
     } catch (error) {
-        console.error("❌ Dashboard Error:", error);
+        console.error("  Dashboard Error:", error);
         res.status(500).json({ success: false, message: "Server error while fetching dashboard data" });
     }
 };
@@ -196,7 +196,7 @@ export const getChartData = async (req, res) => {
         const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
 
         const complaintsByDay = await UserComplaint.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId), createdAt: { $gte: startDate, $lte: endDate } } }, // 🚀 Scoped!
+            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId), createdAt: { $gte: startDate, $lte: endDate } } }, //   Scoped!
             { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } } } },
             { $sort: { "_id": 1 } },
             { $project: { day: "$_id", complaints: "$count", resolved: "$resolved", _id: 0 } }
@@ -209,7 +209,7 @@ export const getChartData = async (req, res) => {
         });
 
         const departmentData = await UserComplaint.aggregate([
-            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } }, // 🚀 Scoped!
+            { $match: { adminId: new mongoose.Types.ObjectId(currentAdminId) } }, //   Scoped!
             { $group: { _id: "$category", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 5 },
@@ -229,7 +229,7 @@ export const getAllUsers = async (req, res) => {
         const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
         
-        let query = { joinedWorkspaces: currentAdminId }; // 🚀 Only users in this workspace!
+        let query = { joinedWorkspaces: currentAdminId }; //   Only users in this workspace!
         
         if (search) query.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }, { phone: { $regex: search, $options: 'i' } }];
         if (status !== 'all') query.isActive = status === 'active';
@@ -240,7 +240,7 @@ export const getAllUsers = async (req, res) => {
         ]);
         
         const usersWithStats = await Promise.all(users.map(async (user) => {
-            const complaintCount = await UserComplaint.countDocuments({ user: user._id, adminId: currentAdminId }); // 🚀 Scoped!
+            const complaintCount = await UserComplaint.countDocuments({ user: user._id, adminId: currentAdminId }); //   Scoped!
             const resolvedCount = await UserComplaint.countDocuments({ user: user._id, adminId: currentAdminId, status: 'resolved' });
             return { ...user, stats: { totalComplaints: complaintCount, resolvedComplaints: resolvedCount, pendingComplaints: complaintCount - resolvedCount } };
         }));
@@ -256,10 +256,10 @@ export const getUserDetails = async (req, res) => {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
         const { id } = req.params;
         
-        const user = await User.findOne({ _id: id, joinedWorkspaces: currentAdminId }).select('-password').lean(); // 🚀 Verify they belong to admin
+        const user = await User.findOne({ _id: id, joinedWorkspaces: currentAdminId }).select('-password').lean(); //   Verify they belong to admin
         if (!user) return res.status(404).json({ success: false, message: "User not found or not in this workspace" });
         
-        const complaints = await UserComplaint.find({ user: id, adminId: currentAdminId }) // 🚀 Scoped!
+        const complaints = await UserComplaint.find({ user: id, adminId: currentAdminId }) //   Scoped!
             .populate('assignedTo', 'name staffId').sort({ createdAt: -1 }).limit(20).lean();
         
         const stats = {
@@ -283,7 +283,7 @@ export const getAllStaff = async (req, res) => {
         const { page = 1, limit = 10, search = '', department = 'all', status = 'all' } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
         
-        let query = { adminId: currentAdminId }; // 🚀 Only staff in this workspace!
+        let query = { adminId: currentAdminId }; //   Only staff in this workspace!
         
         if (search) query.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }, { staffId: { $regex: search, $options: 'i' } }];
         if (department !== 'all') query.department = department;
@@ -295,7 +295,7 @@ export const getAllStaff = async (req, res) => {
         ]);
         
         const staffWithStats = await Promise.all(staffMembers.map(async (staff) => {
-            const assignedCount = await UserComplaint.countDocuments({ assignedTo: staff._id, adminId: currentAdminId }); // 🚀 Scoped!
+            const assignedCount = await UserComplaint.countDocuments({ assignedTo: staff._id, adminId: currentAdminId }); //   Scoped!
             const resolvedCount = await UserComplaint.countDocuments({ assignedTo: staff._id, adminId: currentAdminId, status: 'resolved' });
             return {
                 ...staff,
@@ -314,10 +314,10 @@ export const getStaffDetails = async (req, res) => {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
         const { id } = req.params;
         
-        const staff = await Staff.findOne({ _id: id, adminId: currentAdminId }).select('-password').populate('department', 'name').lean(); // 🚀 Scoped
+        const staff = await Staff.findOne({ _id: id, adminId: currentAdminId }).select('-password').populate('department', 'name').lean(); //   Scoped
         if (!staff) return res.status(404).json({ success: false, message: "Staff member not found" });
         
-        const complaints = await UserComplaint.find({ assignedTo: id, adminId: currentAdminId }) // 🚀 Scoped
+        const complaints = await UserComplaint.find({ assignedTo: id, adminId: currentAdminId }) //   Scoped
             .populate('user', 'name email').sort({ createdAt: -1 }).limit(20).lean();
         
         const resolvedComplaints = complaints.filter(c => c.status === 'resolved');
@@ -348,7 +348,7 @@ export const markNotificationAsRead = async (req, res) => {
 
 // ==================== ADMIN OWN PROFILE ====================
 
-// 🚀 NEW: Get the logged-in Admin's own profile
+// Get the logged-in Admin's own profile
 export const getAdminProfile = async (req, res) => {
     try {
         // adminAuth middleware already attaches the admin doc (minus password) to req.admin
@@ -369,12 +369,12 @@ export const getAdminProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("❌ Get Admin Profile Error:", error);
+        console.error(" Get Admin Profile Error:", error);
         res.status(500).json({ success: false, message: "Server error while fetching profile" });
     }
 };
 
-// 🚀 NEW: Let an Admin update their own profile (name, phone, org name, profile photo)
+// Let an Admin update their own profile (name, phone, org name, profile photo)
 export const updateAdminProfile = async (req, res) => {
     try {
         const adminId = req.admin._id;
@@ -410,7 +410,7 @@ export const updateAdminProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("❌ Update Admin Profile Error:", error);
+        console.error("  Update Admin Profile Error:", error);
         res.status(500).json({ success: false, message: "Server error while updating profile" });
     }
 };
