@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { ApiError } from "./ApiError.js";
 import OTP from "../models/otp.model.js";
 
 /**
@@ -7,7 +6,8 @@ import OTP from "../models/otp.model.js";
  * attempt limit, checks the supplied code against the stored hash, and
  * marks the record verified on success.
  *
- * Throws ApiError (400/429) on any failure. On success, returns the
+ * Throws a plain Error on any failure (caller's catch block decides the
+ * HTTP status — typically 400/429 for these cases). On success, returns the
  * (now-verified) OTP record so the caller can delete it once signup/reset
  * has fully completed.
  *
@@ -24,19 +24,19 @@ export const verifyOTPRecord = async ({ identifier, otp, purpose, userType }) =>
     const otpRecord = await OTP.findOne(query);
 
     if (!otpRecord) {
-        throw new ApiError(400, "OTP expired or not found. Please request a new OTP.");
+        throw new Error("OTP expired or not found. Please request a new OTP.");
     }
 
     if (otpRecord.attempts >= 5) {
         await OTP.deleteOne({ _id: otpRecord._id });
-        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        throw new Error("Too many failed attempts. Please request a new OTP.");
     }
 
     const isValid = await bcrypt.compare(otp, otpRecord.otp);
     if (!isValid) {
         otpRecord.attempts += 1;
         await otpRecord.save();
-        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        throw new Error(`Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
     }
 
     otpRecord.verified = true;

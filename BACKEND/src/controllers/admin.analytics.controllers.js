@@ -2,12 +2,10 @@ import UserComplaint from '../models/UserComplaint.models.js';
 import Staff from '../models/Staff.models.js';
 import User from '../models/User.models.js';
 import Department from '../models/Department.model.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiResponse } from '../utils/ApiResponse.js';
-import { ApiError } from '../utils/ApiError.js';
 
 // ==================== OVERVIEW STATS ====================
-export const getOverviewStats = asyncHandler(async (req, res) => {
+export const getOverviewStats = async (req, res) => {
+  try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -40,7 +38,7 @@ export const getOverviewStats = asyncHandler(async (req, res) => {
     const satisfactionScore = total > 0 ? ((resolved / total) * 100).toFixed(1) : '0.0';
 
     res.json(
-        new ApiResponse(200, {
+        { success: true, message: "Overview stats retrieved successfully", data: {
             total,
             resolved,
             pending,
@@ -50,12 +48,18 @@ export const getOverviewStats = asyncHandler(async (req, res) => {
             today: todayCount,
             thisWeek: weekCount,
             thisMonth: monthCount
-        }, "Overview stats retrieved successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== TOP PERFORMERS ====================
-export const getTopPerformers = asyncHandler(async (req, res) => {
+export const getTopPerformers = async (req, res) => {
+  try {
     const { limit = 10 } = req.query;
 
     const topPerformers = await UserComplaint.aggregate([
@@ -113,12 +117,18 @@ export const getTopPerformers = asyncHandler(async (req, res) => {
     ]);
 
     res.json(
-        new ApiResponse(200, topPerformers, "Top performers retrieved successfully")
+        { success: true, message: "Top performers retrieved successfully", data: topPerformers }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== GEOGRAPHIC DATA ====================
-export const getGeographicData = asyncHandler(async (req, res) => {
+export const getGeographicData = async (req, res) => {
+  try {
     const complaints = await UserComplaint.find({
         latitude: { $exists: true, $ne: null },
         longitude: { $exists: true, $ne: null }
@@ -134,16 +144,22 @@ export const getGeographicData = asyncHandler(async (req, res) => {
     });
 
     res.json(
-        new ApiResponse(200, {
+        { success: true, message: "Geographic data retrieved successfully", data: {
             points: complaints,
             distribution,
             total: complaints.length
-        }, "Geographic data retrieved successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== COMPARISON DATA ====================
-export const getComparisonData = asyncHandler(async (req, res) => {
+export const getComparisonData = async (req, res) => {
+  try {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -155,15 +171,21 @@ export const getComparisonData = asyncHandler(async (req, res) => {
     ]);
 
     res.json(
-        new ApiResponse(200, [
+        { success: true, message: "Comparison data retrieved successfully", data: [
             { period: 'Current Month', current: currentMonth, previous: lastMonth },
             { period: 'Resolved', current: Math.floor(currentMonth * 0.7), previous: Math.floor(lastMonth * 0.7) }
-        ], "Comparison data retrieved successfully")
+        ] }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== COMPREHENSIVE ANALYTICS ====================
-export const getAnalytics = asyncHandler(async (req, res) => {
+export const getAnalytics = async (req, res) => {
+  try {
     const { period = '30', department = 'all', startDate, endDate } = req.query;
     
     const dateFilter = calculateDateRange(period, startDate, endDate);
@@ -181,12 +203,18 @@ export const getAnalytics = asyncHandler(async (req, res) => {
     const analytics = await generateComprehensiveAnalytics(complaints, period);
     
     return res.status(200).json(
-        new ApiResponse(200, analytics, "Analytics data fetched successfully")
+        { success: true, message: "Analytics data fetched successfully", data: analytics }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== EXPORT ANALYTICS ====================
-export const exportAnalytics = asyncHandler(async (req, res) => {
+export const exportAnalytics = async (req, res) => {
+  try {
     const { format = 'csv', period = '30', department = 'all' } = req.query;
     
     const dateFilter = calculateDateRange(period);
@@ -210,7 +238,12 @@ export const exportAnalytics = asyncHandler(async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=analytics-${Date.now()}.json`);
         return res.send(JSON.stringify(complaints, null, 2));
     }
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== HELPER FUNCTIONS ====================
 

@@ -4,19 +4,17 @@ import User from "../models/User.models.js";
 import Department from "../models/Department.model.js";
 import AuditLog from "../models/AuditLog.models.js";
 import Notification from "../models/Notification.models.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 import { sendEmail } from "../utils/email.js";
 
 // ==================== ASSIGN ISSUE TO STAFF ====================
 
-export const assignIssueToStaff = asyncHandler(async (req, res) => {
+export const assignIssueToStaff = async (req, res) => {
+  try {
     const { issueId } = req.params;
     const { staffId, priority, notes } = req.body;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can assign issues");
+        return res.status(403).json({ success: false, message: "Only admins can assign issues" });
     }
 
     // Verify issue exists
@@ -25,7 +23,7 @@ export const assignIssueToStaff = asyncHandler(async (req, res) => {
         .populate('assignedTo', 'name email');
 
     if (!issue) {
-        throw new ApiError(404, "Issue not found");
+        return res.status(404).json({ success: false, message: "Issue not found" });
     }
 
     // Verify staff exists
@@ -33,11 +31,11 @@ export const assignIssueToStaff = asyncHandler(async (req, res) => {
         .populate('department', 'name');
 
     if (!staff) {
-        throw new ApiError(404, "Staff member not found");
+        return res.status(404).json({ success: false, message: "Staff member not found" });
     }
 
     if (!staff.isActive) {
-        throw new ApiError(400, "Staff member is not active");
+        return res.status(400).json({ success: false, message: "Staff member is not active" });
     }
 
     // Store old assignment for audit log
@@ -199,7 +197,7 @@ export const assignIssueToStaff = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, {
+        { success: true, message: "Issue assigned successfully", data: {
             issue: {
                 id: issue._id,
                 title: issue.title,
@@ -212,35 +210,41 @@ export const assignIssueToStaff = asyncHandler(async (req, res) => {
                     department: staff.department?.name
                 }
             }
-        }, "Issue assigned successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== BULK ASSIGN ISSUES ====================
 
-export const bulkAssignIssues = asyncHandler(async (req, res) => {
+export const bulkAssignIssues = async (req, res) => {
+  try {
     const { issueIds, staffId, priority } = req.body;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can assign issues");
+        return res.status(403).json({ success: false, message: "Only admins can assign issues" });
     }
 
     if (!issueIds || !Array.isArray(issueIds) || issueIds.length === 0) {
-        throw new ApiError(400, "Issue IDs array is required");
+        return res.status(400).json({ success: false, message: "Issue IDs array is required" });
     }
 
     if (!staffId) {
-        throw new ApiError(400, "Staff ID is required");
+        return res.status(400).json({ success: false, message: "Staff ID is required" });
     }
 
     // Verify staff exists
     const staff = await Staff.findById(staffId).populate('department', 'name');
     if (!staff) {
-        throw new ApiError(404, "Staff member not found");
+        return res.status(404).json({ success: false, message: "Staff member not found" });
     }
 
     if (!staff.isActive) {
-        throw new ApiError(400, "Staff member is not active");
+        return res.status(400).json({ success: false, message: "Staff member is not active" });
     }
 
     const results = {
@@ -340,23 +344,29 @@ export const bulkAssignIssues = asyncHandler(async (req, res) => {
     });
 
     res.status(200).json(
-        new ApiResponse(200, {
+        { success: true, message: "Bulk assignment completed", data: {
             totalProcessed: issueIds.length,
             successCount: results.success.length,
             failedCount: results.failed.length,
             results
-        }, "Bulk assignment completed")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== REASSIGN ISSUE ====================
 
-export const reassignIssue = asyncHandler(async (req, res) => {
+export const reassignIssue = async (req, res) => {
+  try {
     const { issueId } = req.params;
     const { newStaffId, reason } = req.body;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can reassign issues");
+        return res.status(403).json({ success: false, message: "Only admins can reassign issues" });
     }
 
     const issue = await UserComplaint.findById(issueId)
@@ -364,14 +374,14 @@ export const reassignIssue = asyncHandler(async (req, res) => {
         .populate('assignedTo', 'name email');
 
     if (!issue) {
-        throw new ApiError(404, "Issue not found");
+        return res.status(404).json({ success: false, message: "Issue not found" });
     }
 
     const oldStaff = issue.assignedTo;
     const newStaff = await Staff.findById(newStaffId);
 
     if (!newStaff) {
-        throw new ApiError(404, "New staff member not found");
+        return res.status(404).json({ success: false, message: "New staff member not found" });
     }
 
     // Update assignment
@@ -443,30 +453,36 @@ export const reassignIssue = asyncHandler(async (req, res) => {
     });
 
     res.status(200).json(
-        new ApiResponse(200, { issue }, "Issue reassigned successfully")
+        { success: true, message: "Issue reassigned successfully", data: { issue } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== UNASSIGN ISSUE ====================
 
-export const unassignIssue = asyncHandler(async (req, res) => {
+export const unassignIssue = async (req, res) => {
+  try {
     const { issueId } = req.params;
     const { reason } = req.body;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can unassign issues");
+        return res.status(403).json({ success: false, message: "Only admins can unassign issues" });
     }
 
     const issue = await UserComplaint.findById(issueId).populate('assignedTo', 'name email');
 
     if (!issue) {
-        throw new ApiError(404, "Issue not found");
+        return res.status(404).json({ success: false, message: "Issue not found" });
     }
 
     const oldStaff = issue.assignedTo;
 
     if (!oldStaff) {
-        throw new ApiError(400, "Issue is not assigned to anyone");
+        return res.status(400).json({ success: false, message: "Issue is not assigned to anyone" });
     }
 
     // Unassign
@@ -518,23 +534,29 @@ export const unassignIssue = asyncHandler(async (req, res) => {
     });
 
     res.status(200).json(
-        new ApiResponse(200, { issue }, "Issue unassigned successfully")
+        { success: true, message: "Issue unassigned successfully", data: { issue } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== AUTO-ASSIGN BY WORKLOAD ====================
 
-export const autoAssignByWorkload = asyncHandler(async (req, res) => {
+export const autoAssignByWorkload = async (req, res) => {
+  try {
     const { issueId } = req.params;
     const { department } = req.body;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can auto-assign issues");
+        return res.status(403).json({ success: false, message: "Only admins can auto-assign issues" });
     }
 
     const issue = await UserComplaint.findById(issueId);
     if (!issue) {
-        throw new ApiError(404, "Issue not found");
+        return res.status(404).json({ success: false, message: "Issue not found" });
     }
 
     // Find staff with least workload in the department
@@ -578,7 +600,7 @@ export const autoAssignByWorkload = asyncHandler(async (req, res) => {
     ]);
 
     if (staff.length === 0) {
-        throw new ApiError(404, "No available staff found");
+        return res.status(404).json({ success: false, message: "No available staff found" });
     }
 
     const selectedStaff = staff[0];
@@ -616,24 +638,30 @@ export const autoAssignByWorkload = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, {
+        { success: true, message: "Issue auto-assigned successfully", data: {
             issue,
             assignedTo: {
                 id: selectedStaff._id,
                 name: selectedStaff.name,
                 currentWorkload: selectedStaff.workload
             }
-        }, "Issue auto-assigned successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== GET STAFF WORKLOAD ====================
 
-export const getStaffWorkload = asyncHandler(async (req, res) => {
+export const getStaffWorkload = async (req, res) => {
+  try {
     const { department } = req.query;
 
     if (!req.admin) {
-        throw new ApiError(403, "Only admins can view staff workload");
+        return res.status(403).json({ success: false, message: "Only admins can view staff workload" });
     }
 
     const matchQuery = { isActive: true };
@@ -709,9 +737,14 @@ export const getStaffWorkload = asyncHandler(async (req, res) => {
     ]);
 
     res.status(200).json(
-        new ApiResponse(200, { staffWorkload }, "Staff workload fetched successfully")
+        { success: true, message: "Staff workload fetched successfully", data: { staffWorkload } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== HELPER FUNCTIONS ====================
 

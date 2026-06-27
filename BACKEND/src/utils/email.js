@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import { ApiError } from "./ApiError.js";
 
 dotenv.config();
 
@@ -57,11 +56,11 @@ export const sendEmail = async (to, subject, text, html) => {
     console.error('❌ Email sending failed:', error);
     
     if (error.code === 'EAUTH') {
-      throw new ApiError(500, `Email authentication failed. Please check EMAIL_USER and EMAIL_PASS. Error: ${error.message}`);
+      throw new Error(`Email authentication failed. Please check EMAIL_USER and EMAIL_PASS. Error: ${error.message}`);
     } else if (error.code === 'ESOCKET') {
-      throw new ApiError(500, `Network error while sending email. Error: ${error.message}`);
+      throw new Error(`Network error while sending email. Error: ${error.message}`);
     } else {
-      throw new ApiError(500, `Failed to send email to ${to}: ${error.message}`);
+      throw new Error(`Failed to send email to ${to}: ${error.message}`);
     }
   }
 };

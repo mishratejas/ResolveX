@@ -1,8 +1,5 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 import { sendEmail } from "../utils/email.js";
 import { sendSMS } from "../utils/sms.js";
 import { issueAuthTokens } from "../utils/authTokens.js";
@@ -62,13 +59,14 @@ const sendOTPSMS = async (phone, otp, purpose) => {
 };
 
 // Request OTP for Signup/Login
-export const requestOTP = asyncHandler(async (req, res) => {
+export const requestOTP = async (req, res) => {
+  try {
     const { identifier, type = 'email', purpose, userType = 'user' } = req.body;
 
     console.log('Request OTP called:', { identifier, type, purpose, userType });
 
     if (!identifier) {
-        throw new ApiError(400, "Email or phone number is required");
+        return res.status(400).json({ success: false, message: "Email or phone number is required" });
     }
 
     // Validate identifier format
@@ -76,7 +74,7 @@ export const requestOTP = asyncHandler(async (req, res) => {
     const isPhone = /^[0-9]{10}$/.test(identifier);
 
     if (!isEmail && !isPhone) {
-        throw new ApiError(400, "Invalid email or phone number format");
+        return res.status(400).json({ success: false, message: "Invalid email or phone number format" });
     }
 
     // Check if user exists based on userType and purpose
@@ -98,7 +96,7 @@ export const requestOTP = asyncHandler(async (req, res) => {
 
         // For login/password-reset, user must exist
         if (!userExists) {
-            throw new ApiError(404, `${userType} not found. Please sign up first.`);
+            return res.status(404).json({ success: false, message: `${userType} not found. Please sign up first.` });
         }
     }
 
@@ -108,7 +106,7 @@ export const requestOTP = asyncHandler(async (req, res) => {
             $or: [{ email: identifier }, { phone: identifier }]
         });
         if (existingUser) {
-            throw new ApiError(400, "User already exists. Please login instead.");
+            return res.status(400).json({ success: false, message: "User already exists. Please login instead." });
         }
     }
 
@@ -140,27 +138,33 @@ export const requestOTP = asyncHandler(async (req, res) => {
         }
     } catch (error) {
         console.error("Failed to send OTP:", error);
-        throw new ApiError(500, "Failed to send OTP. Please try again.");
+        return res.status(500).json({ success: false, message: "Failed to send OTP. Please try again." });
     }
 
     res.status(200).json(
-        new ApiResponse(200, { 
+        { success: true, message: "OTP sent successfully", data: { 
             identifier, 
             type: isEmail ? 'email' : 'phone',
             purpose,
             expiresIn: 600 
-        }, "OTP sent successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Verify OTP
-export const verifyOTP = asyncHandler(async (req, res) => {
+export const verifyOTP = async (req, res) => {
+  try {
     const { identifier, otp, purpose } = req.body;
 
     console.log('Verify OTP called:', { identifier, otp, purpose });
 
     if (!identifier || !otp || !purpose) {
-        throw new ApiError(400, "Identifier, OTP and purpose are required");
+        return res.status(400).json({ success: false, message: "Identifier, OTP and purpose are required" });
     }
 
     // Find OTP record
@@ -172,13 +176,13 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     });
 
     if (!otpRecord) {
-        throw new ApiError(400, "Invalid or expired OTP. Please request a new OTP.");
+        return res.status(400).json({ success: false, message: "Invalid or expired OTP. Please request a new OTP." });
     }
 
     // Check attempts limit (max 5 attempts)
     if (otpRecord.attempts >= 5) {
         await OTP.deleteOne({ _id: otpRecord._id });
-        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        return res.status(429).json({ success: false, message: "Too many failed attempts. Please request a new OTP." });
     }
 
     // Verify OTP
@@ -187,7 +191,7 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     if (!isValid) {
         otpRecord.attempts += 1;
         await otpRecord.save();
-        throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        return res.status(400).json({ success: false, message: `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.` });
     }
 
     // Mark as verified
@@ -197,23 +201,29 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     console.log(`OTP verified for ${identifier}`);
 
     res.status(200).json(
-        new ApiResponse(200, { 
+        { success: true, message: "OTP verified successfully", data: { 
             verified: true,
             identifier,
             purpose 
-        }, "OTP verified successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // User Signup with OTP
-export const userSignupWithOTP = asyncHandler(async (req, res) => {
+export const userSignupWithOTP = async (req, res) => {
+  try {
     // Added workspaceCode to the destructured body
     const { name, email, password, phone, street, city, state, pincode, otp, workspaceCode } = req.body;
 
     console.log('User Signup called:', { name, email, phone, workspaceCode });
 
     if (!name || !email || !password || !phone || !otp) {
-        throw new ApiError(400, "All required fields must be filled including OTP");
+        return res.status(400).json({ success: false, message: "All required fields must be filled including OTP" });
     }
 
     // Verify Workspace Code if the user provided one (since it's optional for users)
@@ -223,7 +233,7 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
         if (admin) {
             joinedWorkspaces.push(admin._id);
         } else {
-            throw new ApiError(404, "Invalid Workspace Code provided. Please check the code or leave it blank.");
+            return res.status(404).json({ success: false, message: "Invalid Workspace Code provided. Please check the code or leave it blank." });
         }
     }
 
@@ -233,7 +243,7 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
-        throw new ApiError(400, "Email or phone already registered");
+        return res.status(400).json({ success: false, message: "Email or phone already registered" });
     }
 
     // The User model's pre-save hook will handle password hashing automatically
@@ -259,7 +269,7 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
     const accessToken = issueAuthTokens(res, { id: newUser._id, role: newUser.role });
 
     res.status(201).json(
-        new ApiResponse(201, {
+        { success: true, message: "User registered successfully", data: {
             accessToken,
             user: {
                 id: newUser._id,
@@ -269,25 +279,31 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
                 role: newUser.role,
                 joinedWorkspaces: newUser.joinedWorkspaces // Send this back so the frontend knows what they joined
             }
-        }, "User registered successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Staff Signup with OTP
-export const staffSignupWithOTP = asyncHandler(async (req, res) => {
+export const staffSignupWithOTP = async (req, res) => {
+  try {
     // Added workspaceCode to the destructured body
     const { name, email, password, phone, staffId, department, otp, workspaceCode } = req.body;
 
     console.log('Staff Signup called:', { name, email, staffId, workspaceCode });
 
     if (!name || !email || !password || !phone || !staffId || !otp || !workspaceCode) {
-        throw new ApiError(400, "All required fields must be filled, including OTP and Workspace Code");
+        return res.status(400).json({ success: false, message: "All required fields must be filled, including OTP and Workspace Code" });
     }
 
     // Validate the Workspace Code before doing anything else
     const admin = await Admin.findOne({ workspaceCode: workspaceCode.toUpperCase() });
     if (!admin) {
-        throw new ApiError(404, "Invalid Workspace Code. Please check with your administrator.");
+        return res.status(404).json({ success: false, message: "Invalid Workspace Code. Please check with your administrator." });
     }
 
     // Verify OTP (shared helper)
@@ -296,7 +312,7 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
     // Check if staff already exists
     const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
     if (existingStaff) {
-        throw new ApiError(400, "Email or Staff ID already registered");
+        return res.status(400).json({ success: false, message: "Email or Staff ID already registered" });
     }
 
     // The Staff model's pre-save hook will handle password hashing automatically
@@ -324,7 +340,7 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
     const accessToken = issueAuthTokens(res, { id: newStaff._id, role: 'staff' });
 
     res.status(201).json(
-        new ApiResponse(201, {
+        { success: true, message: "Staff registered successfully. Account is pending Admin approval.", data: {
             accessToken,
             staff: {
                 id: newStaff._id,
@@ -336,20 +352,26 @@ export const staffSignupWithOTP = asyncHandler(async (req, res) => {
                 isApproved: newStaff.isApproved,
                 role: 'staff'
             }
-        }, "Staff registered successfully. Account is pending Admin approval.") // Updated message
+        } } // Updated message
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 
 
-export const adminSignupWithOTP = asyncHandler(async (req, res) => {
+export const adminSignupWithOTP = async (req, res) => {
+  try {
     //   Uses organizationName instead of workspaceName
     const { organizationName, name, email, password, phone, otp } = req.body;
 
     console.log("New Workspace creation attempt with OTP:", { email, organizationName });
 
     if (!organizationName || !name || !email || !password || !otp) {
-        throw new ApiError(400, "Organization name, Admin name, email, password, and OTP are required");
+        return res.status(400).json({ success: false, message: "Organization name, Admin name, email, password, and OTP are required" });
     }
 
     // --- 1. VERIFY OTP (shared helper) ---
@@ -358,7 +380,7 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
     // --- 2. CHECK EXISTING ADMIN ---
     const existingAdmin = await Admin.findOne({ email });
     if (existingAdmin) {
-        throw new ApiError(400, "Email is already registered");
+        return res.status(400).json({ success: false, message: "Email is already registered" });
     }
 
     // --- 3. CREATE ADMIN ---
@@ -404,7 +426,7 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
 
     // --- 6. SEND RESPONSE ---
     res.status(201).json(
-        new ApiResponse(201, {
+        { success: true, message: "Workspace created successfully", data: {
             accessToken,
             admin: {
                 id: newAdmin._id,
@@ -413,18 +435,24 @@ export const adminSignupWithOTP = asyncHandler(async (req, res) => {
                 email: newAdmin.email,
                 workspaceCode: newAdmin.workspaceCode 
             }
-        }, "Workspace created successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 
-export const requestPasswordResetOTP = asyncHandler(async (req, res) => {
+export const requestPasswordResetOTP = async (req, res) => {
+  try {
     const { identifier, userType = 'user' } = req.body;
 
     console.log('Password Reset Request:', { identifier, userType });
 
     if (!identifier) {
-        throw new ApiError(400, "Email or phone number is required");
+        return res.status(400).json({ success: false, message: "Email or phone number is required" });
     }
 
     let user;
@@ -443,7 +471,7 @@ export const requestPasswordResetOTP = asyncHandler(async (req, res) => {
     }
 
     if (!user) {
-        throw new ApiError(404, "User not found");
+        return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Delete existing OTPs
@@ -470,22 +498,28 @@ export const requestPasswordResetOTP = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, { identifier }, "Password reset OTP sent successfully")
+        { success: true, message: "Password reset OTP sent successfully", data: { identifier } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Password Reset - Verify OTP and Reset Password
-export const resetPasswordWithOTP = asyncHandler(async (req, res) => {
+export const resetPasswordWithOTP = async (req, res) => {
+  try {
     const { identifier, otp, newPassword, userType = 'user' } = req.body;
 
     console.log('Password Reset Verify:', { identifier, userType });
 
     if (!identifier || !otp || !newPassword) {
-        throw new ApiError(400, "All fields are required");
+        return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
     if (newPassword.length < 6) {
-        throw new ApiError(400, "Password must be at least 6 characters long");
+        return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
     }
 
     // Verify OTP (shared helper)
@@ -516,25 +550,31 @@ export const resetPasswordWithOTP = asyncHandler(async (req, res) => {
     }
 
     if (!user) {
-        throw new ApiError(404, "User not found");
+        return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Delete OTP record
     await OTP.deleteOne({ _id: otpRecord._id });
 
     res.status(200).json(
-        new ApiResponse(200, {}, "Password reset successfully")
+        { success: true, message: "Password reset successfully", data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Resend OTP
-export const resendOTP = asyncHandler(async (req, res) => {
+export const resendOTP = async (req, res) => {
+  try {
     const { identifier, purpose = 'login', userType = 'user' } = req.body;
 
     console.log('Resend OTP:', { identifier, purpose, userType });
 
     if (!identifier) {
-        throw new ApiError(400, "Identifier is required");
+        return res.status(400).json({ success: false, message: "Identifier is required" });
     }
 
     // Check if previous OTP was sent recently (prevent spam)
@@ -545,7 +585,7 @@ export const resendOTP = asyncHandler(async (req, res) => {
     });
 
     if (recentOTP) {
-        throw new ApiError(429, "Please wait 60 seconds before requesting a new OTP");
+        return res.status(429).json({ success: false, message: "Please wait 60 seconds before requesting a new OTP" });
     }
 
     // Delete existing OTPs
@@ -574,6 +614,11 @@ export const resendOTP = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, { identifier }, "OTP resent successfully")
+        { success: true, message: "OTP resent successfully", data: { identifier } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};

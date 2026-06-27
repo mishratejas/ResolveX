@@ -1,5 +1,4 @@
 import ChatMessage from "../models/chat.model.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 
 const generateConversationId = (userId1, userId2, complaintId = null) => {
@@ -8,7 +7,8 @@ const generateConversationId = (userId1, userId2, complaintId = null) => {
 };
 
 // GET chat messages for a complaint
-export const getComplaintChat = asyncHandler(async (req, res) => {
+export const getComplaintChat = async (req, res) => {
+  try {
   const complaintId = req.params.id;
   const adminId = req.admin._id;
 
@@ -18,10 +18,16 @@ export const getComplaintChat = asyncHandler(async (req, res) => {
     .sort({ createdAt: 1 });
 
   res.status(200).json({ success: true, data: messages });
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // POST/send a message for a complaint
-export const sendComplaintChat = asyncHandler(async (req, res) => {
+export const sendComplaintChat = async (req, res) => {
+  try {
   const complaintId = req.params.id;
   const adminId = req.admin._id;
   const { message, receiverId } = req.body;
@@ -43,4 +49,9 @@ export const sendComplaintChat = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({ success: true, data: chatMessage });
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};

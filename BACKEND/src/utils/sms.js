@@ -1,5 +1,4 @@
 import twilio from "twilio";
-import { ApiError } from "./ApiError.js";
 
 // Create client lazily (when first needed)
 let twilioClient = null;
@@ -59,7 +58,7 @@ const sendSMS = async (to, message) => {
     console.error("SMS sending failed:", error.message);
 
     if (process.env.NODE_ENV !== "development") {
-      throw new ApiError(500, `Failed to send SMS to ${to}: ${error.message}`);
+      throw new Error(`Failed to send SMS to ${to}: ${error.message}`);
     }
   }
 };

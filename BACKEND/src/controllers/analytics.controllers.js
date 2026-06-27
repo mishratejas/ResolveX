@@ -4,13 +4,11 @@ import Staff from "../models/Staff.models.js";
 import Department from "../models/Department.model.js";
 import AuditLog from "../models/AuditLog.models.js";
 import ChatMessage from "../models/chat.model.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 
 // ==================== COMPREHENSIVE ANALYTICS DASHBOARD ====================
 
-export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
+export const getComprehensiveAnalytics = async (req, res) => {
+  try {
     const { timeRange = '30d', department, category } = req.query;
 
     // Calculate date range
@@ -69,7 +67,7 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
     ]);
 
     res.status(200).json(
-        new ApiResponse(200, {
+        { success: true, message: "Analytics data fetched successfully", data: {
             timeRange,
             dateRange: { start: startDate, end: endDate },
             overview: overviewMetrics,
@@ -83,9 +81,14 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
             location: locationAnalysis,
             timePatterns: timeAnalysis,
             comparison: comparisonMetrics
-        }, "Analytics data fetched successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // ==================== OVERVIEW METRICS ====================
 
@@ -966,7 +969,8 @@ async function buildAnalyticsData(timeRange = '30d', department = null, category
     };
 }
 
-export const exportAnalyticsData = asyncHandler(async (req, res) => {
+export const exportAnalyticsData = async (req, res) => {
+  try {
     const { format = 'csv', timeRange = '30d', department, category } = req.query;
     
     // Build analytics data without triggering a response
@@ -983,7 +987,12 @@ export const exportAnalyticsData = asyncHandler(async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="analytics-${Date.now()}.json"`);
     return res.send(JSON.stringify({ success: true, data: analyticsData }, null, 2));
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 function convertToCSV(data) {
     let csv = '';

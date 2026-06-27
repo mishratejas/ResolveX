@@ -20,7 +20,7 @@ export const truncateCoordinates = (latitude, longitude, precision = 3) => {
  * Calculate bounding box for a given coordinate with radius in meters
  * Rough approximation: 0.001 degree ≈ 111 meters at equator
  */
-export const getBoundingBox = (latitude, longitude, radiusMeters = 150) => {
+export const getBoundingBox = (latitude, longitude, radiusMeters = 500) => {
   if (!latitude || !longitude) return null;
   
   // Convert radius to degrees (approximate)
@@ -91,7 +91,7 @@ export const calculateKeywordOverlap = (text1, text2) => {
  */
 export const areComplaintsSimilar = (newComplaint, existingComplaint, options = {}) => {
   const {
-    maxDistance = 150,
+    maxDistance = 500,
     titleSimilarityThreshold = 0.3,  // Lower = more sensitive
     sameCategoryRequired = false
   } = options;
@@ -111,11 +111,22 @@ export const areComplaintsSimilar = (newComplaint, existingComplaint, options = 
     if (newComplaint.category !== existingComplaint.category) return false;
   }
 
-  // 3. Title similarity using Levenshtein distance
-  const similarity = calculateStringSimilarity(
+  // 3. Title similarity — combine two signals so we catch both:
+  //    (a) same words in a different order (e.g. "water clogged not going out"
+  //        vs "water not going out, it is clogged") — Levenshtein alone scores
+  //        this low because it's character-by-character and order-sensitive.
+  //    (b) near-identical phrasing with small typos/edits — keyword overlap
+  //        alone can miss this if word boundaries shift.
+  // Taking the higher of the two avoids either weakness on its own.
+  const titleCharSimilarity = calculateStringSimilarity(
     newComplaint.title.toLowerCase(),
     existingComplaint.title.toLowerCase()
   );
+  const titleWordSimilarity = calculateKeywordOverlap(
+    newComplaint.title,
+    existingComplaint.title
+  );
+  const similarity = Math.max(titleCharSimilarity, titleWordSimilarity);
 
   // 4. Description keyword matching using the newly added function
   const descriptionSimilarity = calculateKeywordOverlap(

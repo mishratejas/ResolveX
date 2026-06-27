@@ -1,12 +1,10 @@
 import Notification from "../models/Notification.models.js";
 import { notificationRoutes } from "../utils/notificationHandler.js"; // Fixed import name
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 
 // Get all notifications for a user
-export const getUserNotifications = asyncHandler(async (req, res) => {
+export const getUserNotifications = async (req, res) => {
+  try {
     const { userId } = req.params;
     const { isRead, type, limit = 50, skip = 0 } = req.query;
 
@@ -25,12 +23,18 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
     });
 
     res.status(200).json(
-        new ApiResponse(200, { notifications, unreadCount }, "Notifications fetched successfully")
+        { success: true, message: "Notifications fetched successfully", data: { notifications, unreadCount } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Mark notification as read
-export const markAsRead = asyncHandler(async (req, res) => {
+export const markAsRead = async (req, res) => {
+  try {
     const { id } = req.params;
 
     const notification = await Notification.findByIdAndUpdate(
@@ -40,16 +44,22 @@ export const markAsRead = asyncHandler(async (req, res) => {
     );
 
     if (!notification) {
-        throw new ApiError(404, "Notification not found");
+        return res.status(404).json({ success: false, message: "Notification not found" });
     }
 
     res.status(200).json(
-        new ApiResponse(200, notification, "Notification marked as read")
+        { success: true, message: "Notification marked as read", data: notification }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Mark all notifications as read for a user
-export const markAllAsRead = asyncHandler(async (req, res) => {
+export const markAllAsRead = async (req, res) => {
+  try {
     const { userId } = req.params;
 
     await Notification.updateMany(
@@ -58,42 +68,60 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
     );
 
     res.status(200).json(
-        new ApiResponse(200, {}, "All notifications marked as read")
+        { success: true, message: "All notifications marked as read", data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Delete a notification
-export const deleteNotification = asyncHandler(async (req, res) => {
+export const deleteNotification = async (req, res) => {
+  try {
     const { id } = req.params;
 
     const notification = await Notification.findByIdAndDelete(id);
 
     if (!notification) {
-        throw new ApiError(404, "Notification not found");
+        return res.status(404).json({ success: false, message: "Notification not found" });
     }
 
     res.status(200).json(
-        new ApiResponse(200, {}, "Notification deleted successfully")
+        { success: true, message: "Notification deleted successfully", data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Clear all notifications for a user
-export const clearAllNotifications = asyncHandler(async (req, res) => {
+export const clearAllNotifications = async (req, res) => {
+  try {
     const { userId } = req.params;
 
     await Notification.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
 
     res.status(200).json(
-        new ApiResponse(200, {}, "All notifications cleared")
+        { success: true, message: "All notifications cleared", data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Send custom notification (Admin/Staff use)
-export const sendCustomNotification = asyncHandler(async (req, res) => {
+export const sendCustomNotification = async (req, res) => {
+  try {
     const { userId, type, message, subject } = req.body;
 
     if (!userId || !message) {
-        throw new ApiError(400, "User ID and message are required");
+        return res.status(400).json({ success: false, message: "User ID and message are required" });
     }
 
     await notificationRoutes(
@@ -104,20 +132,26 @@ export const sendCustomNotification = asyncHandler(async (req, res) => {
     );
 
     res.status(200).json(
-        new ApiResponse(200, {}, "Notification sent successfully")
+        { success: true, message: "Notification sent successfully", data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Send bulk notifications
-export const sendBulkNotifications = asyncHandler(async (req, res) => {
+export const sendBulkNotifications = async (req, res) => {
+  try {
     const { userIds, type, message, subject } = req.body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-        throw new ApiError(400, "User IDs array is required");
+        return res.status(400).json({ success: false, message: "User IDs array is required" });
     }
 
     if (!message) {
-        throw new ApiError(400, "Message is required");
+        return res.status(400).json({ success: false, message: "Message is required" });
     }
 
     const notificationPromises = userIds.map(userId =>
@@ -132,12 +166,18 @@ export const sendBulkNotifications = asyncHandler(async (req, res) => {
     await Promise.allSettled(notificationPromises);
 
     res.status(200).json(
-        new ApiResponse(200, {}, `Notifications sent to ${userIds.length} users`)
+        { success: true, message: `Notifications sent to ${userIds.length} users`, data: {} }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get notification statistics
-export const getNotificationStats = asyncHandler(async (req, res) => {
+export const getNotificationStats = async (req, res) => {
+  try {
     const { userId } = req.params;
 
     const stats = await Notification.aggregate([
@@ -162,10 +202,15 @@ export const getNotificationStats = asyncHandler(async (req, res) => {
     });
 
     res.status(200).json(
-        new ApiResponse(200, {
+        { success: true, message: "Notification statistics fetched successfully", data: {
             total: totalCount,
             unread: unreadCount,
             byType: stats
-        }, "Notification statistics fetched successfully")
+        } }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};

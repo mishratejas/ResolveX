@@ -1,10 +1,8 @@
 import AuditLog from "../models/AuditLog.models.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 
 // Get all audit logs with filtering
-export const getAuditLogs = asyncHandler(async (req, res) => {
+export const getAuditLogs = async (req, res) => {
+  try {
     const {
         actor,
         actorModel,
@@ -47,39 +45,57 @@ export const getAuditLogs = asyncHandler(async (req, res) => {
     const result = await AuditLog.getLogs(filters, options);
 
     return res.status(200).json(
-        new ApiResponse(200, result, "Audit logs retrieved successfully")
+        { success: true, message: "Audit logs retrieved successfully", data: result }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get audit log by ID
-export const getAuditLogById = asyncHandler(async (req, res) => {
+export const getAuditLogById = async (req, res) => {
+  try {
     const { id } = req.params;
 
     const log = await AuditLog.findById(id).lean();
 
     if (!log) {
-        throw new ApiError(404, "Audit log not found");
+        return res.status(404).json({ success: false, message: "Audit log not found" });
     }
 
     return res.status(200).json(
-        new ApiResponse(200, log, "Audit log retrieved successfully")
+        { success: true, message: "Audit log retrieved successfully", data: log }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get activity summary
-export const getActivitySummary = asyncHandler(async (req, res) => {
+export const getActivitySummary = async (req, res) => {
+  try {
     const { startDate, endDate, actor } = req.query;
 
     const filters = { startDate, endDate, actor };
     const summary = await AuditLog.getActivitySummary(filters);
 
     return res.status(200).json(
-        new ApiResponse(200, summary, "Activity summary retrieved successfully")
+        { success: true, message: "Activity summary retrieved successfully", data: summary }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get user activity timeline
-export const getUserActivityTimeline = asyncHandler(async (req, res) => {
+export const getUserActivityTimeline = async (req, res) => {
+  try {
     const { userId } = req.params;
     const { days = 30 } = req.query;
 
@@ -97,12 +113,18 @@ export const getUserActivityTimeline = asyncHandler(async (req, res) => {
     .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, activities, "User activity timeline retrieved successfully")
+        { success: true, message: "User activity timeline retrieved successfully", data: activities }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get issue audit trail
-export const getIssueAuditTrail = asyncHandler(async (req, res) => {
+export const getIssueAuditTrail = async (req, res) => {
+  try {
     const { issueId } = req.params;
 
     const trail = await AuditLog.find({
@@ -115,12 +137,18 @@ export const getIssueAuditTrail = asyncHandler(async (req, res) => {
     .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, trail, "Issue audit trail retrieved successfully")
+        { success: true, message: "Issue audit trail retrieved successfully", data: trail }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get recent activities (for dashboard)
-export const getRecentActivities = asyncHandler(async (req, res) => {
+export const getRecentActivities = async (req, res) => {
+  try {
     const { limit = 20 } = req.query;
 
     const activities = await AuditLog.find({ isDeleted: false })
@@ -130,12 +158,18 @@ export const getRecentActivities = asyncHandler(async (req, res) => {
         .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, activities, "Recent activities retrieved successfully")
+        { success: true, message: "Recent activities retrieved successfully", data: activities }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get statistics
-export const getAuditStatistics = asyncHandler(async (req, res) => {
+export const getAuditStatistics = async (req, res) => {
+  try {
     const { days = 30 } = req.query;
     
     const startDate = new Date();
@@ -196,12 +230,18 @@ export const getAuditStatistics = asyncHandler(async (req, res) => {
     ]);
 
     return res.status(200).json(
-        new ApiResponse(200, stats[0], "Audit statistics retrieved successfully")
+        { success: true, message: "Audit statistics retrieved successfully", data: stats[0] }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Export audit logs
-export const exportAuditLogs = asyncHandler(async (req, res) => {
+export const exportAuditLogs = async (req, res) => {
+  try {
     const {
         startDate,
         endDate,
@@ -236,10 +276,16 @@ export const exportAuditLogs = asyncHandler(async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${Date.now()}.json`);
         return res.send(JSON.stringify(logs, null, 2));
     }
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get security events (high severity logs)
-export const getSecurityEvents = asyncHandler(async (req, res) => {
+export const getSecurityEvents = async (req, res) => {
+  try {
     const { days = 7 } = req.query;
     
     const startDate = new Date();
@@ -255,12 +301,18 @@ export const getSecurityEvents = asyncHandler(async (req, res) => {
     .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, events, "Security events retrieved successfully")
+        { success: true, message: "Security events retrieved successfully", data: events }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Get failed activities
-export const getFailedActivities = asyncHandler(async (req, res) => {
+export const getFailedActivities = async (req, res) => {
+  try {
     const { days = 7, limit = 50 } = req.query;
     
     const startDate = new Date();
@@ -276,9 +328,14 @@ export const getFailedActivities = asyncHandler(async (req, res) => {
     .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, failed, "Failed activities retrieved successfully")
+        { success: true, message: "Failed activities retrieved successfully", data: failed }
     );
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
 
 // Helper function to convert logs to CSV
 const convertToCSV = (logs) => {

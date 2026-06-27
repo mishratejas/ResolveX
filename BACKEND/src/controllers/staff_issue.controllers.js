@@ -1,5 +1,4 @@
 import UserComplaint from "../models/UserComplaint.models.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import Admin from "../models/Admin.models.js";
 import NotificationService from "../services/notification.service.js";
 
@@ -198,7 +197,8 @@ export const handleGetStaffStats = async (req, res) => {
 };
 
 // Add this simple function to staff_issue.controller.js
-export const getAdminsIdForStaff = asyncHandler(async (req, res) => {
+export const getAdminsIdForStaff = async (req, res) => {
+  try {
     try {
         console.log("🔍 Fetching admin information...");
         
@@ -237,4 +237,9 @@ export const getAdminsIdForStaff = asyncHandler(async (req, res) => {
             stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
-});
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
