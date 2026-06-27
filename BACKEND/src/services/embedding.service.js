@@ -174,6 +174,26 @@ export const findSimilarComplaints = ({
       embeddingDoc.embedding
     );
 
+    console.log(
+    `Complaint: ${complaint.title} | Similarity: ${similarity}`
+    );
+
+    console.log("--------------------------------");
+
+    console.log(
+    "Complaint:",
+    complaint.title
+    );
+
+    console.log(
+    "Searching ID:",
+    complaint._id.toString()
+    );
+
+    console.log(
+    "Has embedding:",
+    embeddingMap.has(complaint._id.toString())
+    );
     if (similarity >= threshold) {
       similarComplaints.push({
         complaint,

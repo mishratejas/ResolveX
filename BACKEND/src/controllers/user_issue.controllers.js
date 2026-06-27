@@ -7,6 +7,14 @@ import {
   areComplaintsSimilar,
 } from "../utils/locationUtils.js";
 
+import {
+  buildEmbeddingText,
+  generateEmbedding,
+  saveEmbedding,
+  getEmbeddingsByComplaintIds,
+  findSimilarComplaints,
+} from "../services/embedding.service.js";    
+
 //   NEW: Import our Load Balancer!
 import { getLeastLoadedStaff } from "../utils/loadBalancer.js";
 import NotificationService from "../services/notification.service.js";
@@ -103,6 +111,7 @@ export const handleSingleUserIssueFetch = async (req, res) => {
 
 export const checkDuplicateComplaint = async (req, res) => {
   try {
+    console.log("🔥 DUPLICATE API HIT");
     const { title, description, location, category, workspaceId } = req.body; 
     const userId = req.user?._id;
 
@@ -131,23 +140,64 @@ export const checkDuplicateComplaint = async (req, res) => {
       adminId: workspaceId 
     }).populate("user", "name email");
 
-    const similarComplaints = nearbyComplaints.filter((existing) => {
-      if (existing.user._id.toString() === userId?.toString()) return false;
-      return areComplaintsSimilar({ location, title, category }, existing, {
-        maxDistance: 150,
-        titleSimilarityThreshold: 0.3,
-        sameCategoryRequired: false,
+    if (nearbyComplaints.length === 0) {
+      return res.json({
+        success: true,
+        hasDuplicates: false,
+        duplicates: [],
+        userVotedComplaints: false,
       });
+    }
+
+    const queryEmbeddingText = buildEmbeddingText({
+      title,
+      description,
+      category,
+      location,
     });
 
-    const userVotedComplaints = similarComplaints.filter((c) =>
-      c.voters?.includes(userId),
+    const newEmbedding = await generateEmbedding(queryEmbeddingText);
+
+    const complaintIds = nearbyComplaints.map((c) => c._id);
+
+    const embeddingMap = await getEmbeddingsByComplaintIds(complaintIds);
+
+    console.log("Nearby complaints:", nearbyComplaints.length);
+
+    console.log(
+      "Complaint IDs:",
+      complaintIds.map(id => id.toString())
+    );
+
+    console.log(
+      "Embedding Map Size:",
+      embeddingMap.size
+    );
+
+    console.log(
+      "Embedding Keys:",
+      [...embeddingMap.keys()]
+    );
+
+    
+    const similarComplaintResults = findSimilarComplaints({
+      embedding: newEmbedding,
+      // nearbyComplaints: nearbyComplaints.filter(
+      //   (complaint) =>
+      //     complaint.user._id.toString() !== userId?.toString()
+      // ),
+      nearbyComplaints,
+      embeddingMap,
+    });
+
+    const userVotedComplaints = similarComplaintResults.some(
+      ({ complaint }) => complaint.voters?.includes(userId)
     );
 
     res.json({
       success: true,
-      hasDuplicates: similarComplaints.length > 0,
-      duplicates: similarComplaints.map((c) => ({
+      hasDuplicates: similarComplaintResults.length > 0,
+      duplicates: similarComplaintResults.map(({ complaint: c, similarity }) => ({
         _id: c._id,
         title: c.title,
         description: c.description,
@@ -162,8 +212,9 @@ export const checkDuplicateComplaint = async (req, res) => {
         distance: calculateDistance(
           latitude, longitude, c.location.latitude, c.location.longitude,
         ).toFixed(0),
+        similarity: Number((similarity * 100).toFixed(1)),
       })),
-      userVotedComplaints: userVotedComplaints.length > 0,
+      userVotedComplaints: userVotedComplaints,
     });
   } catch (error) {
     console.error("Error checking duplicates:", error);
@@ -215,35 +266,35 @@ export const handleIssueGeneration = async (req, res) => {
       return res.status(400).json({ success: false, message: "Workspace selection is required." });
     }
 
-    if (!skipDuplicateCheck && locationData.latitude && locationData.longitude) {
-      const bbox = getBoundingBox(locationData.latitude, locationData.longitude, 150);
+    // if (!skipDuplicateCheck && locationData.latitude && locationData.longitude) {
+    //   const bbox = getBoundingBox(locationData.latitude, locationData.longitude, 150);
 
-      const nearbyComplaints = await UserComplaint.find({
-        "location.latitude": { $gte: bbox.minLat, $lte: bbox.maxLat },
-        "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
-        status: { $in: ["pending", "in-progress"] },
-        user: { $ne: complaintUserId }, 
-        adminId: adminId 
-      });
+    //   const nearbyComplaints = await UserComplaint.find({
+    //     "location.latitude": { $gte: bbox.minLat, $lte: bbox.maxLat },
+    //     "location.longitude": { $gte: bbox.minLng, $lte: bbox.maxLng },
+    //     status: { $in: ["pending", "in-progress"] },
+    //     user: { $ne: complaintUserId }, 
+    //     adminId: adminId 
+    //   });
 
-      const similarComplaints = nearbyComplaints.filter((existing) =>
-        areComplaintsSimilar({ location: locationData, title, category }, existing, {
-          maxDistance: 150, titleSimilarityThreshold: 0.5, sameCategoryRequired: true,
-        }),
-      );
+    //   // const similarComplaints = nearbyComplaints.filter((existing) =>
+    //   //   areComplaintsSimilar({ location: locationData, title, category }, existing, {
+    //   //     maxDistance: 150, titleSimilarityThreshold: 0.5, sameCategoryRequired: true,
+    //   //   }),
+    //   // );
 
-      if (similarComplaints.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: "Similar complaint already exists in this area",
-          hasDuplicates: true,
-          duplicates: similarComplaints.map((c) => ({
-            _id: c._id, title: c.title, description: c.description, category: c.category,
-            status: c.status, voteCount: c.voteCount || 0, hasUserVoted: c.voters?.includes(complaintUserId) || false,
-          })),
-        });
-      }
-    }
+    //   if (similarComplaints.length > 0) {
+    //     return res.status(409).json({
+    //       success: false,
+    //       message: "Similar complaint already exists in this area",
+    //       hasDuplicates: true,
+    //       duplicates: similarComplaints.map((c) => ({
+    //         _id: c._id, title: c.title, description: c.description, category: c.category,
+    //         status: c.status, voteCount: c.voteCount || 0, hasUserVoted: c.voters?.includes(complaintUserId) || false,
+    //       })),
+    //     });
+    //   }
+    // }
 
     let priority = "medium";
     let prioritySource = "fallback";
@@ -299,6 +350,33 @@ export const handleIssueGeneration = async (req, res) => {
     });
 
     await complaint.save();
+
+    try {
+      const embeddingText = buildEmbeddingText({
+        title: complaint.title,
+        description: complaint.description,
+        category: complaint.category,
+        location: complaint.location,
+      });
+
+      const embedding = await generateEmbedding(embeddingText);
+
+      await saveEmbedding({
+        complaintId: complaint._id,
+        embedding,
+        embeddingText,
+      });
+
+      console.log(`✅ Embedding stored for complaint ${complaint._id}`);
+    } catch (embeddingError) {
+      console.error(
+        "⚠️ Failed to generate complaint embedding:",
+        embeddingError
+      );
+
+      // Don't fail complaint creation if embeddings fail.
+    }
+
     await complaint.populate("user", "name email");
     await complaint.populate("adminId", "workspaceCode organizationName name"); 
 

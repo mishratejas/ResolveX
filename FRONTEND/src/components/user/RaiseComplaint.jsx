@@ -488,7 +488,7 @@ const checkForDuplicates = async () => {
     const currentWorkspace = JSON.parse(
       localStorage.getItem("currentWorkspace"),
     );
-    if (!currentWorkskspace) {
+    if (!currentWorkspace) {
       setError("Please select a workspace before submitting a complaint");
       return false;
     }
@@ -504,9 +504,9 @@ const checkForDuplicates = async () => {
     // Only check duplicates if we have coordinates
     if (formData.location.latitude && formData.location.longitude) {
       const checkData = {
-        title: formData.title,
+        title: formData.title.trim(),
         category: formData.category,
-        description: formData.description,
+        description: formData.description.trim(),
         location: {
           address: formData.location.address,
           latitude: formData.location.latitude,
