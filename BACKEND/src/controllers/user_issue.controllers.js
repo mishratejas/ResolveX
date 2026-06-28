@@ -1,4 +1,5 @@
 import UserComplaint from "../models/UserComplaint.models.js"; // Note: Fixed '.models.js' to '.model.js' based on your previous messages
+import ComplaintEmbedding from "../models/ComplaintEmbedding.model.js";
 import priorityService from "../services/priority.service.js";
 import {
   truncateCoordinates,
@@ -732,7 +733,11 @@ export const handleDeleteIssue = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this complaint' });
     }
 
-    await UserComplaint.findByIdAndDelete(id);
+    await complaint.deleteOne();
+
+    await ComplaintEmbedding.deleteOne({
+      complaintId: complaint._id,
+    });
 
     res.json({ success: true, message: 'Complaint deleted successfully' });
   } catch (error) {
