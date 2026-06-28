@@ -580,7 +580,6 @@ const handleUpvoteDuplicate = async (complaintId) => {
   };
 
   const submitComplaint = async (skipDuplicateCheck = false) => {
-    setLoading(true);
     setError("");
 
     try {
@@ -710,9 +709,14 @@ const handleUpvoteDuplicate = async (complaintId) => {
       return;
     }
 
+    setLoading(true);
+
     const shouldProceed = await checkForDuplicates();
     if (shouldProceed) {
-      submitComplaint();
+      await submitComplaint();
+    }
+    else{
+      setLoading(false);
     }
   };
 
