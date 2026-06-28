@@ -13,7 +13,6 @@ const EMBEDDING_MODEL = "gemini-embedding-001";
  */
 export const buildEmbeddingText = (complaint) => {
   const {
-    department,
     category,
     title,
     description,
@@ -21,9 +20,7 @@ export const buildEmbeddingText = (complaint) => {
   } = complaint;
 
   return `
-Department: ${department || "Unknown"}
-
-Category: ${category || "Unknown"}
+Category: ${category || "other"}
 
 Complaint Title:
 ${title}

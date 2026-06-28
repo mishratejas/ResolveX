@@ -206,6 +206,7 @@ export const checkDuplicateComplaint = async (req, res) => {
         priority: c.priority,
         voteCount: c.voteCount || 0,
         hasUserVoted: c.voters?.includes(userId) || false,
+        isOwnComplaint: c.user._id.toString() === userId?.toString(),
         user: { name: c.user.name, email: c.user.email },
         location: c.location,
         createdAt: c.createdAt,
