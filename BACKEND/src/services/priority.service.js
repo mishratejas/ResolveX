@@ -1,18 +1,24 @@
-import axios from 'axios';
+import { GoogleGenAI } from "@google/genai";
+
+const PRIORITY_MODEL = "gemini-2.5-flash";
 
 class PriorityService {
     constructor() {
-        this.apiKey = process.env.GOOGLE_API_KEY;
-        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        // Validate API key on initialization
-        if (!this.apiKey || this.apiKey === 'is set') {
-            console.warn('GOOGLE_API_KEY not properly configured. AI priority assignment will use fallback method.');
+        this.apiKeys = [
+            process.env.GOOGLE_API_KEY,
+            process.env.GEMINI_API_KEY,
+        ].filter(Boolean);
+
+        if (this.apiKeys.length === 0) {
+            console.warn(
+                "No Gemini API keys configured. Rule-based priority will be used."
+            );
         }
     }
 
     async analyzePriority(complaintData) {
         //   Validate API key before making request
-        if (!this.apiKey || this.apiKey === 'is set' || this.apiKey.length < 10) {
+        if (this.apiKeys.length === 0) {
             console.warn('No valid API key, using rule-based fallback');
             return this.ruleBasedFallback(complaintData);
         }
@@ -48,61 +54,58 @@ class PriorityService {
             Return ONLY one word: low, medium, high, or critical (in lowercase, no punctuation or explanation).
             `;
 
-            // Add timeout to API call
-            const response = await axios.post(
-                `${this.apiUrl}?key=${this.apiKey}`,
-                {
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }]
-                },
-                {
-                    timeout: 10000, // 10 second timeout
-                    headers: {
-                        'Content-Type': 'application/json'
+            
+            for (const apiKey of this.apiKeys) {
+                try {
+                    const ai = new GoogleGenAI({
+                        apiKey,
+                    });
+
+                    const response = await ai.models.generateContent({
+                        model: PRIORITY_MODEL,
+                        contents: prompt,
+                    });
+
+                    const priority = response.text
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[^a-z]/g, "");
+
+                    if (
+                        ["low", "medium", "high", "critical"].includes(priority)
+                    ) {
+                        console.log(
+                            `🤖 Gemini assigned priority: ${priority}`
+                        );
+
+                        return priority;
                     }
+
+                    throw new Error(
+                        `Invalid priority returned: ${response.text}`
+                    );
+                } catch (error) {
+                    console.warn(
+                        `Gemini key ${this.apiKeys.indexOf(apiKey) + 1} failed:`,
+                        error.message
+                    );
+
+                    // Try the next API key
                 }
+            }
+
+            console.log(
+                "🔄 All Gemini API keys failed. Using rule-based fallback."
             );
 
-            // Better response validation
-            if (!response.data || !response.data.candidates || response.data.candidates.length === 0) {
-                console.warn('  Invalid AI response structure, using fallback');
-                return this.ruleBasedFallback(complaintData);
-            }
-
-            const aiText = response.data.candidates[0]?.content?.parts[0]?.text;
-            if (!aiText) {
-                console.warn('  No text in AI response, using fallback');
-                return this.ruleBasedFallback(complaintData);
-            }
-
-            // Extract priority from response (handle various formats)
-            const priority = aiText.trim().toLowerCase().replace(/[^a-z]/g, '');
-            
-            // Validate response
-            if (!['low', 'medium', 'high', 'critical'].includes(priority)) {
-                console.warn(`  Invalid priority from AI: "${aiText}", using fallback`);
-                return this.ruleBasedFallback(complaintData);
-            }
-
-            console.log(` AI successfully assigned priority: ${priority}`);
-            return priority;
+            return this.ruleBasedFallback(complaintData);
 
         } catch (error) {
-            //   Better error logging
-            if (error.code === 'ECONNABORTED') {
-                console.error('AI request timeout, using fallback');
-            } else if (error.response) {
-                console.error(' AI API Error:', error.response.status, error.response.data?.error?.message || 'Unknown error');
-            } else if (error.request) {
-                console.error(' No response from AI API, using fallback');
-            } else {
-                console.error(' Error setting up AI request:', error.message);
-            }
-            
-            // Always fallback on error
+            console.error(
+                "Priority analysis failed: Can't reach Gemini AI, Proceeding to FallBack",
+                error.message
+            );
+
             return this.ruleBasedFallback(complaintData);
         }
     }
