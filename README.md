@@ -11,11 +11,21 @@
 [![Express](https://img.shields.io/badge/Express-v5-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
 [![MongoDB](https://img.shields.io/badge/MongoDB-8.x-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io)](https://socket.io)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=flat-square)](./LICENSE)
 
 [Overview](#overview) · [Features](#features) · [Architecture](#architecture) · [Getting Started](#getting-started) · [API Reference](#api-reference) · [Contributing](#contributing)
 
 </div>
+
+## Overview
+
+ResolveX is a multi-tenant complaint management platform built for civic organizations, housing societies, and municipal bodies. It closes the gap between communities and the teams that serve them by providing a structured, accountable, AI-assisted pipeline for reporting, triaging, and resolving issues.
+
+**The problem it solves:** Complaint management in most organizations is handled through emails, phone calls, or spreadsheets — with no audit trail, no priority logic, and no feedback loop for the person who raised the issue. ResolveX replaces that with a real-time, role-based system where every complaint is tracked from submission to closure.
+
+**Who it's for:**
+- **Citizens / residents** who want to report issues and track their status
+- **Staff members** who need a structured queue of assigned tickets
+- **Administrators** who oversee the entire pipeline, manage teams, and analyze performance
 
 ---
 
@@ -41,19 +51,6 @@
 
 ### 🔧 Staff Dashboard
 ![alt text](image-2.png)
-
----
-
-## Overview
-
-ResolveX is a multi-tenant complaint management platform built for civic organizations, housing societies, and municipal bodies. It closes the gap between communities and the teams that serve them by providing a structured, accountable, AI-assisted pipeline for reporting, triaging, and resolving issues.
-
-**The problem it solves:** Complaint management in most organizations is handled through emails, phone calls, or spreadsheets — with no audit trail, no priority logic, and no feedback loop for the person who raised the issue. ResolveX replaces that with a real-time, role-based system where every complaint is tracked from submission to closure.
-
-**Who it's for:**
-- **Citizens / residents** who want to report issues and track their status
-- **Staff members** who need a structured queue of assigned tickets
-- **Administrators** who oversee the entire pipeline, manage teams, and analyze performance
 
 ---
 
