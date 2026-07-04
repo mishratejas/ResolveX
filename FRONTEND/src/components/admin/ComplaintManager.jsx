@@ -20,10 +20,10 @@ const ComplaintManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   
-  // 🚀 NEW: State to control the Chat Modal
+  // NEW: State to control the Chat Modal
   const [activeChatComplaint, setActiveChatComplaint] = useState(null);
 
-  // 🚀 NEW: Grab Admin details for the chat
+  // NEW: Grab Admin details for the chat
   const adminString = localStorage.getItem('admin') || localStorage.getItem('user');
   const adminData = adminString ? JSON.parse(adminString) : { _id: 'admin', name: 'Admin Dashboard' };
 
@@ -370,7 +370,7 @@ const ComplaintManager = () => {
                         <Eye className="w-4 h-4" /> View Full Details
                       </button>
 
-                      {/* 🚀 NEW: The Open Chat Button for Assigned & Resolved Tickets */}
+                      {/* NEW: The Open Chat Button for Assigned & Resolved Tickets */}
                       {(activeTab === 'assigned' || activeTab === 'resolved') && complaint.assignedTo && (
                         <button 
                           onClick={() => setActiveChatComplaint(complaint)}
@@ -418,7 +418,7 @@ const ComplaintManager = () => {
         )}
       </AnimatePresence>
 
-      {/* 🚀 NEW: Live Chat Modal Overlay */}
+      {/* NEW: Live Chat Modal Overlay */}
       <AnimatePresence>
         {activeChatComplaint && (
           <motion.div 
@@ -432,7 +432,7 @@ const ComplaintManager = () => {
               complaintTitle={activeChatComplaint.title}
               complaintStatus={activeChatComplaint.status}
               currentUser={{
-                id: adminData.id || adminData._id, // 🚀 THE FIX: Grab whichever one exists!
+                id: adminData.id || adminData._id, // THE FIX: Grab whichever one exists!
                 name: adminData.name,
                 role: 'admin' 
               }}

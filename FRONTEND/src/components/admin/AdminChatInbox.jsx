@@ -49,7 +49,7 @@ const AdminChatInbox = () => {
   );
 
   return (
-    // 🚀 Adjusted to fit inside your dashboard layout beautifully
+    // Adjusted to fit inside your dashboard layout beautifully
     <div className="flex flex-col md:flex-row h-[75vh] min-h-[600px] w-full bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       
       {/* LEFT SIDEBAR: LIST OF CHATS */}
@@ -135,7 +135,7 @@ const AdminChatInbox = () => {
               exit={{ opacity: 0, x: -10 }}
               className="h-full w-full"
             >
-               {/* 🚀 Rendering the exact same component, just telling it not to act like a modal */}
+               {/* Rendering the exact same component, just telling it not to act like a modal */}
                <ComplaintChat 
                   complaintId={selectedChat.complaintId}
                   complaintTitle={selectedChat.title}

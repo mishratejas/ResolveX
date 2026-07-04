@@ -277,7 +277,7 @@ function App() {
           }
         />
 
-        {/* 🚀 NEW: User Profile Route - Entry point after login */}
+        {/* NEW: User Profile Route - Entry point after login */}
         <Route
           path="/user/profile"
           element={
@@ -287,7 +287,7 @@ function App() {
           }
         />
 
-        {/* 🚀 NEW: Workspace Selector Route */}
+        {/* NEW: Workspace Selector Route */}
         <Route
           path="/user/select-workspace"
           element={
@@ -297,7 +297,7 @@ function App() {
           }
         />
 
-        {/* 🚀 UPDATED: User Home/Dashboard Route - Requires workspace */}
+        {/* UPDATED: User Home/Dashboard Route - Requires workspace */}
         <Route
           path="/home/*"
           element={
@@ -439,7 +439,7 @@ function App() {
           }
         />
 
-        {/* 🔔 Notification Page - Available to all authenticated users */}
+        {/* Notification Page - Available to all authenticated users */}
         <Route
           path="/notifications"
           element={
@@ -505,7 +505,7 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
   // If authenticated but wrong role, redirect to appropriate dashboard
   if (requiredRole && authStatus.userRole !== requiredRole) {
     console.log(
-      `⚠️ Role mismatch: User is ${authStatus.userRole}, but route requires ${requiredRole}`,
+      ` Role mismatch: User is ${authStatus.userRole}, but route requires ${requiredRole}`,
     );
 
     let redirectTo = "/";

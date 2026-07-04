@@ -26,13 +26,13 @@ import {
   Building,
   Hourglass,
   X,
-  Inbox // 🚀 Added Inbox icon for the empty state
+  Inbox // Added Inbox icon for the empty state
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "../../components/common/NotificationBell";
 import ProfilePhotoUpload from "../../components/common/ProfilePhotoUpload";
 
-// 🚀 Import the Chat Component
+// Import the Chat Component
 import ComplaintChat from "../../components/chat/ComplaintChat";
 
 const BASE_URL =
@@ -59,7 +59,7 @@ const StaffDashboard = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null); // Image Lightbox
   
-  // 🚀 Chat & Inbox States
+  // Chat & Inbox States
   const [activeChatComplaint, setActiveChatComplaint] = useState(null);
   const [inboxConversations, setInboxConversations] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -68,7 +68,7 @@ const StaffDashboard = () => {
   useEffect(() => {
     checkAuth();
     
-    // 🚀 Background poller to refresh unread badges every 15 seconds
+    // Background poller to refresh unread badges every 15 seconds
     const interval = setInterval(() => {
       if (isApproved) fetchInboxData();
     }, 15000);
@@ -104,7 +104,7 @@ const StaffDashboard = () => {
         }
       }
     } catch (error) {
-      console.error("❌ Error fetching fresh profile:", error);
+      console.error("Error fetching fresh profile:", error);
       const storedData = localStorage.getItem("staffData");
       if (storedData) {
         const parsedData = JSON.parse(storedData);
@@ -119,10 +119,10 @@ const StaffDashboard = () => {
 
     fetchAssignedComplaints();
     fetchRecentActivity();
-    fetchInboxData(); // 🚀 Fetch inbox unread data immediately on load
+    fetchInboxData(); // Fetch inbox unread data immediately on load
   };
 
-  // 🚀 Fetch Inbox Data & Unread Counts
+  // Fetch Inbox Data & Unread Counts
   const fetchInboxData = async () => {
     try {
       const token = localStorage.getItem("staffToken") || localStorage.getItem("staffAccessToken");
@@ -206,12 +206,12 @@ const StaffDashboard = () => {
 
     const avgHours = resolvedTotal > 0 ? totalResolutionTime / resolvedTotal : 48;
     
-    // 🚀 We calculate these first so we can add them together for the "Active" count
+    // We calculate these first so we can add them together for the "Active" count
     const pendingCount = complaints.filter(c => c.status === "pending" || c.status === "open" || !c.status).length;
     const inProgressCount = complaints.filter(c => c.status === "in-progress" || c.status === "in_progress").length;
     
     setStats({
-      // 🚀 FIXED: Now it only counts Pending + In-Progress tickets!
+      // FIXED: Now it only counts Pending + In-Progress tickets!
       assigned: pendingCount + inProgressCount, 
       inProgress: inProgressCount,
       resolved: complaints.filter(c => c.status === "resolved" || c.status === "completed" || c.status === "closed").length,
@@ -241,7 +241,7 @@ const StaffDashboard = () => {
     navigate("/");
   };
 
-  // 🚀 NEW: Persist the uploaded profile photo URL to the staff's profile
+  // NEW: Persist the uploaded profile photo URL to the staff's profile
   const handleProfilePhotoUploaded = async (imageUrl) => {
     try {
       const token =
@@ -321,7 +321,7 @@ const StaffDashboard = () => {
     }
   };
 
-  // 🚀 Helper to safely open chat and clear notification immediately
+  // Helper to safely open chat and clear notification immediately
   const handleOpenChat = (complaint) => {
     // If opening from the inbox, map it back to the original complaint object if needed
     const fullComplaint = assignedComplaints.find(c => c._id === complaint._id || c._id === complaint.complaintId) 
@@ -656,7 +656,7 @@ const StaffDashboard = () => {
               </button>
             ))}
             
-            {/* 🚀 THE MESSAGES TAB */}
+            {/* THE MESSAGES TAB */}
             <button
               onClick={() => setActiveTab("messages")}
               className={`relative px-5 py-2 rounded-md text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === "messages" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
@@ -681,7 +681,7 @@ const StaffDashboard = () => {
           </div>
         </div>
 
-        {/* 🚀 Dynamic View Rendering */}
+        {/* Dynamic View Rendering */}
         {activeTab === "messages" ? (
           
           /* INBOX VIEW */
@@ -859,7 +859,7 @@ const StaffDashboard = () => {
                           <Eye className="w-4 h-4" /> View Full Details
                         </button>
 
-                        {/* 🚀 The Open Chat Button with Unread Badge */}
+                        {/* The Open Chat Button with Unread Badge */}
                         <button 
                           onClick={() => handleOpenChat(complaint)}
                           className="relative w-full py-2 bg-white text-gray-700 font-bold rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-sm flex items-center justify-center gap-2"
@@ -917,7 +917,7 @@ const StaffDashboard = () => {
             className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <ComplaintChat 
-              // 🚀 Pass the correct ID whether it's from the grid or the inbox
+              // Pass the correct ID whether it's from the grid or the inbox
               complaintId={activeChatComplaint._id || activeChatComplaint.complaintId}
               complaintTitle={activeChatComplaint.title}
               complaintStatus={activeChatComplaint.status}

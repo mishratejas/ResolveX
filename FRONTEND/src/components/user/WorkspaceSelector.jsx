@@ -119,19 +119,19 @@ const WorkspaceSelector = ({ onWorkspaceSelect }) => {
     }
   };
 
-  // 🔧 FIXED: Save workspace with workspaceCode property
+  // FIXED: Save workspace with workspaceCode property
 const handleSelectWorkspace = (workspace) => {
   // Save to localStorage with proper structure
   const workspaceData = {
     id: workspace._id,
     name: workspace.organizationName,
-    workspaceCode: workspace.workspaceCode, // ← FIXED: Use workspaceCode, not code
+    workspaceCode: workspace.workspaceCode, // FIXED: Use workspaceCode, not code
     email: workspace.email,
     phone: workspace.phone || '',
     joinedAt: new Date().toISOString()
   };
 
-  console.log('🏢 Selecting workspace:', workspaceData);
+  console.log('Selecting workspace:', workspaceData);
   localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
 
   // Notify parent and trigger reload in complaint components

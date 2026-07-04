@@ -18,7 +18,7 @@ const DepartmentManager = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newDept, setNewDept] = useState({ name: '', description: '' });
 
-  // 🚀 NEW: Edit Modal State
+  // NEW: Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editDept, setEditDept] = useState({ id: '', name: '', description: '' });
@@ -94,13 +94,13 @@ const DepartmentManager = () => {
     }
   };
 
-  // 🚀 NEW: Handle Edit Click (Opens Modal & populates data)
+  // NEW: Handle Edit Click (Opens Modal & populates data)
   const handleEditClick = (dept) => {
     setEditDept({ id: dept._id, name: dept.name, description: dept.description || '' });
     setIsEditModalOpen(true);
   };
 
-  // 🚀 NEW: Execute Edit/Update
+  // NEW: Execute Edit/Update
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setIsEditing(true);
@@ -249,7 +249,7 @@ const DepartmentManager = () => {
                       </div>
                     </td>
                     <td className="p-4 flex items-center justify-center gap-2">
-                      {/* 🚀 HIDDEN: Edit and Delete buttons are removed for the "Other" department */}
+                      {/* HIDDEN: Edit and Delete buttons are removed for the "Other" department */}
                       {dept.name.toLowerCase() !== 'other' ? (
                         <>
                           <button 
@@ -345,7 +345,7 @@ const DepartmentManager = () => {
         )}
       </AnimatePresence>
 
-      {/* 🚀 NEW: EDIT DEPARTMENT MODAL */}
+      {/* NEW: EDIT DEPARTMENT MODAL */}
       <AnimatePresence>
         {isEditModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

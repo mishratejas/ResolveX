@@ -193,10 +193,10 @@ const RaiseComplaint = ({ currentUser }) => {
         setDepartmentsLoading(true);
         setError("");
 
-        // 🔥 FIX: Get workspace directly from localStorage each time
+        // FIX: Get workspace directly from localStorage each time
         // Don't rely on state or props that might be stale
         const workspaceStr = localStorage.getItem("currentWorkspace");
-        console.log("📦 Raw workspace from localStorage:", workspaceStr);
+        console.log("Raw workspace from localStorage:", workspaceStr);
 
         if (!workspaceStr) {
           if (isMounted) {
@@ -210,7 +210,7 @@ const RaiseComplaint = ({ currentUser }) => {
         try {
           currentWorkspace = JSON.parse(workspaceStr);
         } catch (e) {
-          console.error("❌ Failed to parse workspace:", e);
+          console.error("Failed to parse workspace:", e);
           localStorage.removeItem("currentWorkspace"); // Clear corrupted data
           if (isMounted) {
             setError(
@@ -221,14 +221,14 @@ const RaiseComplaint = ({ currentUser }) => {
           return;
         }
 
-        console.log("🔍 Parsed workspace:", currentWorkspace);
+        console.log("Parsed workspace:", currentWorkspace);
 
-        // 🔥 FIX: Check for BOTH possible property names
+        // FIX: Check for BOTH possible property names
         const workspaceCode =
           currentWorkspace.workspaceCode || currentWorkspace.code;
 
         if (!workspaceCode) {
-          console.error("❌ No workspace code found in:", currentWorkspace);
+          console.error("No workspace code found in:", currentWorkspace);
           // Try to fix the workspace data if it has 'code' property
           if (currentWorkspace.code) {
             const fixedWorkspace = {
@@ -239,7 +239,7 @@ const RaiseComplaint = ({ currentUser }) => {
               "currentWorkspace",
               JSON.stringify(fixedWorkspace),
             );
-            console.log("✅ Fixed workspace data, retrying...");
+            console.log("Fixed workspace data, retrying...");
             // Retry with fixed data
             setTimeout(() => {
               if (isMounted) {
@@ -259,11 +259,11 @@ const RaiseComplaint = ({ currentUser }) => {
         }
 
         console.log(
-          "📡 Fetching departments for workspace code:",
+          " Fetching departments for workspace code:",
           workspaceCode,
         );
 
-        // 🔥 FIX: Add timeout to prevent hanging
+        // FIX: Add timeout to prevent hanging
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -272,19 +272,19 @@ const RaiseComplaint = ({ currentUser }) => {
 
         clearTimeout(timeoutId);
 
-        console.log("✅ Departments API response:", response);
+        console.log("Departments API response:", response);
 
         if (isMounted) {
           if (response && response.success) {
             const departmentsData = response.data || [];
-            console.log("📋 Departments received:", departmentsData);
+            console.log("Departments received:", departmentsData);
 
             if (departmentsData.length > 0) {
               setDepartments(departmentsData);
               setFormData((prev) => ({
                 ...prev,
                 department: departmentsData[0]._id,
-                category: departmentsData[0].name, // ← Make sure this is set
+                category: departmentsData[0].name, // Make sure this is set
               }));
               setError("");
             } else {
@@ -298,7 +298,7 @@ const RaiseComplaint = ({ currentUser }) => {
           }
         }
       } catch (error) {
-        console.error("❌ Error fetching departments:", error);
+        console.error("Error fetching departments:", error);
         if (isMounted) {
           if (error.name === "AbortError") {
             setError("Request timeout. Please try again.");
@@ -515,13 +515,13 @@ const checkForDuplicates = async () => {
         workspaceId: currentWorkspace.id,
       };
 
-      console.log("🔍 Checking for duplicates with:", checkData);
+      console.log("Checking for duplicates with:", checkData);
 
       try {
         const response = await complaintService.checkDuplicate(checkData);
         
         if (response.success && response.hasDuplicates) {
-          console.log("⚠️ Found similar complaints:", response.duplicates);
+          console.log("Found similar complaints:", response.duplicates);
           setDuplicateComplaints(response.duplicates);
           setShowDuplicateModal(true);
           return false;
@@ -545,7 +545,7 @@ const checkForDuplicates = async () => {
 
 const handleUpvoteDuplicate = async (complaintId) => {
   try {
-    console.log('🖱️ handleUpvoteDuplicate called with ID:', complaintId);
+    console.log('handleUpvoteDuplicate called with ID:', complaintId);
     
     if (!complaintId) {
       setError("Invalid complaint ID");
@@ -554,7 +554,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
     
     setLoading(true);
     const response = await complaintService.upvoteComplaint(complaintId);
-    console.log('✅ Upvote successful:', response);
+    console.log('Upvote successful:', response);
     
     // Close the modal
     setShowDuplicateModal(false);
@@ -567,7 +567,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
       navigate("/home/my-complaints");
     }, 2000);
   } catch (error) {
-    console.error("❌ Error upvoting:", error);
+    console.error("Error upvoting:", error);
     setError(error.response?.data?.message || "Failed to upvote complaint. Please try again.");
   } finally {
     setLoading(false);
@@ -602,8 +602,8 @@ const handleUpvoteDuplicate = async (complaintId) => {
         return;
       }
 
-      // 🔥 DEBUG: Log formData to see what's in it
-      console.log("📋 Form Data before submission:", {
+      // DEBUG: Log formData to see what's in it
+      console.log("Form Data before submission:", {
         title: formData.title,
         description: formData.description,
         department: formData.department,
@@ -649,7 +649,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
         }
       }
 
-      console.log("📤 Submitting payload:", payload);
+      console.log("Submitting payload:", payload);
 
       const response = await axios.post(
         `${BASE_URL}/api/user_issues`,
@@ -662,7 +662,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
         },
       );
 
-      console.log("✅ Response:", response.data);
+      console.log("Response:", response.data);
 
       if (response.data.success) {
         setSuccess(true);
@@ -673,7 +673,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
         setError(response.data.message || "Failed to submit complaint");
       }
     } catch (error) {
-      console.error("❌ Error submitting complaint:", error);
+      console.error("Error submitting complaint:", error);
 
       if (error.response?.status === 409 && error.response.data.hasDuplicates) {
         setDuplicateComplaints(error.response.data.duplicates);
@@ -704,7 +704,7 @@ const handleUpvoteDuplicate = async (complaintId) => {
     }
 
     if (!formData.department) {
-      // ← FIX: Check for department, not category
+      // FIX: Check for department, not category
       setError("Please select a department");
       return;
     }

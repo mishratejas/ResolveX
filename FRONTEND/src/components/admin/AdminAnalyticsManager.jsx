@@ -128,7 +128,7 @@ const AdminAnalyticsManager = () => {
   if (!analytics) return null;
 
   return (
-    // 🚀 Removed outer padding/bg styles to fit AdminLayout
+    // Removed outer padding/bg styles to fit AdminLayout
     <div className="w-full">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

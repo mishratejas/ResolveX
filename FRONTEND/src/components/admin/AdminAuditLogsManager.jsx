@@ -72,7 +72,7 @@ const AdminAuditLogsManager = () => {
                 }
             }
         } catch (error) {
-            console.error('❌ Error fetching audit logs:', error);
+            console.error('Error fetching audit logs:', error);
             if (error.response?.status === 401) {
                 console.error('Authentication failed - token expired');
                 // Clear invalid token and redirect to login

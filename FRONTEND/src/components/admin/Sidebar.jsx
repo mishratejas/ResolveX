@@ -14,7 +14,7 @@ const Sidebar = ({ activePage, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [orgName, setOrgName] = useState('RESOLVEX');
   
-  // 🚀 NEW: State to hold sidebar badge counts
+  // NEW: State to hold sidebar badge counts
   const [badges, setBadges] = useState({
     issues: 0,
     users: 0,
@@ -33,7 +33,7 @@ const Sidebar = ({ activePage, onLogout }) => {
       }
     }
     
-    // 🚀 NEW: Fetch badge counts on load
+    // NEW: Fetch badge counts on load
     fetchSidebarStats();
     
     // Auto-refresh badges every 30 seconds
@@ -144,7 +144,7 @@ const Sidebar = ({ activePage, onLogout }) => {
                   }`}>
                     <item.icon className="w-5 h-5" />
                     
-                    {/* 🚀 Collapsed Badge Dot */}
+                    {/* Collapsed Badge Dot */}
                     {collapsed && item.badge > 0 && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
                     )}
@@ -156,7 +156,7 @@ const Sidebar = ({ activePage, onLogout }) => {
                     </span>
                   )}
                   
-                  {/* 🚀 Expanded Number Badge */}
+                  {/* Expanded Number Badge */}
                   {!collapsed && item.badge > 0 && (
                     <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-full border border-rose-200">
                       {item.badge > 99 ? '99+' : item.badge}

@@ -71,7 +71,7 @@ export const notificationRoutes = async (userId, type, message, subject) => {
                 ...notification.toObject(),
                 timestamp: new Date()
             });
-            console.log(`✅ Real-time notification sent to ${details.name}`);
+            console.log(`Real-time notification sent to ${details.name}`);
         }
 
         // Send email asynchronously
@@ -90,4 +90,3 @@ export const notificationRoutes = async (userId, type, message, subject) => {
         return null;
     }
 };
-

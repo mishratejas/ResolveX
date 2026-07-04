@@ -213,7 +213,7 @@ const AuthModal = ({
 
       if (activeForm === 'signup') {
         if (userType === 'admin') {
-          // 🚀 UPDATED: Pointing Admin to the OTP signup route instead of direct signup
+          // UPDATED: Pointing Admin to the OTP signup route instead of direct signup
           url = `${baseUrl}/api/otp/signup/admin`;
           payload = { organizationName: data.organizationName, name: data.name, email: data.email, password: data.password, phone: data.phone, otp: data.otp };
         } else if (userType === 'user') {
@@ -432,7 +432,7 @@ const AuthModal = ({
             {!forgotMode && (
             <motion.form key={`${userType}-${activeForm}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onSubmit={handleSubmit} className="space-y-4">
               
-              {/* 🚀 ADMIN FIELDS BLOCK */}
+              {/* ADMIN FIELDS BLOCK */}
               {userType === 'admin' ? (
                 <div className="space-y-4">
                   {activeForm === 'signup' && (
@@ -448,7 +448,7 @@ const AuthModal = ({
                     <input type="email" name="email" required value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="Enter admin email" className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" />
                   </div>
 
-                  {/* 🚀 NEW: Admin OTP Block */}
+                  {/* NEW: Admin OTP Block */}
                   {activeForm === 'signup' && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -557,7 +557,7 @@ const AuthModal = ({
                 </div>
               )}
 
-              {/* 🚀 UPDATED: Submit button now requires OTP for ALL signups */}
+              {/* UPDATED: Submit button now requires OTP for ALL signups */}
               <button 
                 type="submit" 
                 disabled={isSubmitting || (activeForm === 'signup' && (!otpSent || !otpValue))} 

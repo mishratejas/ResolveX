@@ -18,7 +18,7 @@ export const auth = async (req, res, next) => {
         // Verify access token
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         
-        // 🔧 FIX: Populate joinedWorkspaces with Admin details
+        // FIX: Populate joinedWorkspaces with Admin details
         const user = await User.findById(decoded.id)
             .select("-password")
             .populate({
@@ -69,7 +69,7 @@ export const optionalAuth = async (req, res, next) => {
             const token = authHeader.replace("Bearer ", "");
             const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
             
-            // 🔧 FIX: Populate joinedWorkspaces
+            // FIX: Populate joinedWorkspaces
             const user = await User.findById(decoded.id)
                 .select("-password")
                 .populate({

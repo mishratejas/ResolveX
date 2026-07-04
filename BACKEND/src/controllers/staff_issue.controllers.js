@@ -80,7 +80,7 @@ export const handleUpdateStaffComplaint = async (req, res) => {
                 complaint.resolvedAt = new Date();
             }
 
-            // 🔔 Send notification to user about status change
+            // Send notification to user about status change
             try {
                 await NotificationService.notifyComplaintStatusChange(
                     complaint,
@@ -103,7 +103,7 @@ export const handleUpdateStaffComplaint = async (req, res) => {
             updates.comments = comments;
             activityLog.push('Work notes added');
 
-            // 🔔 Send notification to user about new comment
+            // Send notification to user about new comment
             try {
                 const staffDetails = await complaint.populate('assignedTo', 'name');
                 await NotificationService.notifyNewComment(
@@ -200,24 +200,24 @@ export const handleGetStaffStats = async (req, res) => {
 export const getAdminsIdForStaff = async (req, res) => {
   try {
     try {
-        console.log("🔍 Fetching admin information...");
+        console.log("Fetching admin information...");
         
         // Check if User model is working
         const adminCount = await Admin.countDocuments({ role: 'admin' });
-        console.log(`📊 Total admin users: ${adminCount}`);
+        console.log(`Total admin users: ${adminCount}`);
 
         const admin = await Admin.findOne({ role: 'admin' })
             .select('_id name email role');
 
         if (!admin) {
-            console.log("❌ No admin user found with role 'admin'");
+            console.log("No admin user found with role 'admin'");
             return res.status(404).json({
                 success: false,
                 message: 'No admin user found in system'
             });
         }
 
-        console.log("✅ Admin found:", admin);
+        console.log("Admin found:", admin);
         
         res.status(200).json({
             success: true,
@@ -230,7 +230,7 @@ export const getAdminsIdForStaff = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ SERVER ERROR in getAdminIdForStaff:', error);
+        console.error('SERVER ERROR in getAdminIdForStaff:', error);
         res.status(500).json({
             success: false,
             message: 'Server error: ' + error.message,

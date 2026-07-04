@@ -46,13 +46,13 @@ const switchWorkspace = (workspace) => {
   const workspaceData = {
     id: workspace._id,
     name: workspace.organizationName,
-    workspaceCode: workspace.workspaceCode, // ← FIXED: Use workspaceCode, not code
+    workspaceCode: workspace.workspaceCode, // FIXED: Use workspaceCode, not code
     email: workspace.email,
     phone: workspace.phone || '',
     joinedAt: new Date().toISOString()
   };
 
-  console.log('🔄 Switching to workspace:', workspaceData);
+  console.log('Switching to workspace:', workspaceData);
   localStorage.setItem('currentWorkspace', JSON.stringify(workspaceData));
   setCurrentWorkspace(workspaceData);
   setIsOpen(false);

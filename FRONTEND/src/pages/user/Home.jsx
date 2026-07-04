@@ -68,10 +68,10 @@ const Home = () => {
       } catch (err) {
         localStorage.removeItem("user");
         localStorage.removeItem("accessToken");
-        navigate("/login"); // 🔧 FIX: Use navigate instead of window.location
+        navigate("/login"); // FIX: Use navigate instead of window.location
       }
     } else {
-      navigate("/login"); // 🔧 FIX: Use navigate instead of window.location
+      navigate("/login"); // FIX: Use navigate instead of window.location
     }
     setLoading(false);
   }, [navigate]); // Add navigate to dependencies

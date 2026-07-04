@@ -110,7 +110,7 @@ const AdminDashboardManager = () => {
 
       try {
         const [chartRes, issueStatsRes] = await Promise.all([
-          adminService.getChartData(timeRange), // 🚀 Now uses dynamic timeRange
+          adminService.getChartData(timeRange), // Now uses dynamic timeRange
           adminService.getIssueStats()
         ]);
         
@@ -276,7 +276,7 @@ const AdminDashboardManager = () => {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
-        {/* 🚀 Graph with integrated Filters */}
+        {/* Graph with integrated Filters */}
         <div className="lg:col-span-2 bg-white rounded-xl p-6 border border-orange-100 shadow-sm flex flex-col">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
             <div>
@@ -287,7 +287,7 @@ const AdminDashboardManager = () => {
               </div>
             </div>
 
-            {/* 🚀 Integrated Graph Controls */}
+            {/* Integrated Graph Controls */}
             <div className="flex items-center gap-3">
               <div className="relative group">
                 <select

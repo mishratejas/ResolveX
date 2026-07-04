@@ -439,7 +439,7 @@ const fetchLiveData = useCallback(async () => {
       }
 
       // Update engagement metrics
-      // 🔧 FIX: Use correct field names from UserComplaint schema
+      // FIX: Use correct field names from UserComplaint schema
       user.totalVotes += issue.voteCount || 0; // Changed from votes.length to voteCount
       user.totalComments += issue.comments?.length || 0; // This is OK as comments exist
       user.totalUpvotes += issue.voteCount || 0; // Changed from upvotes to voteCount

@@ -25,7 +25,7 @@ export const handleAllIssueFetch = async (req, res) => {
   try {
     const { status, workspaceId } = req.query;
 
-    console.log('📥 Fetching complaints with filters:', { status, workspaceId });
+    console.log('Fetching complaints with filters:', { status, workspaceId });
 
     const statusMap = {
       Open: "pending",
@@ -35,7 +35,7 @@ export const handleAllIssueFetch = async (req, res) => {
 
     let filter = {};
 
-    // 🔥 CRITICAL FIX: Always require workspaceId
+    // CRITICAL FIX: Always require workspaceId
     if (!workspaceId) {
       return res.status(400).json({
         success: false,
@@ -59,8 +59,8 @@ export const handleAllIssueFetch = async (req, res) => {
       .populate("user", "name email")
       .populate("adminId", "workspaceCode organizationName name");
 
-    // 🔥 DEBUG: Log location data for first few complaints
-    console.log('📍 Location data check:');
+    // DEBUG: Log location data for first few complaints
+    console.log('Location data check:');
     complaints.slice(0, 3).forEach((c, i) => {
       console.log(`Complaint ${i + 1}:`, {
         id: c._id,
@@ -112,7 +112,7 @@ export const handleSingleUserIssueFetch = async (req, res) => {
 
 export const checkDuplicateComplaint = async (req, res) => {
   try {
-    console.log("🔥 DUPLICATE API HIT");
+    console.log("DUPLICATE API HIT");
     const { title, description, location, category, workspaceId } = req.body; 
     const userId = req.user?._id;
 
@@ -258,7 +258,7 @@ export const handleIssueGeneration = async (req, res) => {
         longitude: location.longitude || null,
       };
     }
-    console.log('📍 Saving location:', locationData);
+    console.log('Saving location:', locationData);
     
     if (!locationData.address || locationData.address.trim() === "") {
       return res.status(400).json({ success: false, message: "Location is required" });
@@ -302,17 +302,17 @@ export const handleIssueGeneration = async (req, res) => {
     let prioritySource = "fallback";
 
     try {
-      console.log("🤖 Calling AI priority service...");
+      console.log("Calling AI priority service...");
       priority = await priorityService.analyzePriority({
         title, description, category: category || "other", department: null,
       });
       prioritySource = "ai";
-      console.log(`✅ AI assigned priority: ${priority} for complaint: ${title}`);
+      console.log(`AI assigned priority: ${priority} for complaint: ${title}`);
     } catch (aiError) {
-      console.error("⚠️ AI priority assignment failed:", aiError.message);
+      console.error("AI priority assignment failed:", aiError.message);
       priority = calculatePriorityFallback(title, description, category);
       prioritySource = "rule-based";
-      console.log(`🔄 Using rule-based priority: ${priority}`);
+      console.log(`Using rule-based priority: ${priority}`);
     }
 
     //   NEW: THE LOAD BALANCER EXECUTION
@@ -320,16 +320,16 @@ export const handleIssueGeneration = async (req, res) => {
     let initialStatus = "pending";
 
     if (department && adminId) {
-      console.log(`⚖️ Running Load Balancer for Department: ${department}`);
+      console.log(`Running Load Balancer for Department: ${department}`);
       assignedStaffId = await getLeastLoadedStaff(department, adminId);
       
       if (assignedStaffId) {
-        console.log(`🎯 Load Balancer assigned ticket to Staff: ${assignedStaffId}`);
+        console.log(`Load Balancer assigned ticket to Staff: ${assignedStaffId}`);
         // Optional: If auto-assigned, instantly set to in-progress. 
         // Leave as 'pending' if you want staff to manually accept it first.
         // initialStatus = "in-progress"; 
       } else {
-        console.log(`⚠️ No available staff found. Ticket remains Pending.`);
+        console.log(`No available staff found. Ticket remains Pending.`);
       }
     }
 
@@ -369,10 +369,10 @@ export const handleIssueGeneration = async (req, res) => {
         embeddingText,
       });
 
-      console.log(`✅ Embedding stored for complaint ${complaint._id}`);
+      console.log(`Embedding stored for complaint ${complaint._id}`);
     } catch (embeddingError) {
       console.error(
-        "⚠️ Failed to generate complaint embedding:",
+        " Failed to generate complaint embedding:",
         embeddingError
       );
 
@@ -411,7 +411,7 @@ export const handleIssueGeneration = async (req, res) => {
       priorityAssignedBy: prioritySource,
     });
   } catch (error) {
-    console.error("❌ Error submitting complaint:", error);
+    console.error("Error submitting complaint:", error);
     res.status(500).json({
       success: false,
       message: "Error submitting complaint: " + error.message,
@@ -548,26 +548,12 @@ export const handleVoteCount = async (req, res) => {
   }
 };
 
-export const getComplaintsByPriority = async (req, res) => {
-  try {
-    const { priority } = req.params;
-    if (!["low", "medium", "high", "critical"].includes(priority)) {
-      return res.status(400).json({ success: false, message: "Invalid priority value" });
-    }
-
-    const complaints = await UserComplaint.find({ priority }).populate("user", "name email").sort("-createdAt");
-    res.json({ success: true, count: complaints.length, data: complaints });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching complaints" });
-  }
-};
-
 export const handleUpvoteComplaint = async (req, res) => {
   try {
     const { id } = req.params; // Change from complaintId to id
     const userId = req.user?._id || req.user?.id;
 
-    console.log('📝 Upvote request received:');
+    console.log('Upvote request received:');
     console.log('   - id from params:', id);
     console.log('   - userId from auth:', userId);
     console.log('   - full params:', req.params);
@@ -614,7 +600,7 @@ export const handleUpvoteComplaint = async (req, res) => {
 
     await complaint.save();
 
-    console.log('✅ Upvote successful:', { 
+    console.log('Upvote successful:', { 
       id, 
       newVoteCount: complaint.voteCount 
     });
@@ -628,7 +614,7 @@ export const handleUpvoteComplaint = async (req, res) => {
       } 
     });
   } catch (error) {
-    console.error("❌ Error upvoting complaint:", error);
+    console.error("Error upvoting complaint:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error upvoting complaint: " + error.message 

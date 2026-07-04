@@ -9,7 +9,7 @@ const DuplicateWarningModal = ({ isOpen, onClose, duplicates, onUpvote, onProcee
   const ownComplaints = duplicates.filter((d) => d.isOwnComplaint).length;
 
   const handleUpvote = async (complaintId) => {
-     console.log('🖱️ Upvote button clicked for complaint:', complaintId); // Add debug log
+     console.log('Upvote button clicked for complaint:', complaintId); // Add debug log
   onUpvote(complaintId);
   };
 

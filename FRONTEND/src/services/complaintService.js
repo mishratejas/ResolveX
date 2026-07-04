@@ -123,7 +123,7 @@ const complaintService = {
   },
 upvoteComplaint: async (complaintId) => {
   try {
-    console.log("📤 Attempting to upvote complaint ID:", complaintId);
+    console.log("Attempting to upvote complaint ID:", complaintId);
     
     // Ensure complaintId is a string and trim any whitespace
     const id = String(complaintId).trim();
@@ -134,14 +134,14 @@ upvoteComplaint: async (complaintId) => {
     
     // Make sure the URL is correctly formatted - using :id parameter
     const url = `/api/user_issues/${id}/upvote`;
-    console.log("📤 Request URL:", url);
+    console.log("Request URL:", url);
     
     const response = await axios.put(url);
     
-    console.log("📥 Upvote response:", response.data);
+    console.log("Upvote response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("❌ Error upvoting complaint:", error);
+    console.error("Error upvoting complaint:", error);
     
     if (error.response) {
       console.error("Response status:", error.response.status);

@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const StaffManager = () => {
   const navigate = useNavigate();
   
-  // 🚀 2-TAB STATE
+  // 2-TAB STATE
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'pending'
   
   const [staff, setStaff] = useState([]);
@@ -58,7 +58,7 @@ const StaffManager = () => {
       if (response.success) {
         const allFetchedStaff = response.data.staff || response.data || [];
         
-        // 🚀 THE FIX: Hide anyone who is unapproved from the main Active list.
+        // THE FIX: Hide anyone who is unapproved from the main Active list.
         // (We use !== false so that if you have older staff members in your DB 
         // before we added this feature, they won't magically disappear!)
         const approvedStaffOnly = allFetchedStaff.filter(member => member.isApproved !== false);
@@ -175,7 +175,7 @@ const StaffManager = () => {
     setShowEditModal(true);
   };
 
-  // 🚀 FILTERING LOGIC
+  // FILTERING LOGIC
   const currentList = activeTab === 'active' ? staff : pendingStaff;
   
   const filteredStaff = currentList.filter(staffMember => {
@@ -230,7 +230,7 @@ const StaffManager = () => {
           </div>
         </div>
 
-        {/* 🚀 2 TABS TOGGLE */}
+        {/* 2 TABS TOGGLE */}
         <div className="flex bg-gray-200/50 p-1 rounded-xl w-fit mb-4">
           <button 
             onClick={() => setActiveTab('active')}
@@ -313,7 +313,7 @@ const StaffManager = () => {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff Member</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact / Dept</th>
                 
-                {/* 🚀 Dynamic Table Headers */}
+                {/* Dynamic Table Headers */}
                 {activeTab === 'active' ? (
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Performance</th>
                 ) : (
@@ -363,7 +363,7 @@ const StaffManager = () => {
                     </td>
                   )}
 
-                  {/* 🚀 Dynamic Status Badge */}
+                  {/* Dynamic Status Badge */}
                   <td className="px-6 py-4">
                     {activeTab === 'pending' ? (
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">

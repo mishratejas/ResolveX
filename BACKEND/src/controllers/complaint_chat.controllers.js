@@ -51,7 +51,7 @@ export const sendComplaintMessage = async (req, res) => {
             conversationId: `complaint_${complaintId}` 
         });
 
-        // 🚀 PROPER FIX: Populate the sender's details BEFORE broadcasting to Socket.io
+        // PROPER FIX: Populate the sender's details BEFORE broadcasting to Socket.io
         newMessage = await newMessage.populate('senderId', 'name email');
 
         if (global.io) {

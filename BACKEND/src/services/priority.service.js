@@ -75,7 +75,7 @@ class PriorityService {
                         ["low", "medium", "high", "critical"].includes(priority)
                     ) {
                         console.log(
-                            `🤖 Gemini assigned priority: ${priority}`
+                            ` Gemini assigned priority: ${priority}`
                         );
 
                         return priority;
@@ -95,7 +95,7 @@ class PriorityService {
             }
 
             console.log(
-                "🔄 All Gemini API keys failed. Using rule-based fallback."
+                " All Gemini API keys failed. Using rule-based fallback."
             );
 
             return this.ruleBasedFallback(complaintData);

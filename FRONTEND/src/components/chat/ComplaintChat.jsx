@@ -26,7 +26,7 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
         const socketInstance = io(BASE_URL);
 
         socketInstance.on('connect', () => {
-            console.log('🔌 Connected to chat socket');
+            console.log('Connected to chat socket');
             socketInstance.emit('join_complaint', complaintId);
         });
 

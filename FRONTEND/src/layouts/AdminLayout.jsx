@@ -38,7 +38,7 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
         <div className="absolute top-40 right-10 w-64 h-64 bg-red-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
       </div>
 
-      {/* 🚀 Your Custom Orange Sidebar */}
+      {/* Your Custom Orange Sidebar */}
       <div className="z-20 shadow-xl lg:shadow-none h-full">
         <Sidebar activePage={activePage} onLogout={onLogout} />
       </div>
@@ -46,7 +46,7 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
         
-        {/* 🚀 Glassmorphism Top Navbar */}
+        {/* Glassmorphism Top Navbar */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-orange-100 shadow-sm px-6 py-3 shrink-0">
           <div className="flex items-center justify-between">
             {/* Mobile spacing for menu button */}

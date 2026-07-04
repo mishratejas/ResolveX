@@ -6,12 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed:departments": "node seeders/seedDepartments.js",
-    "seed:staff": "node seeders/seedStaff.js",
-    "seed:users": "node seeders/seedUsers.js",
-    "seed:complaints": "node seeders/seedComplaints.js",
-    "seed:all": "node seeders/seedAll.js",
-    "seed:admin": "node seeders/seedAdmin.js"
+    "seed:all": "node seeders/seedAll.js"
   },
   "author": "",
   "license": "ISC",
