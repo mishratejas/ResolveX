@@ -385,50 +385,6 @@ export const handleGetComplaintDetails = async (req, res) => {
     }
 };
 
-// --- 5. Bulk assign complaints to staff (WORKSPACE LOCKED) ---
-export const handleBulkAssign = async (req, res) => {
-    try {
-        const { complaintIds, assignedTo } = req.body;
-        const adminId = req.admin?._id;
-
-        if (!complaintIds || !Array.isArray(complaintIds) || complaintIds.length === 0) {
-            return res.status(400).json({ success: false, message: 'Please provide complaint IDs to assign' });
-        }
-        if (!assignedTo) {
-            return res.status(400).json({ success: false, message: 'Please specify staff member to assign' });
-        }
-
-        // Only bulk update tickets that belong to this admin
-        const result = await UserComplaint.updateMany(
-            { _id: { $in: complaintIds }, adminId: adminId },
-            { 
-                $set: { 
-                    assignedTo: assignedTo,
-                    status: 'in-progress',
-                    updatedAt: new Date()
-                },
-                $push: {
-                    comments: {
-                        staff: adminId,
-                        message: `[BULK ASSIGNED]: Assigned to staff member`,
-                        createdAt: new Date()
-                    }
-                }
-            }
-        );
-
-        res.json({
-            success: true,
-            message: `Successfully assigned ${result.modifiedCount} complaints to staff`,
-            data: { assignedCount: result.modifiedCount, assignedTo: assignedTo }
-        });
-
-    } catch (error) {
-        console.error('Error in bulk assignment:', error);
-        res.status(500).json({ success: false, message: 'Error during bulk assignment' });
-    }
-};
-
 // --- 6. Get Issue Stats (WORKSPACE LOCKED) ---
 export const getIssueStats = async (req, res) => {
     try {

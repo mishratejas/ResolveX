@@ -1,13 +1,15 @@
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
+dotenv.config();
 
-dotenv.config({
-    path: '../.env'
-});
-
-import connectDB from "./db/index.js"
-import { server } from "./app.js";
+const { default: connectDB } = await import("./db/index.js");
+const { server } = await import("./app.js");
 
 const PORT = process.env.PORT || 5000;
+
+// Quick sanity check so it's obvious in the logs whether the key loaded.
+console.log(
+    `Gemini key loaded: ${Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)}`
+);
 
 connectDB()
 .then(() => {

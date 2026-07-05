@@ -20,7 +20,6 @@ import adminDepartmentRoutes from "./routes/admin.department.routes.js";
 import adminStaffRoutes from "./routes/admin.staff.routes.js";
 import adminUserRoutes from "./routes/admin.user.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
-import assignmentRoutes from "./routes/assignment.routes.js"
 const app = express();
 const server = createServer(app);
 
@@ -88,7 +87,6 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/staff", adminStaffRoutes);
 app.use(express.static("public"));
 app.use('/api/audit', auditRoutes);
-app.use('/api/assignment', assignmentRoutes);
 // Health check
 app.get("/health", (req, res) => {
     res.json({

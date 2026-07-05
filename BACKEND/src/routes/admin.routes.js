@@ -3,9 +3,6 @@ import {
     adminLogin,
     adminLogout,
     getDashboardData,
-    getRealTimeStats,
-    getNotifications,
-    markNotificationAsRead,
     getChartData,
     getAdminProfile,      
     updateAdminProfile    
@@ -26,11 +23,6 @@ router.put("/profile", adminAuth, updateAdminProfile); // Admin can update their
 
 // ==================== DASHBOARD ====================
 router.get("/dashboard", adminAuth, auditLogger('DASHBOARD_VIEWED', 'ANALYTICS', 'LOW'), getDashboardData);
-router.get("/stats/realtime", adminAuth, getRealTimeStats);
 router.get("/analytics/chart", adminAuth, getChartData);
-
-// ==================== NOTIFICATIONS ====================
-router.get("/notifications", adminAuth, getNotifications);
-router.put("/notifications/:id/read", adminAuth, markNotificationAsRead);
 
 export default router;

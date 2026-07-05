@@ -4,7 +4,6 @@ import {
   handleFetchStaffList,
   handleUpdateIssue,
   handleGetComplaintDetails,
-  handleBulkAssign,
   getIssueStats
 } from "../controllers/admin_issue.controllers.js";
 import { adminAuth } from "../middleware/adminAuth.js";
@@ -26,8 +25,6 @@ router.get("/:id", adminAuth, handleGetComplaintDetails);
 // Update complaint (status, priority, assignment, etc.)
 router.put("/:id", adminAuth, handleUpdateIssue);
 
-// Bulk operations
-router.post("/bulk-assign", adminAuth, handleBulkAssign);
 router.patch('/complaint/:complaintId/priority', adminAuth, adminOverridePriority);
 
 export default router;
