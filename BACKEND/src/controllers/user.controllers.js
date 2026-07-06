@@ -242,7 +242,10 @@ export const joinWorkspace = async (req, res) => {
         const user = await User.findById(userId);
 
         // Check if already joined
-        if (user.joinedWorkspaces.includes(admin._id)) {
+        const alreadyJoined = user.joinedWorkspaces.some(
+            (wsId) => wsId.toString() === admin._id.toString()
+        );
+        if (alreadyJoined) {
             return res.status(400).json({
                 success: false,
                 message: "You are already a member of this workspace"
@@ -300,7 +303,10 @@ export const leaveWorkspace = async (req, res) => {
         const user = await User.findById(userId);
 
         // Check if user is in this workspace
-        if (!user.joinedWorkspaces.includes(workspaceId)) {
+        const isMember = user.joinedWorkspaces.some(
+            (wsId) => wsId.toString() === workspaceId.toString()
+        );
+        if (!isMember) {
             return res.status(400).json({
                 success: false,
                 message: "You are not a member of this workspace"

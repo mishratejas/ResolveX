@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import * as adminService from '../../services/adminService';
 import {
   Users, Search, Filter, RefreshCw, UserPlus, Edit, Trash2, Eye,
@@ -9,7 +8,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const StaffManager = () => {
-  const navigate = useNavigate();
   
   // 2-TAB STATE
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'pending'
@@ -98,6 +96,7 @@ const StaffManager = () => {
         fetchAllData(); 
       }
     } catch (error) {
+      console.error('Failed to approve staff member:', error);
       alert('Failed to approve staff member');
     }
   };
@@ -110,6 +109,7 @@ const StaffManager = () => {
         fetchAllData(); 
       }
     } catch (error) {
+      console.error('Failed to reject staff member:', error);
       alert('Failed to reject staff member');
     }
   };
@@ -158,7 +158,7 @@ const StaffManager = () => {
       const action = currentStatus ? 'deactivate' : 'activate';
       const response = action === 'activate' ? await adminService.bulkActivateStaff([staffId]) : await adminService.bulkDeactivateStaff([staffId]);
       if (response.success) fetchStaffData();
-    } catch (error) { alert('Failed to update staff status'); }
+    } catch (error) { console.error('Failed to update staff status:', error); alert('Failed to update staff status'); }
   };
 
   const resetForm = () => {
@@ -448,7 +448,7 @@ const StaffManager = () => {
                   </div>
                   <div><label className="block text-sm font-medium mb-2">Password *</label><input type="password" name="password" value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" /></div>
                 </div>
-                <div className="flex gap-3 mt-6"><button onClick={() => setShowAddModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button><button onClick={handleAddStaff} className="flex-1 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all font-medium shadow-sm">Add Staff</button></div>
+                <div className="flex gap-3 mt-6"><button onClick={() => setShowAddModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button><button onClick={handleAddStaff} disabled={submitting} className="flex-1 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all font-medium shadow-sm disabled:opacity-60">{submitting ? 'Adding...' : 'Add Staff'}</button></div>
               </div>
             </motion.div>
           </div>
@@ -480,7 +480,7 @@ const StaffManager = () => {
                   <div><label className="block text-sm font-medium mb-2">New Password (Optional)</label><input type="password" name="password" value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" /></div>
                   <div className="flex items-center gap-2"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleInputChange} /> <label className="text-sm">Account Active</label></div>
                 </div>
-                <div className="flex gap-3 mt-6"><button onClick={() => setShowEditModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button><button onClick={handleUpdateStaff} className="flex-1 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all font-medium shadow-sm">Update Staff</button></div>
+                <div className="flex gap-3 mt-6"><button onClick={() => setShowEditModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button><button onClick={handleUpdateStaff} disabled={submitting} className="flex-1 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all font-medium shadow-sm disabled:opacity-60">{submitting ? 'Saving...' : 'Update Staff'}</button></div>
               </div>
             </motion.div>
           </div>

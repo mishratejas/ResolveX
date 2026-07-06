@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell
@@ -14,10 +14,9 @@ import { useNavigate } from 'react-router-dom';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-const Reports = ({ currentUser }) => {
+const Reports = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('all');
   const [myComplaints, setMyComplaints] = useState([]);
   const [allComplaints, setAllComplaints] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
@@ -28,7 +27,7 @@ const Reports = ({ currentUser }) => {
   const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => { loadAll(); }, []);
-  useEffect(() => { if (selectedWorkspace) loadAll(); }, [timeRange, selectedWorkspace]);
+  useEffect(() => { if (selectedWorkspace) loadAll(); }, [selectedWorkspace]);
 
   const loadAll = async () => {
     setLoading(true);

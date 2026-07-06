@@ -4,7 +4,6 @@ import {
     handleSingleUserIssueFetch,
     handleIssueGeneration, 
     handleSingleIssueFetch, 
-    handleVoteCount,
     handleComplaintLocations,
     handleGetMyIssues,
     handleGetStats,
@@ -44,8 +43,10 @@ router.get('/:id', handleSingleIssueFetch);
 // Upvote an existing complaint
 router.put('/:id/upvote', auth, handleUpvoteComplaint);
 
-// PUT /api/user_issues/:id/vote - Add voting system for public engagement
-router.put('/:id/vote', handleVoteCount);
+// PUT /api/user_issues/:id/vote - deprecated alias, kept for backward compatibility.
+// Routed to the same guarded handler as /upvote so it can't be used to bypass
+// auth or the one-vote-per-user check.
+router.put('/:id/vote', auth, handleUpvoteComplaint);
 
 // Comments: any authenticated user can comment on any complaint; comments are public to view
 router.get('/:id/comments', getComplaintComments);

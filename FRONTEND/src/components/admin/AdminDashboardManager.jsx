@@ -229,6 +229,12 @@ const AdminDashboardManager = () => {
 
   return (
     <div className="w-full">
+      {error && (
+        <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
+        </div>
+      )}
       {/* Welcome Banner */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 relative overflow-hidden rounded-xl shadow-lg">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-400"></div>

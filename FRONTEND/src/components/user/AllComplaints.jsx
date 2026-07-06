@@ -9,7 +9,7 @@ import axios from "axios";
 import debounce from "lodash/debounce";
 import { toast } from "react-hot-toast";
 
-const AllComplaints = ({ currentUser }) => {
+const AllComplaints = () => {
   const navigate = useNavigate();
   const [complaints, setComplaints] = useState([]);
   const [filteredComplaints, setFilteredComplaints] = useState([]);
@@ -148,8 +148,8 @@ const AllComplaints = ({ currentUser }) => {
       if (complaint.voters?.includes(userId)) { toast.error("You have already voted for this issue!"); return; }
       setVoting((prev) => ({ ...prev, [complaintId]: true }));
       const response = await axios.put(
-        `${BASE_URL}/api/user_issues/${complaintId}/vote`,
-        { userId },
+        `${BASE_URL}/api/user_issues/${complaintId}/upvote`,
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {

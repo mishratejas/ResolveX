@@ -177,7 +177,7 @@ function App() {
     });
   };
 
-  const openAuthModal = (type = "user") => {
+  const openAuthModal = () => {
     setShowAuthModal(true);
   };
 
@@ -227,8 +227,7 @@ function App() {
 
   // Listen for auth events
   useEffect(() => {
-    const handleAuthEvent = (e) => {
-
+    const handleAuthEvent = () => {
       checkAuth();
     };
 
@@ -538,33 +537,6 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
   });
 
   return childrenWithProps;
-};
-
-// Token validation helper
-const validateToken = (token) => {
-  if (!token) return false;
-
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const isExpired = Date.now() >= payload.exp * 1000;
-
-    if (isExpired) {
-      console.log(
-        "Token expired:",
-        new Date(payload.exp * 1000).toLocaleString(),
-      );
-      return false;
-    }
-
-    console.log(
-      "Token valid until:",
-      new Date(payload.exp * 1000).toLocaleString(),
-    );
-    return true;
-  } catch (error) {
-    console.error("Error validating token:", error);
-    return false;
-  }
 };
 
 export default App;

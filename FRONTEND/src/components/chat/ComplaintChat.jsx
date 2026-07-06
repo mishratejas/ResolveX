@@ -11,7 +11,6 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
-    const [socket, setSocket] = useState(null);
     const messagesEndRef = useRef(null);
 
     // Get a clean token based on role
@@ -35,8 +34,6 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
             setMessages(prev => [...prev, message]);
             scrollToBottom();
         });
-
-        setSocket(socketInstance);
 
         // 3. Fetch History
         fetchConversation();

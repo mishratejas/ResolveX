@@ -54,7 +54,6 @@ const StaffDashboard = () => {
     avgResolutionTime: "2.5 days",
   });
   const [activeTab, setActiveTab] = useState("pending"); // Default to pending queue
-  const [recentActivity, setRecentActivity] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null); // Image Lightbox
@@ -118,7 +117,6 @@ const StaffDashboard = () => {
     }
 
     fetchAssignedComplaints();
-    fetchRecentActivity();
     fetchInboxData(); // Fetch inbox unread data immediately on load
   };
 
@@ -177,18 +175,6 @@ const StaffDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchRecentActivity = () => {
-    const simulatedActivity = [
-      {
-        _id: "1",
-        action: `You logged into the system`,
-        timestamp: new Date().toISOString(),
-        type: "login",
-      },
-    ];
-    setRecentActivity(simulatedActivity);
   };
 
   const calculateStats = (complaints) => {
@@ -284,7 +270,6 @@ const StaffDashboard = () => {
         if (freshStaffData.isApproved) {
           setIsApproved(true);
           fetchAssignedComplaints();
-          fetchRecentActivity();
         } else {
           alert("Your account is still under review. Hang tight!");
         }
@@ -317,6 +302,7 @@ const StaffDashboard = () => {
         fetchAssignedComplaints();
       }
     } catch (error) {
+      console.error("Failed to update status:", error);
       alert("Failed to update status.");
     }
   };
@@ -507,6 +493,13 @@ const StaffDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pb-12">
+      {error && (
+        <div className="max-w-5xl mx-auto mt-4 px-4">
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            {error}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

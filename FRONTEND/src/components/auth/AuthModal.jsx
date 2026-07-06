@@ -81,6 +81,7 @@ const AuthModal = ({
         setError(result.message || 'Invalid Workspace Code. Departments not found.');
       }
     } catch (error) {
+      console.error('Failed to verify workspace:', error);
       setError('Failed to verify workspace. Please check your connection.');
       setWorkspaceValid(false);
     } finally {

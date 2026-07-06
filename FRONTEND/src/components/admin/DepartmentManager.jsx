@@ -4,8 +4,7 @@ import {
   Building, Plus, Search, Trash2, Edit, AlertCircle, 
   CheckCircle, X, Loader2, AlertTriangle 
 } from 'lucide-react';
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+import departmentService from '../../services/departmentService';
 
 const DepartmentManager = () => {
   const [departments, setDepartments] = useState([]);
@@ -32,16 +31,9 @@ const DepartmentManager = () => {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('adminAccessToken');
-      
-      const response = await fetch(`${BASE_URL}/api/admin/departments`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
+      const result = await departmentService.getDepartments();
+
+      if (result.success) {
         setDepartments(result.data);
       } else {
         throw new Error(result.message || 'Failed to fetch departments');
@@ -65,19 +57,9 @@ const DepartmentManager = () => {
     setError('');
     
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('adminAccessToken');
-      const response = await fetch(`${BASE_URL}/api/admin/departments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newDept)
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
+      const result = await departmentService.createDepartment(newDept);
+
+      if (result.success) {
         setSuccess('Department added successfully!');
         setNewDept({ name: '', description: '' });
         setIsAddModalOpen(false);
@@ -88,7 +70,7 @@ const DepartmentManager = () => {
         throw new Error(result.message || 'Failed to add department');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -107,19 +89,12 @@ const DepartmentManager = () => {
     setError('');
     
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('adminAccessToken');
-      const response = await fetch(`${BASE_URL}/api/admin/departments/${editDept.id}`, {
-        method: 'PUT', // Assuming your backend uses PUT for updates
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ name: editDept.name, description: editDept.description })
+      const result = await departmentService.updateDepartment(editDept.id, {
+        name: editDept.name,
+        description: editDept.description
       });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
+
+      if (result.success) {
         setSuccess('Department updated successfully!');
         setIsEditModalOpen(false);
         fetchDepartments();
@@ -129,7 +104,7 @@ const DepartmentManager = () => {
         throw new Error(result.message || 'Failed to update department');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setIsEditing(false);
     }
@@ -147,17 +122,9 @@ const DepartmentManager = () => {
     setError('');
     
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('adminAccessToken');
-      const response = await fetch(`${BASE_URL}/api/admin/departments/${deptToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
+      const result = await departmentService.deleteDepartment(deptToDelete.id);
+
+      if (result.success) {
         setSuccess(result.message); 
         setIsDeleteModalOpen(false);
         fetchDepartments();
@@ -167,7 +134,7 @@ const DepartmentManager = () => {
         throw new Error(result.message || 'Failed to delete department');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
       setIsDeleteModalOpen(false);
     } finally {
       setIsDeleting(false);

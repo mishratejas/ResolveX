@@ -169,6 +169,11 @@ const AdminUsersManager = () => {
 
   return (
     <div className="w-full">
+      {error && (
+        <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+          <span className="text-sm">{error}</span>
+        </div>
+      )}
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

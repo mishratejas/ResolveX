@@ -30,6 +30,17 @@ const AdminLayout = ({ children, activePage, onLogout }) => {
     }
   }, []);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   return (
     <div className="flex h-screen bg-gradient-to-b from-orange-50 to-white overflow-hidden">
       {/* Ambient Background Elements */}

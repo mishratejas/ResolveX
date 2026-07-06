@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 import {
   BarChart,
   Bar,
@@ -746,18 +747,6 @@ const fetchLiveData = useCallback(async () => {
     return num.toLocaleString();
   };
 
-  // Get trend icon
-  const getTrendIcon = (trend) => {
-    switch (trend) {
-      case "up":
-        return <ChevronUp className="w-4 h-4 text-green-500" />;
-      case "down":
-        return <ChevronDown className="w-4 h-4 text-red-500" />;
-      default:
-        return <TrendingUpIcon className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
   // Format time ago
   const formatTimeAgo = (dateString) => {
     if (!dateString) return "Never";
@@ -772,17 +761,6 @@ const fetchLiveData = useCallback(async () => {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
-  };
-
-  // Get user badge
-  const getUserBadge = (user) => {
-    if (user.rank === 1) return "🏆 Community Champion";
-    if (user.rank === 2) return "🥈 Elite Contributor";
-    if (user.rank === 3) return "🥉 Rising Star";
-    if (user.rank <= 10) return "⭐ Top Contributor";
-    if (user.rank <= 50) return "✨ Active Member";
-    if (user.impactScore >= 80) return "🔥 High Impact";
-    return "👋 Contributor";
   };
 
   // Animation variants

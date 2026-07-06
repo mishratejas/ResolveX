@@ -34,7 +34,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const StaffIssuesPage = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [filteredComplaints, setFilteredComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +58,6 @@ const StaffIssuesPage = () => {
       navigate('/');
       return;
     }
-    setUser(userData);
     fetchComplaints();
   }, [navigate]);
 
@@ -132,7 +130,6 @@ const StaffIssuesPage = () => {
   };
 
   const calculateStats = (data) => {
-    const now = new Date();
     let totalComments = 0;
     let resolvedCount = 0;
     let totalResolutionTime = 0;
@@ -187,17 +184,7 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
     );
 
     if (response.data.success) {
-      fetchAssignedComplaints(); // Refresh the list
-      
-      // Add to recent activity
-      const newActivity = {
-        _id: Date.now().toString(),
-        action: `Updated status to ${newStatus}`,
-        timestamp: new Date().toISOString(),
-        type: 'status_update'
-      };
-      setRecentActivity(prev => [newActivity, ...prev.slice(0, 3)]);
-      
+      fetchComplaints(); // Refresh the list
       alert('Status updated successfully!');
     }
   } catch (error) {
@@ -205,23 +192,6 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
     alert('Failed to update status: ' + (error.response?.data?.message || error.message));
   }
 };
-
-  const addComment = async (complaintId, comment) => {
-    try {
-      const token = localStorage.getItem('staffToken') || localStorage.getItem('staffAccessToken');
-      const response = await axios.put(
-        `${BASE_URL}/api/staff/issues/${complaintId}`,
-        { comments: comment },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        fetchComplaints();
-      }
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
-  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -290,17 +260,6 @@ const updateComplaintStatus = async (complaintId, newStatus) => {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    });
-  };
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     });
   };
 

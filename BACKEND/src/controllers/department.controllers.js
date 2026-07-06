@@ -53,31 +53,6 @@ export const getDepartments = async (req, res) => {
     }
 };
 
-export const getDepartmentStats = async (req, res) => {
-    try {
-        const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;
-
-        const departments = await Department.find({ adminId: currentAdminId, isActive: true })
-            .select('_id name')
-            .sort({ name: 1 });
-
-        const stats = departments.map(dept => ({
-            name: dept.name,
-            complaints: Math.floor(Math.random() * 100) + 20, 
-            resolved: Math.floor(Math.random() * 80) + 10,    
-            pending: Math.floor(Math.random() * 30) + 5       
-        }));
-
-        res.status(200).json({
-            success: true,
-            data: stats
-        });
-    } catch (error) {
-        console.error(' Error fetching department stats:', error);
-        res.status(500).json({ success: false, message: 'Error fetching department stats' });
-    }
-};
-
 export const createDepartment = async (req, res) => {
     try {
         const currentAdminId = req.admin?._id || req.admin?.id || req.user?.id;

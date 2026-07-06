@@ -21,7 +21,6 @@ const departmentService = {
 
   /**
    * Get departments for authenticated admin
-   * This is used in admin dashboard
    * @returns {Promise} Response with departments array
    */
   getDepartments: async () => {
@@ -50,6 +49,22 @@ const departmentService = {
   },
 
   /**
+   * Update an existing department (Admin only)
+   * @param {string} departmentId - Department ID to update
+   * @param {Object} departmentData - Updated fields (name, description)
+   * @returns {Promise} Response with updated department
+   */
+  updateDepartment: async (departmentId, departmentData) => {
+    try {
+      const response = await axios.put(`/api/admin/departments/${departmentId}`, departmentData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating department:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Delete a department (Admin only)
    * @param {string} departmentId - Department ID to delete
    * @returns {Promise} Response with deletion confirmation
@@ -64,19 +79,6 @@ const departmentService = {
     }
   },
 
-  /**
-   * Get department statistics (Admin only)
-   * @returns {Promise} Response with department stats
-   */
-  getDepartmentStats: async () => {
-    try {
-      const response = await axios.get('/api/admin/departments/stats');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching department stats:', error);
-      throw error;
-    }
-  }
 };
 
 export default departmentService;

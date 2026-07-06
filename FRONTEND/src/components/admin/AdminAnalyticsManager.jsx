@@ -70,7 +70,7 @@ const AdminAnalyticsManager = () => {
       
       setError(errorMessage);
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log("Using fallback demo data");
         setAnalytics(getDemoAnalytics());
       }

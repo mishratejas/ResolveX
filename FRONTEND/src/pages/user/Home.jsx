@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import {
   Home as HomeIcon,
   User,
@@ -29,8 +28,8 @@ import NotificationBell from "../../components/common/NotificationBell";
 const Home = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("complaints");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const tabs = [
     {
@@ -59,13 +58,18 @@ const Home = () => {
     },
   ];
 
+  // Derive the active tab from the current URL instead of separate state,
+  // so it stays correct on refresh, direct navigation, and browser back/forward.
+  const activeTab =
+    tabs.find((tab) => location.pathname.startsWith(tab.path))?.id || null;
+
   // Load user from localStorage
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (user) {
       try {
         setCurrentUser(JSON.parse(user));
-      } catch (err) {
+      } catch {
         localStorage.removeItem("user");
         localStorage.removeItem("accessToken");
         navigate("/login"); // FIX: Use navigate instead of window.location
@@ -89,7 +93,6 @@ const Home = () => {
   };
 
   const handleTabClick = (tab) => {
-    setActiveTab(tab.id);
     navigate(tab.path);
   };
 

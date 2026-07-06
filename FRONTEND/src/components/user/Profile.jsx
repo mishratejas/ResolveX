@@ -38,8 +38,8 @@ const Profile = ({ currentUser }) => {
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const [showJoinWorkspace, setShowJoinWorkspace] = useState(false);
+  const [issueFilter, setIssueFilter] = useState("all");
   const [workspaceCode, setWorkspaceCode] = useState("");
   const [copiedCode, setCopiedCode] = useState(null);
   const [monthlyActivity, setMonthlyActivity] = useState([]);
@@ -128,13 +128,11 @@ const loadUserData = async () => {
   // Replace the loadUserActivity function (around line 126)
 const loadUserActivity = async () => {
   try {
-    setActivityLoading(true);
-    
     // Get current workspace
     const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
     
     if (!currentWorkspace) {
-      setActivityData([]);
+      setMonthlyActivity([]);
       return;
     }
 
@@ -158,24 +156,20 @@ const loadUserActivity = async () => {
       
       const activityData = monthlyCounts.map((count, index) => ({
         month: months[index],
-        complaints: count
+        count
       }));
       
-      setActivityData(activityData);
+      setMonthlyActivity(activityData);
     }
   } catch (error) {
     console.error('Error loading activity:', error);
-    setActivityData([]);
-  } finally {
-    setActivityLoading(false);
+    setMonthlyActivity([]);
   }
 };
 
 // Replace loadUserAchievements function
 const loadUserAchievements = async () => {
   try {
-    setAchievementsLoading(true);
-    
     const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
     
     if (!currentWorkspace) {
@@ -235,20 +229,16 @@ const loadUserAchievements = async () => {
   } catch (error) {
     console.error('Error loading achievements:', error);
     setAchievements([]);
-  } finally {
-    setAchievementsLoading(false);
   }
 };
 
 // Replace loadUserRank function
 const loadUserRank = async () => {
   try {
-    setRankLoading(true);
-    
     const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
     
     if (!currentWorkspace) {
-      setRankData(null);
+      setUserRank(null);
       return;
     }
 
@@ -291,7 +281,7 @@ const loadUserRank = async () => {
         pointsToNext = 100 - points;
       }
       
-      setRankData({
+      setUserRank({
         rank,
         rankColor,
         points,
@@ -305,9 +295,7 @@ const loadUserRank = async () => {
     }
   } catch (error) {
     console.error('Error loading rank:', error);
-    setRankData(null);
-  } finally {
-    setRankLoading(false);
+    setUserRank(null);
   }
 };
 
@@ -523,16 +511,18 @@ const loadUserRank = async () => {
     });
   };
 
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Filter issues based on the dropdown selection above
+  const filteredUserComplaints = React.useMemo(() => {
+    if (issueFilter === "all") return userComplaints;
+    if (issueFilter === "in-progress") {
+      return userComplaints.filter((c) =>
+        ["in-progress", "in_progress"].includes(c.status?.toLowerCase()),
+      );
+    }
+    return userComplaints.filter(
+      (c) => c.status?.toLowerCase() === issueFilter,
+    );
+  }, [userComplaints, issueFilter]);
 
   // Calculate user stats dynamically
   const userStats = React.useMemo(() => {
@@ -971,11 +961,8 @@ const loadUserRank = async () => {
             <div className="flex items-center gap-4">
               <select
                 className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                onChange={(e) => {
-                  // Handle filtering
-                  const value = e.target.value;
-                  // You can implement filtering logic here
-                }}
+                value={issueFilter}
+                onChange={(e) => setIssueFilter(e.target.value)}
               >
                 <option value="all">All Issues</option>
                 <option value="resolved">Resolved</option>
@@ -1047,7 +1034,7 @@ const loadUserRank = async () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-  {userComplaints.slice(0, 10).map((complaint) => (
+  {filteredUserComplaints.slice(0, 10).map((complaint) => (
     <tr key={complaint._id} className="hover:bg-gray-50">
       <td className="px-6 py-4">
         <div>
@@ -1133,32 +1120,38 @@ const loadUserRank = async () => {
           </table>
         </div>
 
-        {userComplaints.length === 0 && (
+        {filteredUserComplaints.length === 0 && (
           <div className="text-center py-12">
             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No issues submitted yet
+              {userComplaints.length === 0
+                ? "No issues submitted yet"
+                : "No issues match this filter"}
             </h3>
             <p className="text-gray-600 mb-4">
-              Start contributing to your community by reporting issues
+              {userComplaints.length === 0
+                ? "Start contributing to your community by reporting issues"
+                : "Try selecting a different status above"}
             </p>
-            <button
-              onClick={() => navigate("/raise-complaint")}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-medium inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Report Your First Issue
-            </button>
+            {userComplaints.length === 0 && (
+              <button
+                onClick={() => navigate("/raise-complaint")}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-medium inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Report Your First Issue
+              </button>
+            )}
           </div>
         )}
 
-        {userComplaints.length > 10 && (
+        {filteredUserComplaints.length > 10 && (
           <div className="p-4 border-t border-gray-200 text-center">
             <button
               onClick={() => navigate("/user/issues")}
               className="text-blue-600 hover:text-blue-800 font-medium text-sm"
             >
-              View all {userComplaints.length} issues →
+              View all {filteredUserComplaints.length} issues →
             </button>
           </div>
         )}

@@ -30,7 +30,7 @@ const Navbar = ({
         const payload = JSON.parse(jsonPayload);
         // JWT exp is in seconds, Date.now() is in milliseconds
         return (payload.exp * 1000) < Date.now();
-      } catch (e) {
+      } catch {
         return true; // If we can't parse it, consider it expired/invalid
       }
     };

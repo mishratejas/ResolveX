@@ -192,7 +192,8 @@ export const checkDuplicateComplaint = async (req, res) => {
     });
 
     const userVotedComplaints = similarComplaintResults.some(
-      ({ complaint }) => complaint.voters?.includes(userId)
+      ({ complaint }) =>
+        complaint.voters?.some((v) => v.toString() === userId?.toString())
     );
 
     res.json({
@@ -206,7 +207,7 @@ export const checkDuplicateComplaint = async (req, res) => {
         status: c.status,
         priority: c.priority,
         voteCount: c.voteCount || 0,
-        hasUserVoted: c.voters?.includes(userId) || false,
+        hasUserVoted: c.voters?.some((v) => v.toString() === userId?.toString()) || false,
         isOwnComplaint: c.user._id.toString() === userId?.toString(),
         user: { name: c.user.name, email: c.user.email },
         location: c.location,
@@ -586,8 +587,17 @@ export const handleUpvoteComplaint = async (req, res) => {
     complaint.voters = complaint.voters || [];
     complaint.voteCount = complaint.voteCount || 0;
 
-    // Check if user already voted
-    if (complaint.voters.includes(userId)) {
+    // Check if user already voted.
+    // NOTE: complaint.voters is an array of Mongoose ObjectId objects, and
+    // userId is also an ObjectId object - two ObjectIds with the same value
+    // are still different object instances, so Array.includes() (reference
+    // equality) was always returning false here, letting anyone vote
+    // unlimited times. Compare the string form instead.
+    const alreadyVoted = complaint.voters.some(
+      (voterId) => voterId.toString() === userId.toString()
+    );
+
+    if (alreadyVoted) {
       return res.status(400).json({ 
         success: false, 
         message: "You have already upvoted this complaint" 

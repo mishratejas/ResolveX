@@ -3,7 +3,7 @@ import { Bell, Check, CheckCheck, Trash2, Filter, RefreshCw, AlertCircle, CheckC
 import notificationService from '../../services/notificationService';
 import { io } from 'socket.io-client';
 
-const NotificationsPage = ({ userId, userType = 'User' }) => {
+const NotificationsPage = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);

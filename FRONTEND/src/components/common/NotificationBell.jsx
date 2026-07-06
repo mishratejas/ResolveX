@@ -26,7 +26,7 @@ const timeAgo = (d) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 
-const NotificationBell = ({ userId, userType = 'User', variant = 'dark' }) => {
+const NotificationBell = ({ userId, variant = 'dark' }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +66,7 @@ const NotificationBell = ({ userId, userType = 'User', variant = 'dark' }) => {
         setNotifications(newNotifs);
         setUnreadCount(newCount);
       }
-    } catch (err) {
+    } catch {
       // Silently fail polling
     } finally {
       setLoading(false);
