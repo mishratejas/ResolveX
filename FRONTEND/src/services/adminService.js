@@ -310,12 +310,7 @@ export const getChartData = adminService.getChartData;
 export const getStaff = adminService.getStaff;
 export const getPendingStaff = adminService.getPendingStaff; // ADDED
 export const getStaffStats = adminService.getStaffStats;
-export const getStaffPerformance = adminService.getStaffPerformance;
-export const getUsers = adminService.getUsers;
-export const getUserStats = adminService.getUserStats;
-export const getIssues = adminService.getIssues;
 export const getIssueStats = adminService.getIssueStats;
-export const getAnalytics = adminService.getAnalytics;
 export const getDepartments = adminService.getDepartments;
 export const createStaff = adminService.createStaff;
 export const updateStaff = adminService.updateStaff;
@@ -324,9 +319,3 @@ export const rejectStaff = adminService.rejectStaff; // ADDED
 export const deleteStaff = adminService.deleteStaff;
 export const bulkActivateStaff = adminService.bulkActivateStaff;
 export const bulkDeactivateStaff = adminService.bulkDeactivateStaff;
-export const exportData = adminService.exportData;
-export const adminLogout = adminService.adminLogout;
-export const getComplaintMessages = adminService.getComplaintMessages;
-export const sendComplaintMessage = adminService.sendComplaintMessage;
-
-export default adminService;

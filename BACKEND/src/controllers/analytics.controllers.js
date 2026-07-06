@@ -1034,8 +1034,3 @@ function convertToCSV(data) {
     }
     return csv;
 }
-
-export default {
-    getComprehensiveAnalytics,
-    exportAnalyticsData
-};

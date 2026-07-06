@@ -374,16 +374,3 @@ const convertToCSV = (logs) => {
 
     return csvContent;
 };
-
-export default {
-    getAuditLogs,
-    getAuditLogById,
-    getActivitySummary,
-    getUserActivityTimeline,
-    getIssueAuditTrail,
-    getRecentActivities,
-    getAuditStatistics,
-    exportAuditLogs,
-    getSecurityEvents,
-    getFailedActivities
-};

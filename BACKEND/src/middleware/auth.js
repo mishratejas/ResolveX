@@ -59,32 +59,3 @@ export const auth = async (req, res, next) => {
         });
     }
 };
-
-// Optional: Middleware to check if user is authenticated via cookie (for refresh token)
-export const optionalAuth = async (req, res, next) => {
-    try {
-        const authHeader = req.header("Authorization");
-        
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            const token = authHeader.replace("Bearer ", "");
-            const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-            
-            // FIX: Populate joinedWorkspaces
-            const user = await User.findById(decoded.id)
-                .select("-password")
-                .populate({
-                    path: 'joinedWorkspaces',
-                    select: 'organizationName workspaceCode email'
-                });
-            
-            if (user) {
-                req.user = user;
-            }
-        }
-        
-        next();
-    } catch (error) {
-        // If auth fails, just continue without user (public access)
-        next();
-    }
-};

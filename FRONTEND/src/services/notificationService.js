@@ -84,24 +84,10 @@ export const clearAllNotifications = async (userId) => {
   }
 };
 
-export const getNotificationStats = async (userId) => {
-  try {
-    const response = await axios.get(
-      `${API_URL}/api/notifications/${userId}/stats`,
-      { headers: getAuthHeaders() }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching notification stats:', error);
-    throw error;
-  }
-};
-
 export default {
   getUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
   clearAllNotifications,
-  getNotificationStats,
 };

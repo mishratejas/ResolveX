@@ -435,36 +435,6 @@ export const notifyDepartmentAssignment = async (complaint, departmentName) => {
   });
 };
 
-/**
- * Bulk notify users
- */
-export const bulkNotifyUsers = async (userIds, notificationData) => {
-  const notifications = userIds.map(userId => ({
-    ...notificationData,
-    userId
-  }));
-
-  try {
-    const created = await Notification.insertMany(notifications);
-    console.log(`Created ${created.length} bulk notifications`);
-    
-    // Send real-time notifications
-    if (global.io) {
-      created.forEach(notification => {
-        global.io.to(notification.userId.toString()).emit("notification", {
-          ...notification.toObject(),
-          timestamp: new Date()
-        });
-      });
-    }
-
-    return created;
-  } catch (error) {
-    console.error("Error creating bulk notifications:", error);
-    throw error;
-  }
-};
-
 export default {
   createNotification,
   notifyComplaintStatusChange,
@@ -473,6 +443,5 @@ export default {
   notifyPriorityChange,
   notifyAdminNewComplaint,
   notifyUserComplaintCreated,
-  notifyDepartmentAssignment,
-  bulkNotifyUsers
+  notifyDepartmentAssignment
 };
