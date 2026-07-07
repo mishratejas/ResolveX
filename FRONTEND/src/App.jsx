@@ -63,28 +63,15 @@ const BASE_URL =
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // On mount: check if stored tokens are expired and clear them
-  useEffect(() => {
-    const checkAndClearExpiredTokens = () => {
-      const tokenKeys = ['accessToken', 'staffToken', 'staffAccessToken', 'adminToken', 'adminAccessToken'];
-      tokenKeys.forEach(key => {
-        const token = localStorage.getItem(key);
-        if (!token) return;
-        try {
-          // Decode JWT payload without verifying signature
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.exp && payload.exp * 1000 < Date.now()) {
-            localStorage.removeItem(key);
-            console.log(`Cleared expired token: ${key}`);
-          }
-        } catch {
-          // Malformed token - remove it
-          localStorage.removeItem(key);
-        }
-      });
-    };
-    checkAndClearExpiredTokens();
-  }, []);
+  // NOTE: We intentionally do NOT clear "expired" access tokens on mount here.
+  // The access token's exp is only 1 minute, so on almost every page load/reload
+  // it will look "expired" by a client-side decode check - but the HttpOnly
+  // refresh cookie is still valid for 7 days. Deleting the access token here
+  // wiped the session before axiosInstance's response interceptor ever got a
+  // chance to call /refresh-token and silently mint a new one, which is what
+  // was causing the "logs out after 1 minute" bug. A malformed/garbage token
+  // is naturally handled by the first API call failing with 401 -> refresh
+  // attempt -> refresh also fails -> interceptor clears storage and redirects.
   const [isLoading, setIsLoading] = useState(true);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const [authStatus, setAuthStatus] = useState({
