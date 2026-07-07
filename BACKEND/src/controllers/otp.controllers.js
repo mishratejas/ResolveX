@@ -445,68 +445,6 @@ export const adminSignupWithOTP = async (req, res) => {
 };
 
 
-export const requestPasswordResetOTP = async (req, res) => {
-  try {
-    const { identifier, userType = 'user' } = req.body;
-
-    console.log('Password Reset Request:', { identifier, userType });
-
-    if (!identifier) {
-        return res.status(400).json({ success: false, message: "Email or phone number is required" });
-    }
-
-    let user;
-    if (userType === 'user') {
-        user = await User.findOne({
-            $or: [{ email: identifier }, { phone: identifier }]
-        });
-    } else if (userType === 'staff') {
-        user = await Staff.findOne({
-            $or: [{ email: identifier }, { phone: identifier }]
-        });
-    } else if (userType === 'admin') {
-        user = await Admin.findOne({
-            $or: [{ email: identifier }, { phone: identifier }]
-        });
-    }
-
-    if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    // Delete existing OTPs
-    await OTP.deleteMany({ identifier, purpose: 'password-reset' });
-
-    // Generate and send OTP
-    const otp = generateOTP();
-    const hashedOTP = await bcrypt.hash(otp, 10);
-
-    await OTP.create({
-        identifier,
-        otp: hashedOTP,
-        type: user.email === identifier ? 'email' : 'phone',
-        purpose: 'password-reset',
-        userType,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-    });
-
-    // Send OTP
-    if (user.email === identifier) {
-        await sendOTPEmail(identifier, otp, 'password-reset');
-    } else {
-        await sendOTPSMS(identifier, otp, 'password-reset');
-    }
-
-    res.status(200).json(
-        { success: true, message: "Password reset OTP sent successfully", data: { identifier } }
-    );
-
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    res.status(500).json({ success: false, message: error.message || "Server error" });
-  }
-};
-
 // Password Reset - Verify OTP and Reset Password
 export const resetPasswordWithOTP = async (req, res) => {
   try {

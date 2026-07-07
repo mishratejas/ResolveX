@@ -111,6 +111,7 @@ export const handleSingleUserIssueFetch = async (req, res) => {
   }
 };
 
+// FIX (FE-2): backs the "Export My Issues" button in Profile.jsx, which
 // expects a CSV blob from GET /api/user_issues/export. Reuses the CSV
 // generator already used elsewhere in the codebase instead of writing a new
 // one, and handles the 0/1/many-complaints cases the same way.
@@ -471,6 +472,17 @@ export const adminOverridePriority = async (req, res) => {
     const complaint = await UserComplaint.findOne({ _id: complaintId, adminId });
     if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found or you do not have permission to edit it." });
 
+    // FIX: priority is for triaging active work — a resolved or rejected
+    // complaint is closed out and shouldn't have its priority changed
+    // afterward. Previously this endpoint had no status check at all, so it
+    // silently allowed editing priority on already-finalized complaints.
+    if (["resolved", "rejected"].includes(complaint.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot change priority on a ${complaint.status} complaint. Priority can only be adjusted while a complaint is pending or in progress.`
+      });
+    }
+
     complaint.priority = priority;
     complaint.manualPriorityOverridden = true;
     complaint.priorityOverriddenAt = new Date();
@@ -712,30 +724,11 @@ export const addComplaintComment = async (req, res) => {
 };
 
 // GET /api/user_issues/:id/comments — Fetch all comments for a complaint (public)
-export const getComplaintComments = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const complaint = await UserComplaint.findById(id)
-      .select("comments")
-      .populate("comments.user", "name profileImage")
-      .populate("comments.staff", "name staffId")
-      .populate("comments.admin", "name organizationName");
-
-    if (!complaint) {
-      return res.status(404).json({ success: false, message: "Complaint not found" });
-    }
-
-    res.json({
-      success: true,
-      count: complaint.comments.length,
-      data: complaint.comments,
-    });
-  } catch (error) {
-    console.error("Error fetching comments:", error);
-    res.status(500).json({ success: false, message: "Error fetching comments" });
-  }
-};
+// REMOVED (OR-11): getComplaintComments was only reachable via GET
+// /api/user_issues/:id/comments, which had zero frontend callers —
+// ComplaintDetailPage.jsx always reads comments off the embedded
+// `complaint.comments` field on the complaint object instead. Route removed
+// in user_issue.routes.js.
 
 // DELETE /api/user_issues/:id — user can only delete their own complaint
 export const handleDeleteIssue = async (req, res) => {

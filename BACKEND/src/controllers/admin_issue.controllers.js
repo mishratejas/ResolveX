@@ -62,37 +62,6 @@ export const handleFetchAllUserIssues = async (req, res) => {
     }
 };
 
-// --- 2. Fetch Staff List for Assignment Dropdowns (WORKSPACE LOCKED) ---
-export const handleFetchStaffList = async (req, res) => {
-    try {
-        const adminId = req.admin?._id || req.admin?.id;
-        const { departmentId } = req.query;
-        
-        //Only fetch staff that belong to this Admin
-        let query = { adminId: adminId };
-        
-        if (departmentId) {
-            query.department = departmentId;
-        }
-
-        const staff = await Staff.find(query)
-            .select('name email department role status avatar')
-            .populate('department', 'name');
-        
-        res.status(200).json({
-            success: true,
-            count: staff.length,
-            staff
-        });
-    } catch (error) {
-        console.error('Error fetching staff list:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while fetching staff list.'
-        });
-    }
-};
-
 // --- 3. Update/Alter Issue (WORKSPACE LOCKED) ---
 export const handleUpdateIssue = async (req, res) => {
     try {

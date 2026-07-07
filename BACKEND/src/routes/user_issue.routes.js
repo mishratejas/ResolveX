@@ -11,7 +11,6 @@ import {
     handleUpvoteComplaint,
     handleDeleteIssue,
     addComplaintComment,
-    getComplaintComments,
     handleExportMyIssues
 } from "../controllers/user_issue.controllers.js";
 import { auth } from "../middleware/auth.js";
@@ -27,7 +26,6 @@ router.get('/my', auth, handleGetMyIssues);
 // GET /api/user_issues/stats - Get statistics (public)
 router.get('/stats', handleGetStats);
 
-// NEW: Check for duplicates before submitting
 router.post('/check-duplicate', auth, checkDuplicateComplaint);
 
 // POST /api/user_issues - Create new complaint (requires auth)
@@ -46,13 +44,8 @@ router.get('/:id', handleSingleIssueFetch);
 // Upvote an existing complaint
 router.put('/:id/upvote', auth, handleUpvoteComplaint);
 
-// PUT /api/user_issues/:id/vote - deprecated alias, kept for backward compatibility.
-// Routed to the same guarded handler as /upvote so it can't be used to bypass
-// auth or the one-vote-per-user check.
 router.put('/:id/vote', auth, handleUpvoteComplaint);
 
-// Comments: any authenticated user can comment on any complaint; comments are public to view
-router.get('/:id/comments', getComplaintComments);
 router.post('/:id/comments', auth, addComplaintComment);
 
 // DELETE /api/user_issues/:id - Delete a complaint (owner only)

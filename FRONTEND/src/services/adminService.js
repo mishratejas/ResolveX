@@ -73,6 +73,19 @@ const adminService = {
         }
     },
 
+    getStaffDetails: async (staffId) => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await axios.get(`${API_URL}/api/admin/staff/${staffId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching staff details:', error);
+            throw error;
+        }
+    },
+
     getStaffPerformance: async () => {
         try {
             const token = localStorage.getItem('adminToken');
@@ -114,6 +127,7 @@ const adminService = {
         }
     },
 
+    // raw axios instead of using this service.
     deleteUser: async (userId) => {
         try {
             const token = localStorage.getItem('adminToken');
@@ -127,6 +141,7 @@ const adminService = {
         }
     },
 
+    // raw axios instead of using this service.
     bulkUserAction: async (userIds, action) => {
         try {
             const token = localStorage.getItem('adminToken');
@@ -215,6 +230,10 @@ const adminService = {
         }
     },
 
+    // FIX (DUP-4): AdminAnalyticsManager.jsx used to reimplement this call
+    // (blob download) with raw axios instead of using this service.
+    // Accepts an optional tokenOverride since this page is also used by
+    // staff/user roles, not just admins.
     exportAnalyticsData: async (format = 'csv', timeRange = '30d', tokenOverride = null) => {
         try {
             const token = tokenOverride || localStorage.getItem('adminToken');
@@ -383,6 +402,8 @@ export const getChartData = adminService.getChartData;
 export const getStaff = adminService.getStaff;
 export const getPendingStaff = adminService.getPendingStaff; // ADDED
 export const getStaffStats = adminService.getStaffStats;
+export const getStaffDetails = adminService.getStaffDetails;
+export const getStaffPerformance = adminService.getStaffPerformance;
 export const getIssueStats = adminService.getIssueStats;
 export const updateIssue = adminService.updateIssue;
 export const overridePriority = adminService.overridePriority;

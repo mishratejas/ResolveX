@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as adminService from '../../services/adminService';
 import {
   Users, Search, Filter, RefreshCw, UserPlus, Edit, Trash2, Eye,
@@ -8,12 +9,14 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const StaffManager = () => {
-  
+  const navigate = useNavigate();
+
   // 2-TAB STATE
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'pending'
   
   const [staff, setStaff] = useState([]);
   const [pendingStaff, setPendingStaff] = useState([]);
+  const [topPerformers, setTopPerformers] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -41,7 +44,8 @@ const StaffManager = () => {
         fetchStaffData(),
         fetchPendingStaff(), 
         fetchStaffStats(),
-        fetchDepartments()
+        fetchDepartments(),
+        fetchTopPerformers()
       ]);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -80,6 +84,16 @@ const StaffManager = () => {
       const response = await adminService.getStaffStats();
       if (response.success) setStats(response.data);
     } catch (error) { console.error('Error fetching staff stats:', error); }
+  };
+
+  // FIX (OR-3): wires up GET /api/admin/staff/top-performers, which already
+  // existed and worked (adminService already wrapped it as
+  // getStaffPerformance) but had no "top performers" UI calling it.
+  const fetchTopPerformers = async () => {
+    try {
+      const response = await adminService.getStaffPerformance();
+      if (response.success) setTopPerformers(response.data || []);
+    } catch (error) { console.error('Error fetching top performers:', error); }
   };
 
   const fetchDepartments = async () => {
@@ -280,6 +294,28 @@ const StaffManager = () => {
         </div>
       )}
 
+      {activeTab === 'active' && topPerformers.length > 0 && (
+        <div className="bg-white rounded-xl p-6 mb-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="w-5 h-5 text-yellow-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Top Performers</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {topPerformers.slice(0, 5).map((performer, index) => (
+              <div key={performer._id} className="border border-gray-100 rounded-xl p-4 relative">
+                <span className="absolute top-3 right-3 text-xs font-bold text-gray-300">#{index + 1}</span>
+                <p className="font-medium text-gray-900 truncate pr-6">{performer.name}</p>
+                <p className="text-xs text-gray-500 mb-3 truncate">{performer.department || 'General'}</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">{performer.resolved}/{performer.totalAssigned} resolved</span>
+                  <span className="font-semibold text-green-600">{performer.resolutionRate}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search and Filters */}
       <div className="bg-white rounded-xl p-6 mb-6 border border-gray-200 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
@@ -385,7 +421,8 @@ const StaffManager = () => {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        {/* <button onClick={() => navigate(`/admin/staff/${staffMember._id}`)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button> */}
+                        {/* FIX (OR-6): route + page now exist, so this can be wired up. */}
+                        <button onClick={() => navigate(`/admin/staff/${staffMember._id}`)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button>
                         <button onClick={() => openEditModal(staffMember)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
                         <button onClick={() => handleToggleStatus(staffMember._id, staffMember.isActive)} className={`p-2 rounded-lg transition-colors ${staffMember.isActive ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'}`} title={staffMember.isActive ? 'Deactivate' : 'Activate'}>
                           {staffMember.isActive ? <Clock className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}

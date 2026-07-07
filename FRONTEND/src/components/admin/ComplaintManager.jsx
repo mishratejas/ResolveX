@@ -18,8 +18,10 @@ const ComplaintManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   
+  // NEW: State to control the Chat Modal
   const [activeChatComplaint, setActiveChatComplaint] = useState(null);
 
+  // NEW: Grab Admin details for the chat
   const adminString = localStorage.getItem('admin') || localStorage.getItem('user');
   const adminData = adminString ? JSON.parse(adminString) : { _id: 'admin', name: 'Admin Dashboard' };
 
@@ -275,10 +277,17 @@ const ComplaintManager = () => {
                             <span className="ml-1 text-[10px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full">Overridden</span>
                           )}
                         </label>
+                        {/* FIX: priority is for triaging active work, so it's
+                            locked once a complaint is resolved/rejected —
+                            matches the same guard now enforced server-side. */}
                         <select
                           value={complaint.priority || 'medium'}
                           onChange={(e) => handleOverridePriority(complaint._id, e.target.value)}
-                          className="w-full text-sm border-gray-300 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:ring-gray-500 p-2 font-medium capitalize"
+                          disabled={complaint.status === 'resolved' || complaint.status === 'rejected'}
+                          title={complaint.status === 'resolved' || complaint.status === 'rejected'
+                            ? `Priority can't be changed on a ${complaint.status} complaint`
+                            : undefined}
+                          className="w-full text-sm border-gray-300 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:ring-gray-500 p-2 font-medium capitalize disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="low">Low</option>
                           <option value="medium">Medium</option>

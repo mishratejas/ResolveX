@@ -1,4 +1,3 @@
-// TODO: Update with proper error handling and pagination
 import axios from "../api/axios";
 import { API_ENDPOINTS } from "../constants";
 
@@ -170,18 +169,6 @@ upvoteComplaint: async (complaintId) => {
     }
   },
 
-  // Get Comments
-  getComments: async (id) => {
-    try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.COMPLAINTS}/${id}/comments`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      throw error;
-    }
-  },
 
   // Get Stats
   getStats: async () => {
@@ -193,6 +180,7 @@ upvoteComplaint: async (complaintId) => {
       throw error;
     }
   },
+
 
   checkDuplicate: async (complaintData) => {
     try {

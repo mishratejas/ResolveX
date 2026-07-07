@@ -5,7 +5,6 @@ import {
     userSignupWithOTP,
     staffSignupWithOTP,
     adminSignupWithOTP,
-    requestPasswordResetOTP,
     resetPasswordWithOTP,
     resendOTP
 } from "../controllers/otp.controllers.js";
@@ -30,9 +29,6 @@ router.post("/signup/staff", staffSignupWithOTP);
 
 // Admin Signup with OTP
 router.post("/signup/admin", adminSignupWithOTP);
-
-// Password Reset - Request OTP
-router.post("/password-reset/request", requestPasswordResetOTP);
 
 // Password Reset - Verify and Reset
 router.post("/password-reset/verify", resetPasswordWithOTP);

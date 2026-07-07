@@ -133,7 +133,8 @@ const AuthModal = ({
 
     try {
       setError(''); setSuccess(''); setIsSubmitting(true);
-      const res = await fetch(`${baseUrl}/api/otp/request`, {
+      const endpoint = otpSent ? '/api/otp/resend' : '/api/otp/request';
+      const res = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: emailValue, purpose: 'signup', userType, type: 'email' })
@@ -143,7 +144,7 @@ const AuthModal = ({
       if (!res.ok) throw new Error(result.message || 'Failed to send OTP');
 
       setOtpSent(true); setOtpTimer(60);
-      setSuccess('OTP sent successfully to your email');
+      setSuccess(otpSent ? 'A new OTP has been sent to your email' : 'OTP sent successfully to your email');
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
@@ -455,7 +456,7 @@ const AuthModal = ({
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-gray-700"><Key className="w-4 h-4 inline mr-2" />OTP Verification *</label>
                         <button type="button" onClick={handleSendOtp} disabled={!emailValue || otpTimer > 0 || isSubmitting} className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed">
-                          {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `Send OTP (${otpTimer}s)` : 'Send OTP'}
+                          {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `${otpSent ? 'Resend' : 'Send'} OTP (${otpTimer}s)` : (otpSent ? 'Resend OTP' : 'Send OTP')}
                         </button>
                       </div>
                       {otpSent ? (
@@ -496,7 +497,7 @@ const AuthModal = ({
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-gray-700"><Key className="w-4 h-4 inline mr-2" />OTP Verification *</label>
                         <button type="button" onClick={handleSendOtp} disabled={!emailValue || otpTimer > 0 || isSubmitting} className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed">
-                          {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `Send OTP (${otpTimer}s)` : 'Send OTP'}
+                          {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin inline" /> : otpTimer > 0 ? `${otpSent ? 'Resend' : 'Send'} OTP (${otpTimer}s)` : (otpSent ? 'Resend OTP' : 'Send OTP')}
                         </button>
                       </div>
                       {otpSent ? (

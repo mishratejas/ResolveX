@@ -1,7 +1,6 @@
 import express from "express";
 import { 
   handleFetchAllUserIssues,
-  handleFetchStaffList,
   handleUpdateIssue,
   handleGetComplaintDetails,
   getIssueStats
@@ -15,9 +14,6 @@ router.get("/stats", adminAuth, getIssueStats);
 
 // Get all complaints with filters
 router.get("/", adminAuth, handleFetchAllUserIssues);
-
-// Get staff list for assignment dropdowns
-router.get("/staff", adminAuth, handleFetchStaffList);
 
 // Get single complaint details
 router.get("/:id", adminAuth, handleGetComplaintDetails);

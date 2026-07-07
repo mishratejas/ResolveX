@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminIssuesPage from "./pages/admin/AdminIssuesPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminStaffPage from "./pages/admin/AdminStaffPage";
+import AdminStaffDetailPage from "./pages/admin/AdminStaffDetailPage";
 import AnalyticsPage from "./pages/admin/AnalyticsPage";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffIssuesPage from "./pages/staff/StaffIssuesPage";
@@ -393,6 +394,15 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
               <AdminStaffPage authStatus={authStatus} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/staff/:id"
+          element={
+            <ProtectedRoute requiredRole="admin" authStatus={authStatus}>
+              <AdminStaffDetailPage onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />

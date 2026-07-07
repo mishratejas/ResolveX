@@ -4,8 +4,7 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  clearAllNotifications,
-  getNotificationStats
+  clearAllNotifications
 } from '../controllers/notification.controllers.js';
 import { chatAuth } from '../middleware/chatAuth.js';
 
@@ -17,6 +16,5 @@ router.patch('/:id/read', markAsRead);
 router.patch('/:userId/read-all', markAllAsRead);
 router.delete('/:id', deleteNotification);
 router.delete('/:userId/clear-all', clearAllNotifications);
-router.get('/:userId/stats', getNotificationStats);
 
 export default router;
