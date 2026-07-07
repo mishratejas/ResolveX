@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
   X, Eye, Search, RefreshCw, CheckCircle, 
@@ -8,8 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import ComplaintChat from '../chat/ComplaintChat'; 
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import * as adminService from '../../services/adminService';
 
 const ComplaintManager = () => {
   const navigate = useNavigate();
@@ -20,10 +18,8 @@ const ComplaintManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   
-  // NEW: State to control the Chat Modal
   const [activeChatComplaint, setActiveChatComplaint] = useState(null);
 
-  // NEW: Grab Admin details for the chat
   const adminString = localStorage.getItem('admin') || localStorage.getItem('user');
   const adminData = adminString ? JSON.parse(adminString) : { _id: 'admin', name: 'Admin Dashboard' };
 
@@ -34,19 +30,17 @@ const ComplaintManager = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("adminToken");
-      const headers = { Authorization: `Bearer ${token}` };
 
       const [complaintsRes, staffRes] = await Promise.all([
-        axios.get(`${BASE_URL}/api/admin/issues`, { headers }),
-        axios.get(`${BASE_URL}/api/admin/staff`, { headers })
+        adminService.getIssues(),
+        adminService.getStaff()
       ]);
 
-      if (complaintsRes.data.success) {
-        setComplaints(complaintsRes.data.data || []);
+      if (complaintsRes.success) {
+        setComplaints(complaintsRes.data || []);
       }
-      if (staffRes.data.success) {
-        setStaffList(staffRes.data.data?.staff || staffRes.data.data || []);
+      if (staffRes.success) {
+        setStaffList(staffRes.data?.staff || staffRes.data || []);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -57,13 +51,8 @@ const ComplaintManager = () => {
 
   const handleAssignStaff = async (complaintId, staffId) => {
     try {
-      const token = localStorage.getItem("adminToken");
       const payload = staffId ? { assignedTo: staffId, status: 'in-progress' } : { assignedTo: null, status: 'pending' };
-      
-      await axios.put(`${BASE_URL}/api/admin/issues/${complaintId}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      await adminService.updateIssue(complaintId, payload);
       fetchData(); 
     } catch (error) {
       console.error("Failed to update assignment:", error);
@@ -74,10 +63,7 @@ const ComplaintManager = () => {
   const handleMarkResolved = async (complaintId) => {
     if (!window.confirm("Are you sure you want to manually mark this as resolved?")) return;
     try {
-      const token = localStorage.getItem("adminToken");
-      await axios.put(`${BASE_URL}/api/admin/issues/${complaintId}`, { status: 'resolved' }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminService.updateIssue(complaintId, { status: 'resolved' });
       fetchData();
     } catch (error) {
       console.error("Failed to mark as resolved:", error);
@@ -87,12 +73,7 @@ const ComplaintManager = () => {
 
   const handleOverridePriority = async (complaintId, newPriority) => {
     try {
-      const token = localStorage.getItem("adminToken");
-      await axios.patch(
-        `${BASE_URL}/api/admin/issues/complaint/${complaintId}/priority`,
-        { priority: newPriority },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await adminService.overridePriority(complaintId, newPriority);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || "Failed to override priority");

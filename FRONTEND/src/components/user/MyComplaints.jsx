@@ -16,7 +16,7 @@ const MyComplaints = ({ currentUser }) => {
   const [deleting, setDeleting] = useState(false);
   const [stats, setStats] = useState({ total: 0, resolved: 0, pending: 0, inProgress: 0, totalVotes: 0 });
 
-  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => { loadMyComplaints(); }, [currentUser]);
 

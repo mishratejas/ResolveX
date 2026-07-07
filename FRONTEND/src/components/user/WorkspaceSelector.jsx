@@ -12,137 +12,59 @@ import {
   Phone,
   Calendar,
 } from "lucide-react";
-import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useWorkspaces } from "../../hooks/useWorkspaces";
 
 const WorkspaceSelector = ({ onWorkspaceSelect }) => {
-  const [workspaces, setWorkspaces] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showJoinWorkspace, setShowJoinWorkspace] = useState(false);
   const [workspaceCode, setWorkspaceCode] = useState("");
-  const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const [user, setUser] = useState(null);
 
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  const {
+    workspaces,
+    loading,
+    actionLoading: workspaceLoading,
+    joinWorkspace,
+    leaveWorkspace,
+    selectWorkspace,
+  } = useWorkspaces();
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
       setUser(JSON.parse(userData));
     }
-    loadUserWorkspaces();
   }, []);
-
-  const loadUserWorkspaces = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`${BASE_URL}/api/users/my-workspaces`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data.success) {
-        setWorkspaces(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading workspaces:", error);
-      toast.error("Failed to load workspaces");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleJoinWorkspace = async (e) => {
     e.preventDefault();
-    if (!workspaceCode.trim()) {
-      toast.error("Please enter a workspace code");
-      return;
-    }
-
-    setWorkspaceLoading(true);
-    try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        `${BASE_URL}/api/users/join-workspace`,
-        { workspaceCode: workspaceCode.trim().toUpperCase() },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setWorkspaceCode("");
-        setShowJoinWorkspace(false);
-        await loadUserWorkspaces();
-      }
-    } catch (error) {
-      console.error("Error joining workspace:", error);
-      toast.error(error.response?.data?.message || "Failed to join workspace");
-    } finally {
-      setWorkspaceLoading(false);
+    const result = await joinWorkspace(workspaceCode).catch(() => null);
+    if (result?.success) {
+      setWorkspaceCode("");
+      setShowJoinWorkspace(false);
     }
   };
 
   const handleLeaveWorkspace = async (workspaceId, workspaceName) => {
-    if (workspaces.length <= 1) {
-      toast.error(
-        "You must be in at least one workspace. Join another workspace before leaving this one.",
-      );
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to leave ${workspaceName}?`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        `${BASE_URL}/api/users/leave-workspace/${workspaceId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // Clear current workspace if leaving the active one
-        const currentWorkspace = JSON.parse(localStorage.getItem("currentWorkspace") || "{}");
-        if (currentWorkspace.id === workspaceId) {
-          localStorage.removeItem("currentWorkspace");
-        }
-        await loadUserWorkspaces();
-      }
-    } catch (error) {
-      console.error("Error leaving workspace:", error);
-      toast.error(error.response?.data?.message || "Failed to leave workspace");
-    }
+    await leaveWorkspace(workspaceId, workspaceName).catch(() => null);
   };
 
-  // FIXED: Save workspace with workspaceCode property
-const handleSelectWorkspace = (workspace) => {
-  // Save to localStorage with proper structure
-  const workspaceData = {
-    id: workspace._id,
-    name: workspace.organizationName,
-    workspaceCode: workspace.workspaceCode, // FIXED: Use workspaceCode, not code
-    email: workspace.email,
-    phone: workspace.phone || '',
-    joinedAt: new Date().toISOString()
+  const handleSelectWorkspace = (workspace) => {
+    const workspaceData = selectWorkspace(workspace);
+
+    // Notify parent and trigger reload in complaint components
+    if (onWorkspaceSelect) {
+      onWorkspaceSelect(workspaceData);
+    }
+    window.dispatchEvent(new Event("workspaceSelected"));
+
+    // Go to home/dashboard
+    navigate("/home");
   };
-
-  console.log('Selecting workspace:', workspaceData);
-  localStorage.setItem("currentWorkspace", JSON.stringify(workspaceData));
-
-  // Notify parent and trigger reload in complaint components
-  if (onWorkspaceSelect) {
-    onWorkspaceSelect(workspaceData);
-  }
-  window.dispatchEvent(new Event("workspaceSelected"));
-
-  // Go to home/dashboard
-  navigate("/home");
-};
 
   const copyToClipboard = (code) => {
     navigator.clipboard.writeText(code);

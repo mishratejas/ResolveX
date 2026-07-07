@@ -11,7 +11,8 @@ import {
     handleUpvoteComplaint,
     handleDeleteIssue,
     addComplaintComment,
-    getComplaintComments
+    getComplaintComments,
+    handleExportMyIssues
 } from "../controllers/user_issue.controllers.js";
 import { auth } from "../middleware/auth.js";
 
@@ -36,6 +37,8 @@ router.post('/', auth, handleIssueGeneration);
 router.get("/my-issues", auth, handleSingleUserIssueFetch);
 
 router.get('/locations', handleComplaintLocations);
+
+router.get('/export', auth, handleExportMyIssues);
 
 // GET /api/user_issues/:id - Get single complaint details (public)
 router.get('/:id', handleSingleIssueFetch);

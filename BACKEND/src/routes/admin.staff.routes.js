@@ -19,7 +19,6 @@ const router = express.Router();
 // All routes require admin authentication
 router.use(adminAuth);
 
-// Fixed-segment routes MUST come before "/:id" to avoid route collision
 // GET /api/admin/staff/pending - Staff awaiting approval
 router.get("/pending", getPendingStaff);
 

@@ -1,11 +1,21 @@
 import Notification from "../models/Notification.models.js";
 import mongoose from "mongoose";
 
+const getAuthActorId = (req) => {
+  const actor = req.user || req.staff || req.admin;
+  return actor ? actor._id.toString() : null;
+};
+
 // Get all notifications for a user
 export const getUserNotifications = async (req, res) => {
   try {
     const { userId } = req.params;
     const { isRead, type, limit = 50, skip = 0 } = req.query;
+
+    const actorId = getAuthActorId(req);
+    if (!actorId || actorId !== userId) {
+      return res.status(403).json({ success: false, message: "You are not authorized to view these notifications" });
+    }
 
     const query = { userId: new mongoose.Types.ObjectId(userId) };
     if (isRead !== undefined) query.isRead = isRead === 'true';
@@ -36,15 +46,23 @@ export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const notification = await Notification.findByIdAndUpdate(
-        id,
-        { isRead: true },
-        { new: true }
-    );
+    const actorId = getAuthActorId(req);
+    if (!actorId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const notification = await Notification.findById(id);
 
     if (!notification) {
         return res.status(404).json({ success: false, message: "Notification not found" });
     }
+
+    if (notification.userId.toString() !== actorId) {
+        return res.status(403).json({ success: false, message: "You are not authorized to modify this notification" });
+    }
+
+    notification.isRead = true;
+    await notification.save();
 
     res.status(200).json(
         { success: true, message: "Notification marked as read", data: notification }
@@ -60,6 +78,11 @@ export const markAsRead = async (req, res) => {
 export const markAllAsRead = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    const actorId = getAuthActorId(req);
+    if (!actorId || actorId !== userId) {
+      return res.status(403).json({ success: false, message: "You are not authorized to modify these notifications" });
+    }
 
     await Notification.updateMany(
         { userId: new mongoose.Types.ObjectId(userId), isRead: false },
@@ -81,11 +104,22 @@ export const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const notification = await Notification.findByIdAndDelete(id);
+    const actorId = getAuthActorId(req);
+    if (!actorId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const notification = await Notification.findById(id);
 
     if (!notification) {
         return res.status(404).json({ success: false, message: "Notification not found" });
     }
+
+    if (notification.userId.toString() !== actorId) {
+        return res.status(403).json({ success: false, message: "You are not authorized to delete this notification" });
+    }
+
+    await notification.deleteOne();
 
     res.status(200).json(
         { success: true, message: "Notification deleted successfully", data: {} }
@@ -101,6 +135,11 @@ export const deleteNotification = async (req, res) => {
 export const clearAllNotifications = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    const actorId = getAuthActorId(req);
+    if (!actorId || actorId !== userId) {
+      return res.status(403).json({ success: false, message: "You are not authorized to clear these notifications" });
+    }
 
     await Notification.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
 
@@ -118,6 +157,11 @@ export const clearAllNotifications = async (req, res) => {
 export const getNotificationStats = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    const actorId = getAuthActorId(req);
+    if (!actorId || actorId !== userId) {
+      return res.status(403).json({ success: false, message: "You are not authorized to view these statistics" });
+    }
 
     const stats = await Notification.aggregate([
         { $match: { userId: new mongoose.Types.ObjectId(userId) } },

@@ -7,9 +7,8 @@ import {
   TrendingUp, TrendingDown, Users, FileText, CheckCircle, Clock,
   AlertTriangle, Download, RefreshCw, Activity, Award,
 } from "lucide-react";
-import axios from "axios";
+import * as adminService from "../../services/adminService";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const COLORS = [ "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899" ];
 
 const AdminAnalyticsManager = () => {
@@ -29,34 +28,18 @@ const AdminAnalyticsManager = () => {
       
       const token = localStorage.getItem("adminToken") || localStorage.getItem("staffToken") || localStorage.getItem("accessToken");
 
-      const possibleEndpoints = [
-        `${API_URL}/api/analytics/comprehensive`,
-        `${API_URL}/api/admin/analytics/comprehensive`,
-        `${API_URL}/api/analytics/dashboard`,
-        `${API_URL}/api/admin/analytics/dashboard`
-      ];
-
-      let response = null;
-      let lastError = null;
-
-      for (const endpoint of possibleEndpoints) {
-        try {
-          response = await axios.get(endpoint, {
-            params: { timeRange },
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            timeout: 5000
-          });
-          break;
-        } catch (err) {
-          lastError = err;
-        }
+      let response;
+      try {
+        response = await adminService.getAnalytics({ timeRange }, token);
+      } catch (err) {
+        throw err;
       }
 
-      if (response && response.data) {
-        const analyticsData = response.data.data || response.data;
+      if (response) {
+        const analyticsData = response.data || response;
         setAnalytics(analyticsData);
       } else {
-        throw lastError || new Error("All endpoints failed");
+        throw new Error("Failed to load analytics");
       }
       
     } catch (err) {
@@ -81,13 +64,9 @@ const AdminAnalyticsManager = () => {
 
   const exportData = async (format) => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await axios.get(`${API_URL}/api/admin/analytics/export`, {
-        params: { format, timeRange },
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const token = localStorage.getItem("adminToken") || localStorage.getItem("staffToken") || localStorage.getItem("accessToken");
+      const blobData = await adminService.exportAnalyticsData(format, timeRange, token);
+      const url = window.URL.createObjectURL(new Blob([blobData]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", `analytics-${Date.now()}.${format}`);

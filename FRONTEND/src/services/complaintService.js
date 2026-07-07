@@ -194,36 +194,6 @@ upvoteComplaint: async (complaintId) => {
     }
   },
 
-  // Search Complaints
-  search: async (query, filters = {}) => {
-    try {
-      const params = new URLSearchParams({
-        q: query,
-        ...filters,
-      });
-      const response = await axios.get(
-        `${API_ENDPOINTS.COMPLAINTS}/search?${params}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error searching complaints:", error);
-      throw error;
-    }
-  },
-
-  // Filter Complaints
-  filter: async (filters) => {
-    try {
-      const queryString = new URLSearchParams(filters).toString();
-      const response = await axios.get(
-        `${API_ENDPOINTS.COMPLAINTS}?${queryString}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error filtering complaints:", error);
-      throw error;
-    }
-  },
   checkDuplicate: async (complaintData) => {
     try {
       const response = await axios.post(

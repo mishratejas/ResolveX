@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Users, Search, Filter, RefreshCw, Trash2, Mail, Phone,
   Download, ChevronDown, ChevronUp, TrendingUp, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import * as adminService from '../../services/adminService';
 
 const AdminUsersManager = () => {
   const [users, setUsers] = useState([]);
@@ -39,23 +37,19 @@ const AdminUsersManager = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: searchTerm
-        }
+      const response = await adminService.getUsers({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm
       });
       
-      if (response.data.success) {
-        setUsers(response.data.data.users || []);
-        setFilteredUsers(response.data.data.users || []);
+      if (response.success) {
+        setUsers(response.data.users || []);
+        setFilteredUsers(response.data.users || []);
         setPagination(prev => ({
           ...prev,
-          total: response.data.data.pagination.total,
-          totalPages: response.data.data.pagination.totalPages
+          total: response.data.pagination.total,
+          totalPages: response.data.pagination.totalPages
         }));
       }
       setError(null);
@@ -69,13 +63,10 @@ const AdminUsersManager = () => {
 
   const fetchUserStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/admin/users/stats`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminService.getUserStats();
       
-      if (response.data.success) {
-        setStats(response.data.data);
+      if (response.success) {
+        setStats(response.data);
       }
     } catch (err) {
       console.error('Error fetching user stats:', err);
@@ -100,12 +91,9 @@ const AdminUsersManager = () => {
 
   const handleDeleteUser = async (userId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.delete(`${API_URL}/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminService.deleteUser(userId);
 
-      if (response.data.success) {
+      if (response.success) {
         alert('User deleted successfully');
         setShowDeleteConfirm(null);
         fetchUsers();
@@ -125,16 +113,10 @@ const AdminUsersManager = () => {
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.post(`${API_URL}/api/admin/users/bulk`, {
-        userIds: selectedIds,
-        action
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminService.bulkUserAction(selectedIds, action);
 
-      if (response.data.success) {
-        alert(response.data.message);
+      if (response.success) {
+        alert(response.message);
         fetchUsers();
         fetchUserStats();
       }

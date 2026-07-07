@@ -24,6 +24,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import NotificationsPage from "./pages/public/NotificationPage";
 import AdminChatPage from './pages/admin/AdminChatPage';
 import ComplaintDetailPage from './components/common/ComplaintDetailPage';
+import { adminLogout as apiAdminLogout } from './services/adminService';
 const BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -205,6 +206,10 @@ function App() {
   };
 
   const handleLogout = () => {
+
+    if (localStorage.getItem("adminToken")) {
+      apiAdminLogout().catch(() => {});
+    }
 
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminData");

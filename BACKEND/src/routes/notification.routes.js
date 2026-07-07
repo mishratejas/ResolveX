@@ -7,8 +7,10 @@ import {
   clearAllNotifications,
   getNotificationStats
 } from '../controllers/notification.controllers.js';
+import { chatAuth } from '../middleware/chatAuth.js';
 
 const router = express.Router();
+router.use(chatAuth);
 
 router.get('/:userId', getUserNotifications);
 router.patch('/:id/read', markAsRead);

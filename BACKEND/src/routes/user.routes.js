@@ -7,7 +7,8 @@ import {
   updateUserProfile,
   joinWorkspace,        
   leaveWorkspace,       
-  getMyWorkspaces       
+  getMyWorkspaces,
+  changePassword
 } from "../controllers/user.controllers.js";
 import { auth } from "../middleware/auth.js";
 
@@ -23,6 +24,9 @@ router.post("/logout", logout);
 // Protected routes
 router.get("/profile", auth, getUserProfile);
 router.put("/profile", auth, updateUserProfile);
+
+// route; it previously didn't exist here at all.
+router.put("/change-password", auth, changePassword);
 
 // Workspace management routes
 router.post("/join-workspace", auth, joinWorkspace);

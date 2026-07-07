@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, ChevronDown, Check, Plus, RefreshCw } from 'lucide-react';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspaces } from '../../hooks/useWorkspaces';
 
 const WorkspaceSwitcher = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  const { workspaces, loading, loadWorkspaces, selectWorkspace } = useWorkspaces();
 
   useEffect(() => {
     loadCurrentWorkspace();
-    loadWorkspaces();
   }, []);
 
   const loadCurrentWorkspace = () => {
@@ -24,43 +22,15 @@ const WorkspaceSwitcher = () => {
     }
   };
 
-  const loadWorkspaces = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.get(`${BASE_URL}/api/users/my-workspaces`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  const switchWorkspace = (workspace) => {
+    const workspaceData = selectWorkspace(workspace);
+    setCurrentWorkspace(workspaceData);
+    setIsOpen(false);
+    toast.success(`Switched to ${workspace.organizationName}`);
 
-      if (response.data.success) {
-        setWorkspaces(response.data.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading workspaces:', error);
-    } finally {
-      setLoading(false);
-    }
+    // Reload the page to refresh all workspace-dependent data
+    window.location.reload();
   };
-
-const switchWorkspace = (workspace) => {
-  const workspaceData = {
-    id: workspace._id,
-    name: workspace.organizationName,
-    workspaceCode: workspace.workspaceCode, // FIXED: Use workspaceCode, not code
-    email: workspace.email,
-    phone: workspace.phone || '',
-    joinedAt: new Date().toISOString()
-  };
-
-  console.log('Switching to workspace:', workspaceData);
-  localStorage.setItem('currentWorkspace', JSON.stringify(workspaceData));
-  setCurrentWorkspace(workspaceData);
-  setIsOpen(false);
-  toast.success(`Switched to ${workspace.organizationName}`);
-  
-  // Reload the page to refresh all workspace-dependent data
-  window.location.reload();
-};
 
   const goToWorkspaceSelector = () => {
     setIsOpen(false);

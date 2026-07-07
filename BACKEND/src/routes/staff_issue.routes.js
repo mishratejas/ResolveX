@@ -10,8 +10,8 @@ import {staffAuth} from "../middleware/staffAuth.js";
 const router=express.Router();
 
 router.get("/",staffAuth,handleGetStaffComplaints);
-router.put("/:id",staffAuth,handleUpdateStaffComplaint);
 router.get("/stats",staffAuth,handleGetStaffStats);
+router.put("/:id",staffAuth,handleUpdateStaffComplaint);
 router.get("/admins/list", staffAuth, getAdminsIdForStaff);
 
 

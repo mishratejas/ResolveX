@@ -31,6 +31,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "../../components/common/NotificationBell";
 import ProfilePhotoUpload from "../../components/common/ProfilePhotoUpload";
+import { useStaffComplaints } from "../../hooks/useStaffComplaints";
 
 // Import the Chat Component
 import ComplaintChat from "../../components/chat/ComplaintChat";
@@ -41,18 +42,7 @@ const BASE_URL =
 const StaffDashboard = () => {
   const navigate = useNavigate();
   const [staffData, setStaffData] = useState(null);
-  const [assignedComplaints, setAssignedComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [isApproved, setIsApproved] = useState(true);
-  const [stats, setStats] = useState({
-    assigned: 0,
-    inProgress: 0,
-    resolved: 0,
-    pending: 0,
-    highPriority: 0,
-    avgResolutionTime: "2.5 days",
-  });
   const [activeTab, setActiveTab] = useState("pending"); // Default to pending queue
   const [searchQuery, setSearchQuery] = useState("");
   const [isChecking, setIsChecking] = useState(false);
@@ -63,6 +53,58 @@ const StaffDashboard = () => {
   const [inboxConversations, setInboxConversations] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [totalUnread, setTotalUnread] = useState(0);
+
+  const calculateStats = (complaints) => {
+    let totalResolutionTime = 0;
+    let resolvedTotal = 0;
+
+    complaints.forEach((complaint) => {
+      if (complaint.resolvedAt && complaint.createdAt) {
+        const created = new Date(complaint.createdAt);
+        const resolved = new Date(complaint.resolvedAt);
+        totalResolutionTime += Math.abs(resolved - created) / 36e5;
+        resolvedTotal++;
+      }
+    });
+
+    const avgHours = resolvedTotal > 0 ? totalResolutionTime / resolvedTotal : 48;
+
+    // We calculate these first so we can add them together for the "Active" count
+    const pendingCount = complaints.filter(c => c.status === "pending" || c.status === "open" || !c.status).length;
+    const inProgressCount = complaints.filter(c => c.status === "in-progress" || c.status === "in_progress").length;
+
+    return {
+      assigned: pendingCount + inProgressCount,
+      inProgress: inProgressCount,
+      resolved: complaints.filter(c => c.status === "resolved" || c.status === "completed" || c.status === "closed").length,
+      pending: pendingCount,
+      highPriority: complaints.filter(c => c.priority === "high" || c.priority === "critical" || c.priority === "urgent").length,
+      avgResolutionTime: `${(avgHours / 24).toFixed(1)} days`,
+    };
+  };
+
+  const {
+    complaints: assignedComplaints,
+    stats: rawStats,
+    loading,
+    error,
+    fetchComplaints: fetchAssignedComplaints,
+    updateComplaintStatus,
+  } = useStaffComplaints({
+    calculateStats,
+    onUnauthorized: () => handleLogout(),
+  });
+
+  // Keep the same default shape the JSX below already expects before the
+  // first fetch resolves.
+  const stats = rawStats || {
+    assigned: 0,
+    inProgress: 0,
+    resolved: 0,
+    pending: 0,
+    highPriority: 0,
+    avgResolutionTime: "2.5 days",
+  };
 
   useEffect(() => {
     checkAuth();
@@ -96,7 +138,6 @@ const StaffDashboard = () => {
 
         if (freshStaffData.isApproved === false) {
           setIsApproved(false);
-          setLoading(false);
           return;
         } else {
           setIsApproved(true);
@@ -110,7 +151,6 @@ const StaffDashboard = () => {
         setStaffData(parsedData);
         if (parsedData.isApproved === false) {
           setIsApproved(false);
-          setLoading(false);
           return;
         }
       }
@@ -144,79 +184,6 @@ const StaffDashboard = () => {
     } catch (error) {
       console.error("Error fetching inbox:", error);
     }
-  };
-
-  const fetchAssignedComplaints = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const token =
-        localStorage.getItem("staffToken") ||
-        localStorage.getItem("staffAccessToken");
-
-      const response = await axios.get(`${BASE_URL}/api/staff/issues`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 10000,
-      });
-
-      let complaints = [];
-      if (response.data.success) {
-        complaints = response.data.data || [];
-        setAssignedComplaints(complaints);
-        calculateStats(complaints);
-      } else {
-        setError(response.data.message || "Failed to load complaints");
-      }
-    } catch (error) {
-      handleApiError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateStats = (complaints) => {
-    let totalResolutionTime = 0;
-    let resolvedTotal = 0;
-    
-    complaints.forEach((complaint) => {
-      if (complaint.resolvedAt && complaint.createdAt) {
-        const created = new Date(complaint.createdAt);
-        const resolved = new Date(complaint.resolvedAt);
-        totalResolutionTime += Math.abs(resolved - created) / 36e5;
-        resolvedTotal++;
-      }
-    });
-
-    const avgHours = resolvedTotal > 0 ? totalResolutionTime / resolvedTotal : 48;
-    
-    // We calculate these first so we can add them together for the "Active" count
-    const pendingCount = complaints.filter(c => c.status === "pending" || c.status === "open" || !c.status).length;
-    const inProgressCount = complaints.filter(c => c.status === "in-progress" || c.status === "in_progress").length;
-    
-    setStats({
-      // FIXED: Now it only counts Pending + In-Progress tickets!
-      assigned: pendingCount + inProgressCount, 
-      inProgress: inProgressCount,
-      resolved: complaints.filter(c => c.status === "resolved" || c.status === "completed" || c.status === "closed").length,
-      pending: pendingCount,
-      highPriority: complaints.filter(c => c.priority === "high" || c.priority === "critical" || c.priority === "urgent").length,
-      avgResolutionTime: `${(avgHours / 24).toFixed(1)} days`,
-    });
-  };
-
-  const handleApiError = (error) => {
-    if (error.response?.status === 401) {
-      handleLogout();
-      return;
-    }
-    setError(
-      error.response
-        ? `Server error: ${error.response.status}`
-        : "Unable to connect to server.",
-    );
   };
 
   const handleLogout = () => {
@@ -279,31 +246,6 @@ const StaffDashboard = () => {
       alert("Could not verify status. Try logging out and back in.");
     } finally {
       setIsChecking(false);
-    }
-  };
-
-  const updateComplaintStatus = async (complaintId, newStatus) => {
-    try {
-      const token =
-        localStorage.getItem("staffToken") ||
-        localStorage.getItem("staffAccessToken");
-      const response = await axios.put(
-        `${BASE_URL}/api/staff/issues/${complaintId}`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (response.data.success) {
-        fetchAssignedComplaints();
-      }
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("Failed to update status.");
     }
   };
 

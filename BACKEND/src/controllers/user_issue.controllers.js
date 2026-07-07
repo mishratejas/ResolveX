@@ -20,6 +20,7 @@ import {
 import { getLeastLoadedStaff } from "../utils/loadBalancer.js";
 import NotificationService from "../services/notification.service.js";
 import Staff from "../models/Staff.models.js";
+import { generateCSVData } from "../utils/exportGenerator.js";
 
 export const handleAllIssueFetch = async (req, res) => {
   try {
@@ -106,6 +107,29 @@ export const handleSingleUserIssueFetch = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching user issues:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// expects a CSV blob from GET /api/user_issues/export. Reuses the CSV
+// generator already used elsewhere in the codebase instead of writing a new
+// one, and handles the 0/1/many-complaints cases the same way.
+export const handleExportMyIssues = async (req, res) => {
+  try {
+    const complaints = await UserComplaint.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("user", "name")
+      .populate("assignedTo", "name")
+      .lean();
+
+    const csv = generateCSVData(complaints);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="my-issues.csv"');
+    return res.status(200).send(csv);
+
+  } catch (error) {
+    console.error("Error exporting user issues:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };

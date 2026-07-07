@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, Check, Trash2, X, CheckCircle, AlertTriangle, AlertCircle, Info, RefreshCw } from 'lucide-react';
-import axios from 'axios';
 import { io } from 'socket.io-client';
+import notificationService from '../../services/notificationService';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const getToken = () =>
-  localStorage.getItem('accessToken') ||
-  localStorage.getItem('adminToken') ||
-  localStorage.getItem('staffToken');
 
 const typeConfig = {
   success: { icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-100', dot: 'bg-emerald-500' },
@@ -49,12 +44,9 @@ const NotificationBell = ({ userId, variant = 'dark' }) => {
     if (!userId) return;
     if (!silent) setLoading(true); else setRefreshing(true);
     try {
-      const res = await axios.get(`${BASE}/api/notifications/${userId}`, {
-        params: { limit: 30 },
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      if (res.data?.success) {
-        const data = res.data.data;
+      const res = await notificationService.getUserNotifications(userId, { limit: 30 });
+      if (res?.success) {
+        const data = res.data;
         const newNotifs = data.notifications || [];
         const newCount = data.unreadCount || 0;
 
@@ -113,9 +105,7 @@ const NotificationBell = ({ userId, variant = 'dark' }) => {
     setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
     setUnreadCount(c => Math.max(0, c - 1));
     try {
-      await axios.patch(`${BASE}/api/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await notificationService.markNotificationAsRead(id);
     } catch { fetchNotifications(true); }
   };
 
@@ -123,9 +113,7 @@ const NotificationBell = ({ userId, variant = 'dark' }) => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     setUnreadCount(0);
     try {
-      await axios.patch(`${BASE}/api/notifications/${userId}/read-all`, {}, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await notificationService.markAllNotificationsAsRead(userId);
     } catch { fetchNotifications(true); }
   };
 
@@ -135,9 +123,7 @@ const NotificationBell = ({ userId, variant = 'dark' }) => {
     setNotifications(prev => prev.filter(n => n._id !== id));
     if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     try {
-      await axios.delete(`${BASE}/api/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await notificationService.deleteNotification(id);
     } catch { fetchNotifications(true); }
   };
 

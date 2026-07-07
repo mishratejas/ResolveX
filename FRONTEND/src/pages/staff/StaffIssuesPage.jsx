@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useStaffComplaints } from '../../hooks/useStaffComplaints';
 import {
   ArrowLeft,
   Search,
@@ -30,26 +30,56 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 const StaffIssuesPage = () => {
   const navigate = useNavigate();
-  const [complaints, setComplaints] = useState([]);
   const [filteredComplaints, setFilteredComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [stats, setStats] = useState({
-    assigned: 0,
-    inProgress: 0,
-    resolved: 0,
-    pending: 0,
-    highPriority: 0,
-    totalComments: 0,
-    avgResolutionTime: '2.5 days'
+
+  const calculateStats = (data) => {
+    let totalComments = 0;
+    let resolvedCount = 0;
+    let totalResolutionTime = 0;
+
+    data.forEach(complaint => {
+      totalComments += complaint.comments?.length || 0;
+      if (complaint.status === 'resolved' || complaint.status === 'completed') {
+        resolvedCount++;
+        if (complaint.resolvedAt && complaint.createdAt) {
+          const created = new Date(complaint.createdAt);
+          const resolved = new Date(complaint.resolvedAt);
+          const hours = Math.abs(resolved - created) / 36e5;
+          totalResolutionTime += hours;
+        }
+      }
+    });
+
+    const avgHours = resolvedCount > 0 ? totalResolutionTime / resolvedCount : 48;
+    const avgDays = (avgHours / 24).toFixed(1);
+
+    return {
+      assigned: data.length,
+      inProgress: data.filter(c => c.status === 'in-progress' || c.status === 'in_progress').length,
+      resolved: data.filter(c => c.status === 'resolved' || c.status === 'completed').length,
+      pending: data.filter(c => c.status === 'pending' || c.status === 'open').length,
+      highPriority: data.filter(c => c.priority === 'high' || c.priority === 'urgent').length,
+      totalComments: totalComments,
+      avgResolutionTime: `${avgDays} days`
+    };
+  };
+
+  const {
+    complaints,
+    stats,
+    loading,
+    fetchComplaints,
+    updateComplaintStatus: updateStatusOnServer,
+  } = useStaffComplaints({
+    calculateStats,
+    onUnauthorized: () => { localStorage.clear(); navigate('/'); },
   });
 
   useEffect(() => {
@@ -59,40 +89,8 @@ const StaffIssuesPage = () => {
       return;
     }
     fetchComplaints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
-
- const fetchComplaints = async () => {
-  try {
-    setLoading(true);
-    const token = localStorage.getItem('staffToken') || localStorage.getItem('staffAccessToken');
-    
-    // Use the correct endpoint
-    const response = await axios.get(`${BASE_URL}/api/staff/issues`, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log('Complaints response:', response.data);
-
-    if (response.data.success) {
-      const data = response.data.data || [];
-      setComplaints(data);
-      applyFilters(data, filter, searchQuery, selectedPriority);
-      calculateStats(data);
-    }
-  } catch (error) {
-    console.error('Error fetching complaints:', error);
-    // Add error handling
-    if (error.response?.status === 401) {
-      localStorage.clear();
-      navigate('/');
-    }
-  } finally {
-    setLoading(false);
-  }
-};
 
   const applyFilters = (data, statusFilter, search, priorityFilter) => {
     let filtered = [...data];
@@ -129,69 +127,22 @@ const StaffIssuesPage = () => {
     setFilteredComplaints(filtered);
   };
 
-  const calculateStats = (data) => {
-    let totalComments = 0;
-    let resolvedCount = 0;
-    let totalResolutionTime = 0;
-
-    data.forEach(complaint => {
-      totalComments += complaint.comments?.length || 0;
-      if (complaint.status === 'resolved' || complaint.status === 'completed') {
-        resolvedCount++;
-        if (complaint.resolvedAt && complaint.createdAt) {
-          const created = new Date(complaint.createdAt);
-          const resolved = new Date(complaint.resolvedAt);
-          const hours = Math.abs(resolved - created) / 36e5;
-          totalResolutionTime += hours;
-        }
-      }
-    });
-
-    const avgHours = resolvedCount > 0 ? totalResolutionTime / resolvedCount : 48;
-    const avgDays = (avgHours / 24).toFixed(1);
-
-    setStats({
-      assigned: data.length,
-      inProgress: data.filter(c => c.status === 'in-progress' || c.status === 'in_progress').length,
-      resolved: data.filter(c => c.status === 'resolved' || c.status === 'completed').length,
-      pending: data.filter(c => c.status === 'pending' || c.status === 'open').length,
-      highPriority: data.filter(c => c.priority === 'high' || c.priority === 'urgent').length,
-      totalComments: totalComments,
-      avgResolutionTime: `${avgDays} days`
-    });
-  };
-
   useEffect(() => {
     applyFilters(complaints, filter, searchQuery, selectedPriority);
   }, [filter, searchQuery, selectedPriority, complaints]);
 
-const updateComplaintStatus = async (complaintId, newStatus) => {
-  try {
-    const token = localStorage.getItem('staffToken') || localStorage.getItem('staffAccessToken');
-    
-    const response = await axios.put(
-      `${BASE_URL}/api/staff/issues/${complaintId}`,
-      { 
-        status: newStatus,
-        comments: `Status changed to ${newStatus} by staff` // Optional comment
-      },
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } 
+  const updateComplaintStatus = async (complaintId, newStatus) => {
+    try {
+      const response = await updateStatusOnServer(complaintId, newStatus, {
+        comments: `Status changed to ${newStatus} by staff`, // Optional comment
+      });
+      if (response.success) {
+        alert('Status updated successfully!');
       }
-    );
-
-    if (response.data.success) {
-      fetchComplaints(); // Refresh the list
-      alert('Status updated successfully!');
+    } catch (error) {
+      alert('Failed to update status: ' + (error.response?.data?.message || error.message));
     }
-  } catch (error) {
-    console.error('Error updating status:', error);
-    alert('Failed to update status: ' + (error.response?.data?.message || error.message));
-  }
-};
+  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
