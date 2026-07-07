@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import {
     Search, Filter, Download, RefreshCw, Calendar, ChevronDown,
     Shield, AlertCircle, CheckCircle, XCircle, Clock, User,
     Activity, Eye, TrendingUp, BarChart2
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AdminAuditLogsManager = () => {
     const [logs, setLogs] = useState([]);
@@ -37,20 +36,13 @@ const AdminAuditLogsManager = () => {
     const fetchAuditLogs = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('adminToken');
-            
-            if (!token) {
-                console.error('No admin token found - please login again');
-                return;
-            }
 
             // Strip 'all' values — backend does exact-match filtering
             const cleanFilters = Object.fromEntries(
                 Object.entries(filters).filter(([_, v]) => v && v !== 'all' && v !== '')
             );
             
-            const response = await axios.get(`${API_URL}/api/audit`, {
-                headers: { Authorization: `Bearer ${token}` },
+            const response = await axiosInstance.get(`/api/audit`, {
                 params: {
                     ...cleanFilters,
                     page: pagination.page,
@@ -73,14 +65,8 @@ const AdminAuditLogsManager = () => {
             }
         } catch (error) {
             console.error('Error fetching audit logs:', error);
-            if (error.response?.status === 401) {
-                console.error('Authentication failed - token expired');
-                // Clear invalid token and redirect to login
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminData');
-                // Optionally redirect to login page
-                window.location.href = '/admin/login';
-            }
+            // axiosInstance already tries a silent refresh on 401; if we still land
+            // here with a 401, the refresh itself failed and it already redirected.
         } finally {
             setLoading(false);
         }
@@ -88,9 +74,7 @@ const AdminAuditLogsManager = () => {
 
     const fetchStats = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
-            const response = await axios.get(`${API_URL}/api/audit/statistics`, {
-                headers: { Authorization: `Bearer ${token}` },
+            const response = await axiosInstance.get(`/api/audit/statistics`, {
                 params: {
                     days: 30
                 }
@@ -106,9 +90,7 @@ const AdminAuditLogsManager = () => {
 
     const handleExport = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
-            const response = await axios.get(`${API_URL}/api/audit/export`, {
-                headers: { Authorization: `Bearer ${token}` },
+            const response = await axiosInstance.get(`/api/audit/export`, {
                 params: {
                     ...filters,
                     format: 'csv'

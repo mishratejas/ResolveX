@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Plus, RefreshCw, AlertCircle, Building2, MessageCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import debounce from "lodash/debounce";
 import { toast } from "react-hot-toast";
 
@@ -21,8 +21,6 @@ const AllComplaints = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [voting, setVoting] = useState({});
   const [user, setUser] = useState(null);
-
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -65,7 +63,7 @@ const AllComplaints = () => {
         setLoading(false);
         return;
       }
-      const response = await axios.get(`${BASE_URL}/api/user_issues`, {
+      const response = await axiosInstance.get(`/api/user_issues`, {
         params: { workspaceId: currentWorkspace.id },
       });
       if (response.data.success) {
@@ -86,7 +84,7 @@ const AllComplaints = () => {
     } finally {
       setLoading(false);
     }
-  }, [BASE_URL]);
+  }, []);
 
   useEffect(() => { loadComplaints(); }, [loadComplaints]);
 
@@ -147,8 +145,8 @@ const AllComplaints = () => {
       if (complaintUserId === userId) { toast.error("You cannot vote on your own complaint"); return; }
       if (complaint.voters?.includes(userId)) { toast.error("You have already voted for this issue!"); return; }
       setVoting((prev) => ({ ...prev, [complaintId]: true }));
-      const response = await axios.put(
-        `${BASE_URL}/api/user_issues/${complaintId}/upvote`,
+      const response = await axiosInstance.put(
+        `/api/user_issues/${complaintId}/upvote`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

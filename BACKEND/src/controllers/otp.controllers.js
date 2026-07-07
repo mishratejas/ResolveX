@@ -266,7 +266,7 @@ export const userSignupWithOTP = async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     // Generate tokens + set refresh cookie
-    const accessToken = issueAuthTokens(res, { id: newUser._id, role: newUser.role });
+    const accessToken = issueAuthTokens(req, res, { id: newUser._id, role: newUser.role });
 
     res.status(201).json(
         { success: true, message: "User registered successfully", data: {
@@ -337,7 +337,7 @@ export const staffSignupWithOTP = async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     // Generate tokens + set refresh cookie
-    const accessToken = issueAuthTokens(res, { id: newStaff._id, role: 'staff' });
+    const accessToken = issueAuthTokens(req, res, { id: newStaff._id, role: 'staff' }, "staffRefreshToken");
 
     res.status(201).json(
         { success: true, message: "Staff registered successfully. Account is pending Admin approval.", data: {
@@ -418,11 +418,11 @@ export const adminSignupWithOTP = async (req, res) => {
     await OTP.deleteOne({ _id: otpRecord._id });
 
     // --- 5. GENERATE LOGIN TOKENS ---
-    const accessToken = issueAuthTokens(res, {
+    const accessToken = issueAuthTokens(req, res, {
         id: newAdmin._id,
         role: newAdmin.role || 'admin',
         workspaceCode: newAdmin.workspaceCode
-    });
+    }, "adminRefreshToken");
 
     // --- 6. SEND RESPONSE ---
     res.status(201).json(

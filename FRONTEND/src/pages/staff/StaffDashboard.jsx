@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 import {
   ClipboardList,
@@ -35,9 +35,6 @@ import { useStaffComplaints } from "../../hooks/useStaffComplaints";
 
 // Import the Chat Component
 import ComplaintChat from "../../components/chat/ComplaintChat";
-
-const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
@@ -126,9 +123,7 @@ const StaffDashboard = () => {
     }
 
     try {
-      const response = await axios.get(`${BASE_URL}/api/staff/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axiosInstance.get(`/api/staff/profile`);
 
       if (response.data.success) {
         const freshStaffData = response.data.staff || response.data.data;
@@ -163,10 +158,7 @@ const StaffDashboard = () => {
   // Fetch Inbox Data & Unread Counts
   const fetchInboxData = async () => {
     try {
-      const token = localStorage.getItem("staffToken") || localStorage.getItem("staffAccessToken");
-      const response = await axios.get(`${BASE_URL}/api/chat/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosInstance.get(`/api/chat/conversations`);
       
       if (response.data.success) {
         // Filter for active chats only
@@ -187,6 +179,10 @@ const StaffDashboard = () => {
   };
 
   const handleLogout = () => {
+    // Fire the backend logout so the HttpOnly staffRefreshToken cookie is
+    // actually cleared. Previously this only cleared localStorage, which
+    // left the refresh cookie alive in the browser after "logging out".
+    axiosInstance.post("/api/staff/logout").catch(() => {});
     localStorage.removeItem("staffToken");
     localStorage.removeItem("staffData");
     localStorage.removeItem("staffAccessToken");
@@ -197,14 +193,9 @@ const StaffDashboard = () => {
   // NEW: Persist the uploaded profile photo URL to the staff's profile
   const handleProfilePhotoUploaded = async (imageUrl) => {
     try {
-      const token =
-        localStorage.getItem("staffToken") ||
-        localStorage.getItem("staffAccessToken");
-
-      const response = await axios.put(
-        `${BASE_URL}/api/staff/profile`,
+      const response = await axiosInstance.put(
+        `/api/staff/profile`,
         { profileImage: imageUrl },
-        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
@@ -221,12 +212,7 @@ const StaffDashboard = () => {
   const checkApprovalStatus = async () => {
     try {
       setIsChecking(true);
-      const token =
-        localStorage.getItem("staffToken") ||
-        localStorage.getItem("staffAccessToken");
-      const response = await axios.get(`${BASE_URL}/api/staff/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axiosInstance.get(`/api/staff/profile`);
 
       if (response.data.success) {
         const freshStaffData = response.data.data || response.data.staff;

@@ -1,14 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const getAuthHeaders = () => {
-  const token =
-    localStorage.getItem('accessToken') ||
-    localStorage.getItem('staffToken') ||
-    localStorage.getItem('adminToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+import axiosInstance from '../api/axios';
 
 export const getUserNotifications = async (userId, options = {}) => {
   try {
@@ -19,9 +9,8 @@ export const getUserNotifications = async (userId, options = {}) => {
     params.append('limit', limit);
     params.append('skip', skip);
 
-    const response = await axios.get(
-      `${API_URL}/api/notifications/${userId}?${params.toString()}`,
-      { headers: getAuthHeaders() }
+    const response = await axiosInstance.get(
+      `/api/notifications/${userId}?${params.toString()}`
     );
     return response.data;
   } catch (error) {
@@ -32,10 +21,9 @@ export const getUserNotifications = async (userId, options = {}) => {
 
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    const response = await axios.patch(
-      `${API_URL}/api/notifications/${notificationId}/read`,
-      {},
-      { headers: getAuthHeaders() }
+    const response = await axiosInstance.patch(
+      `/api/notifications/${notificationId}/read`,
+      {}
     );
     return response.data;
   } catch (error) {
@@ -46,10 +34,9 @@ export const markNotificationAsRead = async (notificationId) => {
 
 export const markAllNotificationsAsRead = async (userId) => {
   try {
-    const response = await axios.patch(
-      `${API_URL}/api/notifications/${userId}/read-all`,
-      {},
-      { headers: getAuthHeaders() }
+    const response = await axiosInstance.patch(
+      `/api/notifications/${userId}/read-all`,
+      {}
     );
     return response.data;
   } catch (error) {
@@ -60,9 +47,8 @@ export const markAllNotificationsAsRead = async (userId) => {
 
 export const deleteNotification = async (notificationId) => {
   try {
-    const response = await axios.delete(
-      `${API_URL}/api/notifications/${notificationId}`,
-      { headers: getAuthHeaders() }
+    const response = await axiosInstance.delete(
+      `/api/notifications/${notificationId}`
     );
     return response.data;
   } catch (error) {
@@ -73,9 +59,8 @@ export const deleteNotification = async (notificationId) => {
 
 export const clearAllNotifications = async (userId) => {
   try {
-    const response = await axios.delete(
-      `${API_URL}/api/notifications/${userId}/clear-all`,
-      { headers: getAuthHeaders() }
+    const response = await axiosInstance.delete(
+      `/api/notifications/${userId}/clear-all`
     );
     return response.data;
   } catch (error) {

@@ -1,10 +1,5 @@
 import { useState, useCallback } from "react";
-import axios from "axios";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const getStaffToken = () =>
-  localStorage.getItem("staffToken") || localStorage.getItem("staffAccessToken");
+import axiosInstance from "../api/axios";
 
 export const useStaffComplaints = ({ calculateStats, onUnauthorized } = {}) => {
   const [complaints, setComplaints] = useState([]);
@@ -16,13 +11,8 @@ export const useStaffComplaints = ({ calculateStats, onUnauthorized } = {}) => {
     try {
       setLoading(true);
       setError("");
-      const token = getStaffToken();
 
-      const response = await axios.get(`${BASE_URL}/api/staff/issues`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const response = await axiosInstance.get(`/api/staff/issues`, {
         timeout: 10000,
       });
 
@@ -39,6 +29,8 @@ export const useStaffComplaints = ({ calculateStats, onUnauthorized } = {}) => {
       }
     } catch (err) {
       console.error("Error fetching assigned complaints:", err);
+      // axiosInstance already tries a silent refresh on 401 before this catch
+      // ever sees it, so a 401 here means the refresh itself failed.
       if (err.response?.status === 401) {
         if (onUnauthorized) onUnauthorized();
       } else {
@@ -56,16 +48,9 @@ export const useStaffComplaints = ({ calculateStats, onUnauthorized } = {}) => {
 
   const updateComplaintStatus = useCallback(async (complaintId, newStatus, extraPayload = {}) => {
     try {
-      const token = getStaffToken();
-      const response = await axios.put(
-        `${BASE_URL}/api/staff/issues/${complaintId}`,
-        { status: newStatus, ...extraPayload },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      const response = await axiosInstance.put(
+        `/api/staff/issues/${complaintId}`,
+        { status: newStatus, ...extraPayload }
       );
 
       if (response.data.success) {

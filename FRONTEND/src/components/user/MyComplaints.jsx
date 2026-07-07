@@ -4,7 +4,7 @@ import {
   AlertCircle, CheckCircle, Target, TrendingUp, RefreshCw, X, AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 
 const MyComplaints = ({ currentUser }) => {
   const navigate = useNavigate();
@@ -16,19 +16,14 @@ const MyComplaints = ({ currentUser }) => {
   const [deleting, setDeleting] = useState(false);
   const [stats, setStats] = useState({ total: 0, resolved: 0, pending: 0, inProgress: 0, totalVotes: 0 });
 
-  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
   useEffect(() => { loadMyComplaints(); }, [currentUser]);
 
   const loadMyComplaints = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('accessToken');
       const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
       const workspaceParam = currentWorkspace?.id ? `?workspaceId=${currentWorkspace.id}` : '';
-      const response = await axios.get(`${BASE_URL}/api/user_issues/my${workspaceParam}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosInstance.get(`/api/user_issues/my${workspaceParam}`);
       if (response.data.success) {
         const d = response.data.data || [];
         setComplaints(d);
@@ -54,10 +49,7 @@ const MyComplaints = ({ currentUser }) => {
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.delete(`${BASE_URL}/api/user_issues/${deleteModal.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axiosInstance.delete(`/api/user_issues/${deleteModal.id}`);
       setComplaints(prev => prev.filter(c => c._id !== deleteModal.id));
       setStats(prev => ({ ...prev, total: prev.total - 1 }));
       setDeleteModal({ open: false, id: null, title: '' });

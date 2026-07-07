@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import { toast } from "react-hot-toast";
 import {
   BarChart,
@@ -201,8 +201,6 @@ const Leaderboard = ({ currentUser }) => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
   // ================ YOUR ACTUAL COMPLAINT CATEGORIES ================
   const COMPLAINT_CATEGORIES = [
     {
@@ -305,15 +303,12 @@ const fetchLiveData = useCallback(async () => {
     }
 
     // Fetch complaints with workspace filter
-    const response = await axios.get(`${BASE_URL}/api/user_issues`, {
+    const response = await axiosInstance.get(`/api/user_issues`, {
       params: {
         workspaceId: currentWorkspace.id,
         includeUser: true,
         includeStats: true,
         timeRange: timeRange,
-      },
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
       },
     });
 
@@ -328,7 +323,7 @@ const fetchLiveData = useCallback(async () => {
     setLoading(false);
     setRefreshing(false);
   }
-}, [BASE_URL, timeRange]);
+}, [timeRange]);
 
   // Process real-time data from API
   const processRealTimeData = (issues) => {

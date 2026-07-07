@@ -4,6 +4,7 @@ import UserComplaint from "../models/UserComplaint.models.js";
 import Staff from "../models/Staff.models.js";
 import User from "../models/User.models.js";
 import jwt from "jsonwebtoken";
+import { getRefreshCookieOptions } from "../utils/authTokens.js";
 
 // ==================== AUTHENTICATION ====================
 // NOTE: Admin signup/workspace creation now lives at POST /api/otp/signup/admin
@@ -36,13 +37,11 @@ export const adminLogin = async (req, res) => {
             workspaceCode: admin.workspaceCode //   Added to token
         };
 
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1m" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+        res.cookie("adminRefreshToken", refreshToken, {
+            ...getRefreshCookieOptions(req),
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
@@ -72,15 +71,63 @@ export const adminLogin = async (req, res) => {
 
 export const adminLogout = async (req, res) => {
     try {
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
-        });
+        res.clearCookie("adminRefreshToken", getRefreshCookieOptions(req));
         res.status(200).json({ success: true, message: "Admin logged out successfully" });
     } catch (error) {
         console.error("  Logout Error:", error);
         res.status(500).json({ success: false, message: "Server error during logout" });
+    }
+};
+
+// Refresh token controller — reissues a short-lived access token using the
+// HttpOnly adminRefreshToken cookie set at login.
+export const adminRefreshToken = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.adminRefreshToken;
+
+        if (!refreshToken) {
+            return res.status(401).json({ success: false, message: "Refresh token required" });
+        }
+
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        const admin = await Admin.findById(decoded.id);
+        if (!admin) {
+            return res.status(401).json({ success: false, message: "Invalid refresh token" });
+        }
+
+        const payload = {
+            id: admin._id,
+            email: admin.email,
+            name: admin.name,
+            role: admin.role,
+            workspaceCode: admin.workspaceCode
+        };
+
+        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1m" });
+
+        res.json({
+            success: true,
+            accessToken: newAccessToken,
+            admin: {
+                id: admin._id,
+                organizationName: admin.organizationName,
+                workspaceCode: admin.workspaceCode,
+                name: admin.name,
+                email: admin.email,
+                role: admin.role,
+                permissions: admin.permissions,
+                profileImage: admin.profileImage || ""
+            }
+        });
+    } catch (error) {
+        console.error("Admin refresh token error:", error);
+
+        if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+            return res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+        }
+
+        res.status(500).json({ success: false, message: "Server error refreshing token" });
     }
 };
 

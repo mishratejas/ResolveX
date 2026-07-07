@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import {
   Home, FileText, Users, UserCog, BarChart3, 
   MessageSquare, Shield, Menu, LogOut,
   ChevronRight, Building, Settings
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Sidebar = ({ activePage, onLogout }) => {
   const navigate = useNavigate();
@@ -43,13 +42,10 @@ const Sidebar = ({ activePage, onLogout }) => {
 
   const fetchSidebarStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) return;
+      if (!localStorage.getItem('adminToken')) return;
 
       // We can grab high-level stats from your dashboard endpoint to populate badges
-      const res = await axios.get(`${API_URL}/api/admin/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axiosInstance.get(`/api/admin/dashboard`);
 
       if (res.data.success) {
         const stats = res.data.data.stats;
@@ -64,9 +60,7 @@ const Sidebar = ({ activePage, onLogout }) => {
       }
 
       // Also grab unread chat counts
-      const chatRes = await axios.get(`${API_URL}/api/chat/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const chatRes = await axiosInstance.get(`/api/chat/conversations`);
       
       if (chatRes.data.success) {
         setBadges(prev => ({

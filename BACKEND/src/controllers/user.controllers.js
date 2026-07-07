@@ -2,15 +2,9 @@ import User from "../models/User.models.js";
 import OTP from "../models/otp.model.js"
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { issueAuthTokens } from "../utils/authTokens.js";
-// been removed. It duplicated almost all of userSignupWithOTP's logic but
-// never actually checked the OTP it received, so it was a backdoor around
-// email verification. All user signups now go through
-// `userSignupWithOTP` (controllers/otp.controllers.js, POST /api/otp/signup/user),
-// which is wired into the live signup flow already.
+import { issueAuthTokens, getRefreshCookieOptions } from "../utils/authTokens.js";
 
 //Login controller
-
 export const userLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -45,7 +39,7 @@ export const userLogin = async (req, res) => {
         console.log('Password matched! Generating tokens...');
         
         //Generate JWT + set refresh cookie
-        const accessToken = issueAuthTokens(res, { id: user._id, role: user.role || "user" });
+        const accessToken = issueAuthTokens(req, res, { id: user._id, role: user.role || "user" });
 
         console.log('Login successful for:', user.email);
 
@@ -96,7 +90,7 @@ export const refreshToken = async (req, res) => {
 
         // Generate new access token
         const payload = { id: user._id, role: user.role || "user" };
-        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
+        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1m" });
 
         res.json({
             success: true,
@@ -128,7 +122,7 @@ export const refreshToken = async (req, res) => {
 
 // Logout controller
 export const logout = (req, res) => {
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", getRefreshCookieOptions(req));
     res.json({
         success: true,
         message: "Logged out successfully"

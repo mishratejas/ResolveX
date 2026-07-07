@@ -23,6 +23,13 @@ import auditRoutes from "./routes/audit.routes.js";
 const app = express();
 const server = createServer(app);
 
+// Render (and most PaaS providers) terminate TLS at a reverse proxy and
+// forward requests to the app over plain HTTP, adding an
+// `X-Forwarded-Proto: https` header. Without `trust proxy`, Express/req.secure
+// always reports `false`, which breaks any logic that decides cookie
+// `secure`/`sameSite` based on whether the connection is actually HTTPS.
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
     `${process.env.FRONTEND_URL}`,
     'http://localhost:5173',

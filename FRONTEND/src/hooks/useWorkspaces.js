@@ -1,22 +1,16 @@
 import { useState, useCallback, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../api/axios";
 import { toast } from "react-hot-toast";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export const useWorkspaces = ({ autoLoad = true } = {}) => {
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(autoLoad);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const authHeaders = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
-  });
-
   const loadWorkspaces = useCallback(async ({ silent = false } = {}) => {
     try {
       if (!silent) setLoading(true);
-      const response = await axios.get(`${BASE_URL}/api/users/my-workspaces`, authHeaders());
+      const response = await axiosInstance.get(`/api/users/my-workspaces`);
       if (response.data.success) {
         setWorkspaces(response.data.data || []);
       }
@@ -37,10 +31,9 @@ export const useWorkspaces = ({ autoLoad = true } = {}) => {
     }
     setActionLoading(true);
     try {
-      const response = await axios.post(
-        `${BASE_URL}/api/users/join-workspace`,
-        { workspaceCode: workspaceCode.trim().toUpperCase() },
-        authHeaders()
+      const response = await axiosInstance.post(
+        `/api/users/join-workspace`,
+        { workspaceCode: workspaceCode.trim().toUpperCase() }
       );
       if (response.data.success) {
         toast.success(response.data.message);
@@ -65,10 +58,9 @@ export const useWorkspaces = ({ autoLoad = true } = {}) => {
       return null;
     }
     try {
-      const response = await axios.post(
-        `${BASE_URL}/api/users/leave-workspace/${workspaceId}`,
-        {},
-        authHeaders()
+      const response = await axiosInstance.post(
+        `/api/users/leave-workspace/${workspaceId}`,
+        {}
       );
       if (response.data.success) {
         toast.success(response.data.message);

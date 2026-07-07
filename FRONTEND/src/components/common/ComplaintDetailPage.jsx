@@ -5,7 +5,7 @@ import {
   ExternalLink, Image as ImageIcon, AlertTriangle, Clock, CheckCircle,
   MessageCircle, Send, ShieldCheck, Briefcase
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import complaintService from "../../services/complaintService";
 
 const ComplaintDetailPage = ({ authStatus }) => {
@@ -28,14 +28,12 @@ const ComplaintDetailPage = ({ authStatus }) => {
   const currentAdmin = JSON.parse(localStorage.getItem("adminData") || "null");
   const viewer = role === "admin" ? currentAdmin : role === "staff" ? currentStaff : currentUser;
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
   useEffect(() => { loadComplaintDetails(); }, [id]);
 
   const loadComplaintDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/api/user_issues/${id}`);
+      const response = await axiosInstance.get(`/api/user_issues/${id}`);
       if (response.data.success) {
         const data = response.data.data;
         setComplaint(data);
@@ -62,11 +60,9 @@ const ComplaintDetailPage = ({ authStatus }) => {
 
     try {
       setVoting(true);
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.put(
-        `${BASE_URL}/api/user_issues/${id}/vote`,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await axiosInstance.put(
+        `/api/user_issues/${id}/vote`,
+        { userId }
       );
       if (response.data.success) {
         setComplaint(response.data.data);
@@ -90,19 +86,15 @@ const ComplaintDetailPage = ({ authStatus }) => {
       let updatedComments;
 
       if (role === "admin") {
-        const token = localStorage.getItem("adminToken");
-        const res = await axios.put(
-          `${BASE_URL}/api/admin/issues/${id}`,
-          { comments: commentText.trim() },
-          { headers: { Authorization: `Bearer ${token}` } }
+        const res = await axiosInstance.put(
+          `/api/admin/issues/${id}`,
+          { comments: commentText.trim() }
         );
         updatedComments = res.data?.data?.comments;
       } else if (role === "staff") {
-        const token = localStorage.getItem("staffToken");
-        const res = await axios.put(
-          `${BASE_URL}/api/staff/issues/${id}`,
-          { comments: commentText.trim() },
-          { headers: { Authorization: `Bearer ${token}` } }
+        const res = await axiosInstance.put(
+          `/api/staff/issues/${id}`,
+          { comments: commentText.trim() }
         );
         updatedComments = res.data?.data?.comments;
       } else {

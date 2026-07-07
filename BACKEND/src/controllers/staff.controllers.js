@@ -1,6 +1,7 @@
 import Staff from "../models/Staff.models.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { getRefreshCookieOptions } from "../utils/authTokens.js";
 
 // ==================== PUBLIC ROUTES (STAFF APP) ====================
 // NOTE: Staff registration now lives at POST /api/otp/signup/staff (otp.routes.js),
@@ -30,13 +31,11 @@ export const staffLogin = async (req, res) => {
         // We let them log in so the frontend can redirect them to the beautiful "Waiting Room" screen.
         
         const payload = { id: staff._id, role: staff.role || "staff" };
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1m" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
         
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+        res.cookie("staffRefreshToken", refreshToken, {
+            ...getRefreshCookieOptions(req),
             maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
         
@@ -61,6 +60,57 @@ export const staffLogin = async (req, res) => {
         console.error("Staff Login Error:", err);
         res.status(500).json({ success: false, message: "Server Error during staff login." });
     }
+};
+
+// Refresh token controller — reissues a short-lived access token using the
+// HttpOnly staffRefreshToken cookie set at login.
+export const staffRefreshToken = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.staffRefreshToken;
+
+        if (!refreshToken) {
+            return res.status(401).json({ success: false, message: "Refresh token required" });
+        }
+
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        const staff = await Staff.findById(decoded.id).populate('department', 'name category');
+        if (!staff) {
+            return res.status(401).json({ success: false, message: "Invalid refresh token" });
+        }
+
+        const payload = { id: staff._id, role: staff.role || "staff" };
+        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1m" });
+
+        res.json({
+            success: true,
+            accessToken: newAccessToken,
+            staff: {
+                _id: staff._id,
+                name: staff.name,
+                role: staff.role,
+                staffId: staff.staffId,
+                email: staff.email,
+                department: staff.department,
+                phone: staff.phone,
+                profileImage: staff.profileImage || "",
+                isApproved: staff.isApproved
+            }
+        });
+    } catch (error) {
+        console.error("Staff refresh token error:", error);
+
+        if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+            return res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+        }
+
+        res.status(500).json({ success: false, message: "Server error refreshing token" });
+    }
+};
+
+export const staffLogout = (req, res) => {
+    res.clearCookie("staffRefreshToken", getRefreshCookieOptions(req));
+    res.status(200).json({ success: true, message: "Staff logged out successfully" });
 };
 
 export const getStaffProfile = async (req, res) => {

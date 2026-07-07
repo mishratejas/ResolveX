@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { Building2, Mail, Phone, User, Save, KeyRound } from "lucide-react";
 import ProfilePhotoUpload from "../common/ProfilePhotoUpload";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AdminSettingsManager = () => {
   const [admin, setAdmin] = useState(null);
@@ -22,9 +20,7 @@ const AdminSettingsManager = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/admin/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axiosInstance.get(`/api/admin/profile`);
 
       if (res.data.success) {
         const data = res.data.data;
@@ -63,10 +59,9 @@ const AdminSettingsManager = () => {
 
   const handlePhotoUploaded = async (imageUrl) => {
     try {
-      const res = await axios.put(
-        `${BASE_URL}/api/admin/profile`,
+      const res = await axiosInstance.put(
+        `/api/admin/profile`,
         { profileImage: imageUrl },
-        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.data.success) {
         persistAdmin(res.data.data);
@@ -86,9 +81,7 @@ const AdminSettingsManager = () => {
 
     setSaving(true);
     try {
-      const res = await axios.put(`${BASE_URL}/api/admin/profile`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axiosInstance.put(`/api/admin/profile`, form);
 
       if (res.data.success) {
         persistAdmin(res.data.data);

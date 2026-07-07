@@ -17,7 +17,7 @@ import {
   BarChart3,
   Award
 } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { PlusCircle } from 'lucide-react';
 const Dashboard = ({ currentUser }) => {
   const [stats, setStats] = useState({
@@ -37,8 +37,6 @@ const Dashboard = ({ currentUser }) => {
   });
   const navigate = useNavigate();
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
   useEffect(() => {
     loadDashboardData();
   }, [currentUser]);
@@ -48,7 +46,7 @@ const Dashboard = ({ currentUser }) => {
       setLoading(true);
       
       // Load all complaints for stats
-      const complaintsRes = await axios.get(`${BASE_URL}/api/user_issues`);
+      const complaintsRes = await axiosInstance.get(`/api/user_issues`);
       if (complaintsRes.data.success) {
         const complaints = complaintsRes.data.data || [];
         
@@ -70,9 +68,7 @@ const Dashboard = ({ currentUser }) => {
       // Load user's complaints for recent activity
       const token = localStorage.getItem('accessToken');
       if (token && currentUser) {
-        const myComplaintsRes = await axios.get(`${BASE_URL}/api/user_issues/my`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const myComplaintsRes = await axiosInstance.get(`/api/user_issues/my`);
         
         if (myComplaintsRes.data.success) {
           const myComplaints = myComplaintsRes.data.data || [];
@@ -123,9 +119,7 @@ const Dashboard = ({ currentUser }) => {
         return;
       }
       
-      await axios.put(`${BASE_URL}/api/user_issues/${complaintId}/vote`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await axiosInstance.put(`/api/user_issues/${complaintId}/vote`, {});
       
       // Refresh data after voting
       loadDashboardData();
@@ -501,4 +495,3 @@ const Dashboard = ({ currentUser }) => {
 };
 
 export default Dashboard;
-

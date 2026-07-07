@@ -1,9 +1,8 @@
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import { toast } from "react-hot-toast";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
 
@@ -54,9 +53,8 @@ const ProfilePhotoUpload = ({
       const formData = new FormData();
       formData.append("image", file);
 
-      const res = await axios.post(`${BASE_URL}/api/upload`, formData, {
+      const res = await axiosInstance.post(`/api/upload`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });

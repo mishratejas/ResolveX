@@ -2,6 +2,7 @@ import express from "express";
 import { 
     adminLogin,
     adminLogout,
+    adminRefreshToken,
     getDashboardData,
     getChartData,
     getAdminProfile,      
@@ -15,6 +16,7 @@ const router = express.Router();
 // ==================== AUTHENTICATION ====================
 // NOTE: Admin signup/workspace creation now lives at POST /api/otp/signup/admin (otp.routes.js)
 router.post("/login", adminLogin);
+router.post("/refresh-token", adminRefreshToken);
 router.post("/logout", adminAuth, auditLogger('LOGOUT', 'AUTHENTICATION'), adminLogout);
 
 // ==================== OWN PROFILE ====================

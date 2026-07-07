@@ -27,7 +27,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import ProfilePhotoUpload from "../common/ProfilePhotoUpload";
@@ -52,7 +52,6 @@ const Profile = ({ currentUser }) => {
   const [editLoading, setEditLoading] = useState(false);
 
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     if (!loading) {
@@ -84,7 +83,7 @@ const loadUserData = async () => {
     const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace'));
 
     // Load user's profile
-    const profileRes = await axios.get(`${BASE_URL}/api/users/profile`, {
+    const profileRes = await axiosInstance.get(`/api/users/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -94,7 +93,7 @@ const loadUserData = async () => {
 
     // Load user's complaints - filtered by current workspace
     const workspaceParam = currentWorkspace?.id ? `?workspaceId=${currentWorkspace.id}` : '';
-    const complaintsRes = await axios.get(`${BASE_URL}/api/user_issues/my${workspaceParam}`, {
+    const complaintsRes = await axiosInstance.get(`/api/user_issues/my${workspaceParam}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -112,7 +111,7 @@ const loadUserData = async () => {
   const loadUserWorkspaces = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`${BASE_URL}/api/users/my-workspaces`, {
+      const response = await axiosInstance.get(`/api/users/my-workspaces`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -137,7 +136,7 @@ const loadUserActivity = async () => {
     }
 
     // Fetch user's complaints to calculate activity
-    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+    const response = await axiosInstance.get(`/api/user_issues/my`, {
       params: { workspaceId: currentWorkspace.id },
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     });
@@ -177,7 +176,7 @@ const loadUserAchievements = async () => {
       return;
     }
 
-    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+    const response = await axiosInstance.get(`/api/user_issues/my`, {
       params: { workspaceId: currentWorkspace.id },
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     });
@@ -243,7 +242,7 @@ const loadUserRank = async () => {
     }
 
     // Fetch user's complaints
-    const response = await axios.get(`${BASE_URL}/api/user_issues/my`, {
+    const response = await axiosInstance.get(`/api/user_issues/my`, {
       params: { workspaceId: currentWorkspace.id },
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     });
@@ -321,8 +320,8 @@ const loadUserRank = async () => {
   const handleProfilePhotoUploaded = async (imageUrl) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await axios.put(
-        `${BASE_URL}/api/users/profile`,
+      const response = await axiosInstance.put(
+        `/api/users/profile`,
         { profileImage: imageUrl },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -354,7 +353,7 @@ const loadUserRank = async () => {
       const token = localStorage.getItem('accessToken');
       if (editTab === 'profile') {
         const payload = { name: editForm.name, phone: editForm.phone, bio: editForm.bio, address: editForm.address };
-        const response = await axios.put(`${BASE_URL}/api/users/profile`, payload, {
+        const response = await axiosInstance.put(`/api/users/profile`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data.success) {
@@ -368,7 +367,7 @@ const loadUserRank = async () => {
           await loadUserData();
         }
       } else {
-        const response = await axios.put(`${BASE_URL}/api/users/change-password`, {
+        const response = await axiosInstance.put(`/api/users/change-password`, {
           currentPassword: editForm.currentPassword,
           newPassword: editForm.newPassword
         }, { headers: { Authorization: `Bearer ${token}` } });
@@ -396,8 +395,8 @@ const loadUserRank = async () => {
     setWorkspaceLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        `${BASE_URL}/api/users/join-workspace`,
+      const response = await axiosInstance.post(
+        `/api/users/join-workspace`,
         { workspaceCode: workspaceCode.trim().toUpperCase() },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -438,8 +437,8 @@ const loadUserRank = async () => {
 
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        `${BASE_URL}/api/users/leave-workspace/${workspaceId}`,
+      const response = await axiosInstance.post(
+        `/api/users/leave-workspace/${workspaceId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -974,8 +973,8 @@ const loadUserRank = async () => {
                 onClick={async () => {
                   try {
                     const token = localStorage.getItem("accessToken");
-                    const response = await axios.get(
-                      `${BASE_URL}/api/user_issues/export`,
+                    const response = await axiosInstance.get(
+                      `/api/user_issues/export`,
                       {
                         headers: { Authorization: `Bearer ${token}` },
                         responseType: "blob",

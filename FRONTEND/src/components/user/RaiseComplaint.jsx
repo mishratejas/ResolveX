@@ -14,13 +14,10 @@ import {
   Navigation,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../../api/axios";
 import complaintService from "../../services/complaintService";
 import departmentService from "../../services/departmentService";
 import DuplicateWarningModal from "./DuplicateWarningModal";
-
-const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const RaiseComplaint = () => {
   const navigate = useNavigate();
@@ -634,9 +631,8 @@ const handleUpvoteDuplicate = async (complaintId) => {
           formData.images.forEach((file) => {
             imageFormData.append("image", file);
           });
-          const uploadRes = await axios.post(`${BASE_URL}/api/upload`, imageFormData, {
+          const uploadRes = await axiosInstance.post(`/api/upload`, imageFormData, {
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "multipart/form-data",
             },
           });
@@ -651,12 +647,11 @@ const handleUpvoteDuplicate = async (complaintId) => {
 
       console.log("Submitting payload:", payload);
 
-      const response = await axios.post(
-        `${BASE_URL}/api/user_issues`,
+      const response = await axiosInstance.post(
+        `/api/user_issues`,
         payload,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         },

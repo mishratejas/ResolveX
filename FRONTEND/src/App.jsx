@@ -211,6 +211,12 @@ function App() {
     if (localStorage.getItem("adminToken")) {
       apiAdminLogout().catch(() => {});
     }
+    if (localStorage.getItem("staffToken")) {
+      fetch(`${BASE_URL}/api/staff/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+    }
+    if (localStorage.getItem("accessToken")) {
+      fetch(`${BASE_URL}/api/users/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+    }
 
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminData");
@@ -543,6 +549,18 @@ const ProtectedRoute = ({ children, requiredRole, authStatus }) => {
       return React.cloneElement(child, {
         authStatus,
         onLogout: () => {
+          // Clear whichever role's HttpOnly refresh cookie is active before
+          // wiping localStorage — previously this only cleared localStorage
+          // and left the refresh cookie alive in the browser.
+          if (localStorage.getItem("adminToken")) {
+            fetch(`${BASE_URL}/api/admin/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+          }
+          if (localStorage.getItem("staffToken")) {
+            fetch(`${BASE_URL}/api/staff/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+          }
+          if (localStorage.getItem("accessToken")) {
+            fetch(`${BASE_URL}/api/users/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+          }
           localStorage.clear();
           window.location.href = "/";
         },

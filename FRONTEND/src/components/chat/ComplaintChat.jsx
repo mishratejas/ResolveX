@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, X, User } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { io } from 'socket.io-client';
 
 // Make sure this matches your actual backend URL variable (Vite uses import.meta.env)
@@ -12,13 +12,6 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef(null);
-
-    // Get a clean token based on role
-    const getToken = () => {
-        return currentUser.role === 'admin' 
-            ? localStorage.getItem('adminToken') || localStorage.getItem('accessToken')
-            : localStorage.getItem('staffToken') || localStorage.getItem('staffAccessToken');
-    };
 
     useEffect(() => {
         // 1. Initialize Socket.io Connection
@@ -46,12 +39,9 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
     const fetchConversation = async () => {
         try {
             setLoading(true);
-            const token = getToken();
-            
+
             // Adjust this URL to match your chat.routes.js exactly!
-            const response = await axios.get(`${BASE_URL}/api/chat/complaint/${complaintId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axiosInstance.get(`/api/chat/complaint/${complaintId}`);
             
             if (response.data.success) {
                 setMessages(response.data.messages || []);
@@ -74,16 +64,13 @@ const ComplaintChat = ({ complaintId, currentUser, onClose, complaintTitle, comp
 
         try {
             setSending(true);
-            const token = getToken();
-            
+
             // Adjust this URL to match your chat.routes.js exactly!
-            await axios.post(`${BASE_URL}/api/chat/complaint/${complaintId}/send`, {
+            await axiosInstance.post(`/api/chat/complaint/${complaintId}/send`, {
                 message: newMessage,
                 senderId: currentUser.id || currentUser._id,
                 senderModel: currentUser.role === 'admin' ? 'Admin' : 'Staff',
                 senderName: currentUser.name //  Sending name to prevent DB lookups!
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
             setNewMessage('');

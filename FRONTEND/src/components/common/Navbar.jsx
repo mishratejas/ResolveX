@@ -110,6 +110,18 @@ const Navbar = ({
   }, []);
 
   const handleLogout = () => {
+    // Fire the matching backend logout so the HttpOnly refresh cookie for
+    // whichever role is active actually gets cleared. Previously this only
+    // cleared localStorage, leaving the refresh cookie alive in the browser.
+    const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const logoutEndpoint =
+      userRole === 'admin' ? '/api/admin/logout' :
+      userRole === 'staff' ? '/api/staff/logout' :
+      userRole === 'user' ? '/api/users/logout' : null;
+    if (logoutEndpoint) {
+      fetch(`${BASE}${logoutEndpoint}`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    }
+
     localStorage.removeItem('adminToken');
     localStorage.removeItem('staffToken');
     localStorage.removeItem('accessToken');

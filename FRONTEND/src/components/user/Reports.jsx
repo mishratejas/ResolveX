@@ -9,7 +9,7 @@ import {
   ThumbsUp, Target, TrendingUp, ChevronUp, ChevronDown,
   Plus, Share2, Search
 } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -24,15 +24,12 @@ const Reports = () => {
   const [leaderSearch, setLeaderSearch] = useState('');
   const [leaderSort, setLeaderSort] = useState('reported');
 
-  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { if (selectedWorkspace) loadAll(); }, [selectedWorkspace]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       const currentWorkspace = JSON.parse(localStorage.getItem('currentWorkspace') || 'null');
 
       const params = {};
@@ -40,15 +37,9 @@ const Reports = () => {
       else if (currentWorkspace?.id) params.workspaceId = currentWorkspace.id;
 
       const [myRes, allRes, wsRes] = await Promise.all([
-        axios.get(`${BASE_URL}/api/user_issues/my`, {
-          params, headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${BASE_URL}/api/user_issues`, {
-          params, headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${BASE_URL}/api/users/my-workspaces`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
+        axiosInstance.get(`/api/user_issues/my`, { params }),
+        axiosInstance.get(`/api/user_issues`, { params }),
+        axiosInstance.get(`/api/users/my-workspaces`),
       ]);
 
       if (myRes.data.success) setMyComplaints(myRes.data.data || []);
